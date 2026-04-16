@@ -1,0 +1,8 @@
+node_modules/
+build/
+*.tsbuildinfo
+.DS_Store
+*.xcworkspace
+*.xcodeproj
+menubar/Derived/
+menubar/DerivedData/

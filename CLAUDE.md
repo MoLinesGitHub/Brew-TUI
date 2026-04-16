@@ -1,0 +1,76 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+## Commands
+
+```bash
+npm run dev          # Run with tsx (requires interactive terminal)
+npm run build        # Build ESM bundle to ./build via tsup
+npm run typecheck    # tsc --noEmit
+npm run test         # vitest run
+npm run test:watch   # vitest watch mode
+npm run lint         # eslint src/
+```
+
+After build: `node bin/brew-tui.js` or `./bin/brew-tui.js` launches the TUI.
+
+CLI subcommands (run without launching TUI):
+```bash
+brew-tui activate <key>   # Activate Pro license via LemonSqueezy
+brew-tui deactivate        # Deactivate license on this machine
+brew-tui status            # Show current license status
+```
+
+## Architecture
+
+**brew-tui** is a visual TUI for Homebrew built with React 18 + Ink 5.x (terminal renderer). ESM-only (`"type": "module"`), TypeScript strict mode.
+
+### Data Flow
+
+```
+Views (React) → Stores (Zustand) → brew-api → Parsers → brew-cli (spawn)
+```
+
+- **`src/lib/brew-cli.ts`** — Two primitives: `execBrew()` for instant commands returning stdout, `streamBrew()` as an AsyncGenerator yielding lines for long-running operations (install/upgrade). Both set `HOMEBREW_NO_AUTO_UPDATE=1`.
+- **`src/lib/parsers/`** — `json-parser.ts` handles `brew info/outdated/services --json`, `text-parser.ts` handles `brew search/doctor/config` text output.
+- **`src/lib/brew-api.ts`** — Typed high-level API combining CLI + parsers. Also has `formulaeToListItems()`/`casksToListItems()` converters for normalized display.
+- **`src/stores/brew-store.ts`** — Zustand store holding all Homebrew data with per-key `loading`/`errors` maps. `fetchAll()` runs parallel fetches on startup.
+- **`src/stores/navigation-store.ts`** — Current view, history stack, selected package. `VIEWS` array defines the ordered view list for tab cycling.
+
+### Navigation & Keyboard
+
+Global keys are in `src/hooks/use-keyboard.ts` via Ink's `useInput`: `1-0` jump to views, `Tab`/`Shift+Tab` cycle, `q` quits, `Esc` goes back. Each view adds local keys (j/k scroll, Enter select, / search, action-specific shortcuts).
+
+### Views
+
+12 views routed in `src/app.tsx` via a switch on `currentView` from the navigation store. Each view manages its own `useInput` handler and fetches data on mount via the brew store or direct API calls. Pro views (profiles, smart-cleanup, history, security-audit) are gated in `app.tsx` — if not Pro, `UpgradePrompt` renders instead.
+
+### UI Components
+
+All rendering via Ink's `<Box>` (flexbox) and `<Text>`. `@inkjs/ui` provides `TextInput` (uncontrolled: uses `defaultValue`, not `value`) and `Spinner`. Shared components in `src/components/common/` (StatusBadge, StatCard, ProgressLog, ConfirmDialog, Loading).
+
+## Key Conventions
+
+- All imports use `.js` extensions (ESM requirement with NodeNext resolution)
+- `@inkjs/ui` `TextInput` is **uncontrolled** — use `defaultValue` + `onChange`/`onSubmit`, not `value`
+- Zustand stores accessed directly via `useXxxStore()` hooks, no React Context
+- Streaming operations (install, upgrade) use `useBrewStream` hook wrapping the AsyncGenerator
+- Types for Homebrew JSON responses are in `src/lib/types.ts`, verified against real Homebrew 5.1.6 output
+- Each Pro feature has its own `src/lib/<feature>/types.ts` — avoid putting feature-specific types in main types.ts
+
+## Freemium Model
+
+- **Licensing:** LemonSqueezy API (`src/lib/license/`). License stored at `~/.brew-tui/license.json`. Revalidates every 24h with 7-day offline grace period.
+- **Feature gating:** `src/lib/license/feature-gate.ts` defines which ViewIds are Pro. `app.tsx` checks `isPro()` before rendering Pro views.
+- **Pro features:** Profiles (`src/lib/profiles/`), Smart Cleanup (`src/lib/cleanup/`), History (`src/lib/history/`), Security Audit (`src/lib/security/` via OSV.dev API).
+- **Data directory:** `~/.brew-tui/` managed by `src/lib/data-dir.ts` (license.json, profiles/, history.json)
+
+## Adding a New View
+
+1. Add the ViewId to the union in `src/lib/types.ts`
+2. Add it to `VIEWS` array in `src/stores/navigation-store.ts`
+3. Create the view component in `src/views/`
+4. Add the route case in `src/app.tsx`'s switch
+5. Add keybinding hints in `src/components/layout/footer.tsx`
+6. Add the label in `src/components/layout/header.tsx`

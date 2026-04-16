@@ -1,0 +1,136 @@
+import React, { useState, useMemo, useEffect } from 'react';
+import { Box, Text, useInput } from 'ink';
+import { useBrewStore } from '../stores/brew-store.js';
+import { useNavigationStore } from '../stores/navigation-store.js';
+import { useDebounce } from '../hooks/use-debounce.js';
+import { formulaeToListItems, casksToListItems } from '../lib/brew-api.js';
+import { SearchInput } from '../components/common/search-input.js';
+import { StatusBadge } from '../components/common/status-badge.js';
+import { Loading } from '../components/common/loading.js';
+import { truncate } from '../utils/format.js';
+import type { PackageListItem } from '../lib/types.js';
+
+export function InstalledView() {
+  const { formulae, casks, loading, fetchInstalled } = useBrewStore();
+  const navigate = useNavigationStore((s) => s.navigate);
+  const selectPackage = useNavigationStore((s) => s.selectPackage);
+
+  const [filter, setFilter] = useState('');
+  const [cursor, setCursor] = useState(0);
+  const [tab, setTab] = useState<'formulae' | 'casks'>('formulae');
+  const [isSearching, setIsSearching] = useState(false);
+  const debouncedFilter = useDebounce(filter, 200);
+
+  useEffect(() => { fetchInstalled(); }, []);
+
+  const allItems: PackageListItem[] = useMemo(() => {
+    const items = tab === 'formulae'
+      ? formulaeToListItems(formulae)
+      : casksToListItems(casks);
+
+    if (!debouncedFilter) return items;
+    const lower = debouncedFilter.toLowerCase();
+    return items.filter((p) =>
+      p.name.toLowerCase().includes(lower) || p.desc.toLowerCase().includes(lower)
+    );
+  }, [formulae, casks, tab, debouncedFilter]);
+
+  useInput((input, key) => {
+    if (isSearching) {
+      if (key.escape) {
+        setIsSearching(false);
+        setFilter('');
+      }
+      return;
+    }
+
+    if (input === '/') {
+      setIsSearching(true);
+      return;
+    }
+
+    if (input === 'j' || key.downArrow) {
+      setCursor((c) => Math.min(c + 1, allItems.length - 1));
+    } else if (input === 'k' || key.upArrow) {
+      setCursor((c) => Math.max(c - 1, 0));
+    } else if (input === 'g') {
+      setCursor(0);
+    } else if (input === 'G') {
+      setCursor(Math.max(allItems.length - 1, 0));
+    } else if (key.return && allItems[cursor]) {
+      selectPackage(allItems[cursor].name);
+      navigate('package-info');
+    } else if (input === 'f') {
+      setTab((t) => t === 'formulae' ? 'casks' : 'formulae');
+      setCursor(0);
+    }
+  }, { isActive: true });
+
+  if (loading.installed) return <Loading message="Loading installed packages..." />;
+
+  const maxVisible = 20;
+  const start = Math.max(0, cursor - Math.floor(maxVisible / 2));
+  const visible = allItems.slice(start, start + maxVisible);
+
+  return (
+    <Box flexDirection="column">
+      <Box gap={2} marginBottom={1}>
+        <Text
+          bold={tab === 'formulae'}
+          color={tab === 'formulae' ? 'cyan' : 'gray'}
+          underline={tab === 'formulae'}
+        >
+          Formulae ({formulae.length})
+        </Text>
+        <Text
+          bold={tab === 'casks'}
+          color={tab === 'casks' ? 'magenta' : 'gray'}
+          underline={tab === 'casks'}
+        >
+          Casks ({casks.length})
+        </Text>
+        <Text color="gray" italic>  f:toggle</Text>
+      </Box>
+
+      {isSearching && (
+        <Box marginBottom={1}>
+          <SearchInput defaultValue={filter} onChange={setFilter} isActive={isSearching} />
+        </Box>
+      )}
+
+      {!isSearching && filter && (
+        <Text color="gray" italic>Filter: "{filter}" ({allItems.length} matches)</Text>
+      )}
+
+      <Box flexDirection="column">
+        {visible.map((item, i) => {
+          const idx = start + i;
+          const isCurrent = idx === cursor;
+          return (
+            <Box key={item.name} gap={1}>
+              <Text color={isCurrent ? 'cyan' : 'white'}>{isCurrent ? '\u276F' : ' '}</Text>
+              <Text bold={isCurrent} color={isCurrent ? 'white' : 'gray'}>
+                {item.name}
+              </Text>
+              <Text color="green">{item.version}</Text>
+              {item.outdated && <StatusBadge label="outdated" variant="warning" />}
+              {item.pinned && <StatusBadge label="pinned" variant="info" />}
+              {item.kegOnly && <StatusBadge label="keg-only" variant="muted" />}
+              {item.installedAsDependency && <StatusBadge label="dep" variant="muted" />}
+              <Text color="gray">{truncate(item.desc, 40)}</Text>
+            </Box>
+          );
+        })}
+      </Box>
+
+      <Box marginTop={1}>
+        <Text color="gray">
+          {allItems.length > 0
+            ? `${cursor + 1}/${allItems.length}`
+            : 'No packages found'}
+          {' '}{'\u2502'} /:search f:toggle enter:info
+        </Text>
+      </Box>
+    </Box>
+  );
+}

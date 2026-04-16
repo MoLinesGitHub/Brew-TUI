@@ -1,0 +1,47 @@
+{
+  "name": "brew-tui",
+  "version": "0.1.0",
+  "description": "Brew-TUI — Visual TUI for Homebrew package management",
+  "type": "module",
+  "bin": {
+    "brew-tui": "./bin/brew-tui.js"
+  },
+  "main": "./build/index.js",
+  "scripts": {
+    "dev": "tsx src/index.tsx",
+    "build": "tsup",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "eslint src/",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "homebrew",
+    "brew",
+    "tui",
+    "terminal",
+    "cli",
+    "package-manager"
+  ],
+  "license": "MIT",
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@inkjs/ui": "^2.0.0",
+    "ink": "^5.2.1",
+    "react": "^18.3.1",
+    "zustand": "^5.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/react": "^18.3.0",
+    "eslint": "^9.0.0",
+    "ink-testing-library": "^4.0.0",
+    "prettier": "^3.4.0",
+    "tsup": "^8.4.0",
+    "tsx": "^4.19.0",
+    "typescript": "~5.8.0",
+    "vitest": "^3.0.0"
+  }
+}

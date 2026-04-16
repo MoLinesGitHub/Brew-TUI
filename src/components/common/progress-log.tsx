@@ -1,0 +1,31 @@
+import React from 'react';
+import { Box, Text } from 'ink';
+import { Spinner } from '@inkjs/ui';
+
+interface ProgressLogProps {
+  lines: string[];
+  isRunning: boolean;
+  title?: string;
+  maxVisible?: number;
+}
+
+export function ProgressLog({ lines, isRunning, title, maxVisible = 15 }: ProgressLogProps) {
+  const visible = lines.slice(-maxVisible);
+
+  return (
+    <Box flexDirection="column" borderStyle="single" paddingX={1}>
+      {title && (
+        <Box marginBottom={1}>
+          {isRunning && <Spinner label="" />}
+          <Text bold color="cyan"> {title}</Text>
+        </Box>
+      )}
+      {visible.map((line, i) => (
+        <Text key={i} color="gray" wrap="truncate">{line}</Text>
+      ))}
+      {lines.length === 0 && !isRunning && (
+        <Text color="gray" italic>No output yet</Text>
+      )}
+    </Box>
+  );
+}

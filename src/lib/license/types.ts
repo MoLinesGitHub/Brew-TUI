@@ -1,0 +1,47 @@
+export interface LicenseData {
+  key: string;
+  instanceId: string;
+  status: 'active' | 'expired' | 'inactive';
+  customerEmail: string;
+  customerName: string;
+  plan: 'monthly' | 'yearly';
+  activatedAt: string;
+  expiresAt: string | null;
+  lastValidatedAt: string;
+}
+
+export interface LicenseFile {
+  version: 1;
+  license: LicenseData | null;
+}
+
+export type LicenseStatus = 'free' | 'pro' | 'expired' | 'validating';
+
+export interface LemonSqueezyActivateResponse {
+  activated: boolean;
+  error: string | null;
+  license_key: {
+    id: number;
+    status: string;
+    key: string;
+    activation_limit: number;
+    activations_count: number;
+    expires_at: string | null;
+  };
+  instance: { id: string };
+  meta: { customer_name: string; customer_email: string };
+}
+
+export interface LemonSqueezyValidateResponse {
+  valid: boolean;
+  error: string | null;
+  license_key: {
+    id: number;
+    status: string;
+    key: string;
+    expires_at: string | null;
+  };
+  instance: { id: string };
+}
+
+export type ProFeatureId = 'profiles' | 'smart-cleanup' | 'history' | 'security-audit';

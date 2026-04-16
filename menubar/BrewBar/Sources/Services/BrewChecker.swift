@@ -1,30 +1,49 @@
 import Foundation
 
 struct BrewChecker: Sendable {
-    private static let brewPath = "/opt/homebrew/bin/brew"
+    /// Resolved at init time so every call uses the same executable.
+    private let brewPath: String
+
+    init() {
+        // Apple Silicon default; fall back to Intel/Homebrew-on-Linux paths.
+        let candidates = [
+            "/opt/homebrew/bin/brew",
+            "/usr/local/bin/brew",
+            "/home/linuxbrew/.linuxbrew/bin/brew",
+        ]
+        brewPath = candidates.first {
+            FileManager.default.isExecutableFile(atPath: $0)
+        } ?? candidates[0]
+    }
 
     private func run(_ arguments: [String]) async throws -> Data {
-        let process = Process()
-        let pipe = Pipe()
+        try await withCheckedThrowingContinuation { continuation in
+            let process = Process()
+            let pipe = Pipe()
 
-        process.executableURL = URL(fileURLWithPath: Self.brewPath)
-        process.arguments = arguments
-        process.standardOutput = pipe
-        process.standardError = FileHandle.nullDevice
-        process.environment = ProcessInfo.processInfo.environment.merging(
-            ["HOMEBREW_NO_AUTO_UPDATE": "1"]
-        ) { _, new in new }
+            process.executableURL = URL(fileURLWithPath: brewPath)
+            process.arguments = arguments
+            process.standardOutput = pipe
+            process.standardError = FileHandle.nullDevice
+            process.environment = ProcessInfo.processInfo.environment.merging(
+                ["HOMEBREW_NO_AUTO_UPDATE": "1"]
+            ) { _, new in new }
 
-        try process.run()
-        process.waitUntilExit()
+            process.terminationHandler = { proc in
+                let data = pipe.fileHandleForReading.readDataToEndOfFile()
+                if proc.terminationStatus == 0 {
+                    continuation.resume(returning: data)
+                } else {
+                    continuation.resume(throwing: BrewError.processExited(proc.terminationStatus))
+                }
+            }
 
-        let data = pipe.fileHandleForReading.readDataToEndOfFile()
-
-        guard process.terminationStatus == 0 else {
-            throw BrewError.processExited(process.terminationStatus)
+            do {
+                try process.run()
+            } catch {
+                continuation.resume(throwing: error)
+            }
         }
-
-        return data
     }
 
     func checkOutdated() async throws -> OutdatedResponse {
@@ -52,7 +71,7 @@ enum BrewError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .processExited(let code):
-            "brew exited with code \(code)"
+            String(localized: "brew exited with code \(code)")
         }
     }
 }

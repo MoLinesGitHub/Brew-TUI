@@ -6,6 +6,7 @@ interface ProfileState {
   profileNames: string[];
   selectedProfile: Profile | null;
   loading: boolean;
+  loadError: string | null;
 
   fetchProfiles: () => Promise<void>;
   loadProfile: (name: string) => Promise<void>;
@@ -17,6 +18,7 @@ export const useProfileStore = create<ProfileState>((set) => ({
   profileNames: [],
   selectedProfile: null,
   loading: false,
+  loadError: null,
 
   fetchProfiles: async () => {
     set({ loading: true });
@@ -25,15 +27,25 @@ export const useProfileStore = create<ProfileState>((set) => ({
   },
 
   loadProfile: async (name) => {
-    const profile = await manager.loadProfile(name);
-    set({ selectedProfile: profile });
+    set({ loadError: null });
+    try {
+      const profile = await manager.loadProfile(name);
+      set({ selectedProfile: profile });
+    } catch (err) {
+      set({ loadError: err instanceof Error ? err.message : String(err) });
+    }
   },
 
   exportCurrent: async (name, description) => {
-    set({ loading: true });
-    await manager.exportCurrentSetup(name, description);
-    const names = await manager.listProfiles();
-    set({ profileNames: names, loading: false });
+    set({ loading: true, loadError: null });
+    try {
+      await manager.exportCurrentSetup(name, description);
+      const names = await manager.listProfiles();
+      set({ profileNames: names, loading: false });
+    } catch (err) {
+      set({ loading: false, loadError: err instanceof Error ? err.message : String(err) });
+      throw err;
+    }
   },
 
   deleteProfile: async (name) => {

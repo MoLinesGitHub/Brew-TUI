@@ -1,5 +1,7 @@
 import { useInput } from 'ink';
 import { useNavigationStore, getNextView, getPrevView } from '../stores/navigation-store.js';
+import { useLocaleStore } from '../i18n/index.js';
+import { useModalStore } from '../stores/modal-store.js';
 import type { ViewId } from '../lib/types.js';
 
 const VIEW_KEYS: Record<string, ViewId> = {
@@ -19,9 +21,15 @@ export function useGlobalKeyboard(opts?: { onQuit?: () => void; disabled?: boole
   const navigate = useNavigationStore((s) => s.navigate);
   const currentView = useNavigationStore((s) => s.currentView);
   const goBack = useNavigationStore((s) => s.goBack);
+  const { locale, setLocale } = useLocaleStore();
+  const modalOpen = useModalStore((s) => s.isOpen);
 
   useInput((input, key) => {
     if (opts?.disabled) return;
+
+    // When a confirm dialog is open, suppress navigation/quit so only the
+    // dialog's own useInput handler handles the keypress.
+    if (modalOpen) return;
 
     if (input === 'q' || (key.ctrl && input === 'c')) {
       opts?.onQuit?.();
@@ -39,6 +47,11 @@ export function useGlobalKeyboard(opts?: { onQuit?: () => void; disabled?: boole
     }
     if (key.tab) {
       navigate(getNextView(currentView));
+      return;
+    }
+
+    if (input === 'L') {
+      setLocale(locale === 'en' ? 'es' : 'en');
       return;
     }
 

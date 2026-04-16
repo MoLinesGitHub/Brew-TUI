@@ -1,6 +1,7 @@
 import React from 'react';
 import { Box, Text } from 'ink';
 import { Spinner } from '@inkjs/ui';
+import { t } from '../../i18n/index.js';
 
 interface ProgressLogProps {
   lines: string[];
@@ -24,7 +25,7 @@ export function ProgressLog({ lines, isRunning, title, maxVisible = 15 }: Progre
         <Text key={i} color="gray" wrap="truncate">{line}</Text>
       ))}
       {lines.length === 0 && !isRunning && (
-        <Text color="gray" italic>No output yet</Text>
+        <Text color="gray" italic>{t('progress_noOutput')}</Text>
       )}
     </Box>
   );

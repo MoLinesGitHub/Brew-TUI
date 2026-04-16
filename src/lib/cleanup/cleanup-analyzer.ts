@@ -41,7 +41,6 @@ export async function analyzeCleanup(
   }
 
   // Find orphans: installed as dependency but not a leaf and has 0 reverse deps from installed packages
-  const installedNames = new Set(formulae.map((f) => f.name));
   const orphans: string[] = [];
 
   for (const f of formulae) {
@@ -50,7 +49,6 @@ export async function analyzeCleanup(
 
     if (installed.installed_as_dependency && !installed.installed_on_request && !leavesSet.has(f.name)) {
       // Check if any installed package still depends on this
-      const activeReverseDeps = f.dependencies.filter((d) => installedNames.has(d)).length;
       // Actually, we need to check if any installed package lists THIS package as a dependency
       let isNeeded = false;
       for (const other of formulae) {
@@ -76,7 +74,6 @@ export async function analyzeCleanup(
       batch.map(async (name) => {
         const cellarPath = await getCellarPath(name);
         const bytes = cellarPath ? await getDiskUsage(cellarPath) : 0;
-        const formula = formulae.find((f) => f.name === name);
         return {
           name,
           reason: 'orphan' as const,

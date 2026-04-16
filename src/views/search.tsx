@@ -1,11 +1,12 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { Box, Text, useInput } from 'ink';
 import { TextInput } from '@inkjs/ui';
-import { useDebounce } from '../hooks/use-debounce.js';
 import { useBrewStream } from '../hooks/use-brew-stream.js';
 import { Loading } from '../components/common/loading.js';
 import { ProgressLog } from '../components/common/progress-log.js';
 import { ConfirmDialog } from '../components/common/confirm-dialog.js';
+import { t } from '../i18n/index.js';
+import { useModalStore } from '../stores/modal-store.js';
 import * as api from '../lib/brew-api.js';
 
 export function SearchView() {
@@ -15,6 +16,17 @@ export function SearchView() {
   const [cursor, setCursor] = useState(0);
   const [confirmInstall, setConfirmInstall] = useState<string | null>(null);
   const stream = useBrewStream();
+  const { openModal, closeModal } = useModalStore();
+
+  // Suppress global Escape while results are showing so Escape clears results
+  // rather than navigating away from this view.
+  useEffect(() => {
+    if (results !== null) {
+      openModal();
+      return () => { closeModal(); };
+    }
+    return undefined;
+  }, [results]);
 
   const doSearch = useCallback(async (term: string) => {
     if (term.length < 2) return;
@@ -23,8 +35,11 @@ export function SearchView() {
       const r = await api.search(term);
       setResults(r);
       setCursor(0);
-    } catch {
+    } catch (err) {
       setResults({ formulae: [], casks: [] });
+      // Search failed (network error, brew not found, etc.)
+      // Results are cleared so the UI shows "no results" rather than stale data
+      void err;
     } finally {
       setSearching(false);
     }
@@ -36,7 +51,7 @@ export function SearchView() {
     if (confirmInstall || stream.isRunning) return;
 
     if (key.return && !results) {
-      doSearch(query);
+      void doSearch(query);
       return;
     }
 
@@ -46,7 +61,7 @@ export function SearchView() {
     }
 
     if (input === 'j' || key.downArrow) {
-      setCursor((c) => Math.min(c + 1, allResults.length - 1));
+      setCursor((c) => Math.min(c + 1, Math.max(0, allResults.length - 1)));
     } else if (input === 'k' || key.upArrow) {
       setCursor((c) => Math.max(c - 1, 0));
     } else if (key.escape) {
@@ -61,12 +76,12 @@ export function SearchView() {
         <ProgressLog
           lines={stream.lines}
           isRunning={stream.isRunning}
-          title={`Installing package...`}
+          title={t('search_installing')}
         />
         {!stream.isRunning && (
           <Box marginTop={1}>
             <Text color={stream.error ? 'red' : 'green'} bold>
-              {stream.error ? `\u2718 ${stream.error}` : '\u2714 Installation complete!'}
+              {stream.error ? `\u2718 ${stream.error}` : `\u2714 ${t('search_installComplete')}`}
             </Text>
           </Box>
         )}
@@ -80,25 +95,25 @@ export function SearchView() {
         <Text color="cyan">{'\u{1F50D}'} </Text>
         {!results ? (
           <TextInput
-            placeholder="Search Homebrew packages... (enter to search)"
+            placeholder={t('search_placeholder')}
             defaultValue={query}
             onChange={setQuery}
-            onSubmit={() => doSearch(query)}
+            onSubmit={() => void doSearch(query)}
           />
         ) : (
-          <Text>Results for "<Text bold color="white">{query}</Text>" <Text color="gray">(esc to clear)</Text></Text>
+          <Text>{t('search_resultsFor')} "<Text bold color="white">{query}</Text>" <Text color="gray">{t('search_escToClear')}</Text></Text>
         )}
       </Box>
 
-      {searching && <Loading message="Searching..." />}
+      {searching && <Loading message={t('loading_searching')} />}
 
       {confirmInstall && (
         <ConfirmDialog
-          message={`Install ${confirmInstall}?`}
+          message={t('search_confirmInstall', { name: confirmInstall })}
           onConfirm={() => {
             const name = confirmInstall;
             setConfirmInstall(null);
-            stream.run(['install', name]);
+            void stream.run(['install', name]);
           }}
           onCancel={() => setConfirmInstall(null)}
         />
@@ -108,7 +123,7 @@ export function SearchView() {
         <Box flexDirection="column">
           {results.formulae.length > 0 && (
             <Box flexDirection="column" marginBottom={1}>
-              <Text bold color="cyan">=== Formulae ({results.formulae.length})</Text>
+              <Text bold color="cyan">{t('search_formulaeHeader', { count: results.formulae.length })}</Text>
               {results.formulae.slice(0, 20).map((name, i) => {
                 const isCurrent = i === cursor;
                 return (
@@ -123,7 +138,7 @@ export function SearchView() {
 
           {results.casks.length > 0 && (
             <Box flexDirection="column">
-              <Text bold color="magenta">=== Casks ({results.casks.length})</Text>
+              <Text bold color="magenta">{t('search_casksHeader', { count: results.casks.length })}</Text>
               {results.casks.slice(0, 20).map((name, i) => {
                 const idx = results.formulae.length + i;
                 const isCurrent = idx === cursor;
@@ -138,13 +153,13 @@ export function SearchView() {
           )}
 
           {allResults.length === 0 && (
-            <Text color="gray" italic>No results found</Text>
+            <Text color="gray" italic>{t('search_noResults')}</Text>
           )}
 
           <Box marginTop={1}>
             <Text color="gray">
               {allResults.length > 0 ? `${cursor + 1}/${allResults.length}` : ''}
-              {' '}{'\u2502'} enter:install esc:clear
+              {' '}{'\u2502'} enter:{t('hint_install')} esc:{t('hint_clear')}
             </Text>
           </Box>
         </Box>

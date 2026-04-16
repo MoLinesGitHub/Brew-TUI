@@ -1,23 +1,36 @@
 import type { BrewInfoResponse, BrewOutdatedResponse, BrewService, Formula, Cask, OutdatedPackage } from '../types.js';
 
+function safeParse<T>(raw: string, context: string): T {
+  try {
+    const result = JSON.parse(raw);
+    if (result === null || result === undefined) {
+      throw new Error(`${context} returned null or empty response`);
+    }
+    return result as T;
+  } catch (err) {
+    throw new Error(`Failed to parse ${context} JSON: ${err instanceof Error ? err.message : String(err)}`);
+  }
+}
+
 export function parseInstalledJson(raw: string): { formulae: Formula[]; casks: Cask[] } {
-  const data = JSON.parse(raw) as BrewInfoResponse;
+  const data = safeParse<BrewInfoResponse>(raw, 'brew info --installed');
   return {
-    formulae: data.formulae ?? [],
-    casks: data.casks ?? [],
+    formulae: Array.isArray(data.formulae) ? data.formulae : [],
+    casks: Array.isArray(data.casks) ? data.casks : [],
   };
 }
 
 export function parseOutdatedJson(raw: string): { formulae: OutdatedPackage[]; casks: OutdatedPackage[] } {
-  const data = JSON.parse(raw) as BrewOutdatedResponse;
+  const data = safeParse<BrewOutdatedResponse>(raw, 'brew outdated');
   return {
-    formulae: data.formulae ?? [],
-    casks: data.casks ?? [],
+    formulae: Array.isArray(data.formulae) ? data.formulae : [],
+    casks: Array.isArray(data.casks) ? data.casks : [],
   };
 }
 
 export function parseServicesJson(raw: string): BrewService[] {
-  const data = JSON.parse(raw) as BrewService[];
+  const data = safeParse<BrewService[]>(raw, 'brew services list');
+  if (!Array.isArray(data)) return [];
   return data.map((s) => ({
     name: s.name,
     status: s.status ?? 'none',
@@ -28,11 +41,6 @@ export function parseServicesJson(raw: string): BrewService[] {
 }
 
 export function parseFormulaInfoJson(raw: string): Formula | null {
-  const data = JSON.parse(raw) as BrewInfoResponse;
+  const data = safeParse<BrewInfoResponse>(raw, 'brew info');
   return data.formulae?.[0] ?? null;
-}
-
-export function parseCaskInfoJson(raw: string): Cask | null {
-  const data = JSON.parse(raw) as BrewInfoResponse;
-  return data.casks?.[0] ?? null;
 }

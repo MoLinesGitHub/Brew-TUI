@@ -24,7 +24,11 @@ export async function getFormulaInfo(name: string): Promise<Formula | null> {
 }
 
 export async function search(term: string): Promise<{ formulae: string[]; casks: string[] }> {
-  const raw = await execBrew(['search', term]);
+  // Strip leading dashes to prevent flag injection into `brew search`
+  // (e.g. "--desc" would be parsed by brew as an option, not a search term).
+  const safeTerm = term.replace(/^-+/, '');
+  if (!safeTerm) return { formulae: [], casks: [] };
+  const raw = await execBrew(['search', safeTerm]);
   return parseSearchResults(raw);
 }
 
@@ -64,13 +68,6 @@ export async function uninstallPackage(name: string): Promise<string> {
   return execBrew(['uninstall', name]);
 }
 
-export async function pinPackage(name: string): Promise<void> {
-  await execBrew(['pin', name]);
-}
-
-export async function unpinPackage(name: string): Promise<void> {
-  await execBrew(['unpin', name]);
-}
 
 export async function serviceAction(name: string, action: 'start' | 'stop' | 'restart'): Promise<string> {
   return execBrew(['services', action, name]);

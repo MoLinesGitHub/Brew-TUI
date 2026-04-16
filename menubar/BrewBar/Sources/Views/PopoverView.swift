@@ -100,7 +100,7 @@ struct PopoverView: View {
                 .font(.headline)
                 .foregroundStyle(.secondary)
             if let last = appState.lastChecked {
-                Text("Last checked \(last.formatted(.relative(presentation: .named)))")
+                Text("Last checked \(last, format: .relative(presentation: .named))")
                     .font(.caption2)
                     .foregroundStyle(.tertiary)
             }

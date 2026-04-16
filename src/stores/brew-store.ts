@@ -44,7 +44,10 @@ export const useBrewStore = create<BrewState>((set) => ({
   leaves: [],
   doctorWarnings: [],
   doctorClean: null,
-  loading: {},
+  // Pre-initialize loading flags for keys that fetchAll always triggers so
+  // views that check loading.X get a spinner on first render rather than
+  // flashing empty/zeroed content for one frame before the fetch starts.
+  loading: { installed: true, outdated: true, services: true, config: true, doctor: false },
   errors: {},
 
   fetchInstalled: async () => {
@@ -102,7 +105,13 @@ export const useBrewStore = create<BrewState>((set) => ({
     try {
       const result = await api.getLeaves();
       set({ leaves: result });
-    } catch { /* non-critical */ }
+    } catch (err) {
+      // Non-critical: leaves is used by cleanup analysis only.
+      // Log the error so failures are visible during development.
+      if (process.env.NODE_ENV !== 'production') {
+        console.error('[brew-store] fetchLeaves failed:', err instanceof Error ? err.message : String(err));
+      }
+    }
   },
 
   fetchDoctor: async () => {

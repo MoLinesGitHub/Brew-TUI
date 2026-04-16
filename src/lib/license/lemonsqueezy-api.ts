@@ -11,8 +11,15 @@ async function post<T>(endpoint: string, body: Record<string, string>): Promise<
   });
 
   if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`LemonSqueezy API error (${res.status}): ${text}`);
+    let message = `Request failed with status ${res.status}`;
+    try {
+      const body = await res.json() as { error?: string; message?: string };
+      if (typeof body.error === 'string') message = body.error;
+      else if (typeof body.message === 'string') message = body.message;
+    } catch {
+      // non-JSON error body — use generic message above
+    }
+    throw new Error(message);
   }
 
   return res.json() as Promise<T>;

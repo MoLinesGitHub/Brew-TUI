@@ -1,6 +1,7 @@
 import React from 'react';
 import { Box, Text } from 'ink';
 import { TextInput } from '@inkjs/ui';
+import { t } from '../../i18n/index.js';
 
 interface SearchInputProps {
   defaultValue?: string;
@@ -9,13 +10,14 @@ interface SearchInputProps {
   isActive?: boolean;
 }
 
-export function SearchInput({ defaultValue, onChange, placeholder = 'Type to filter...', isActive = true }: SearchInputProps) {
+export function SearchInput({ defaultValue, onChange, placeholder, isActive = true }: SearchInputProps) {
+  const resolvedPlaceholder = placeholder ?? t('searchInput_placeholder');
   return (
     <Box>
       <Text color="cyan">{'\u{1F50D}'} </Text>
       {isActive ? (
         <TextInput
-          placeholder={placeholder}
+          placeholder={resolvedPlaceholder}
           defaultValue={defaultValue}
           onChange={onChange}
         />

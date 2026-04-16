@@ -6,7 +6,7 @@ struct OutdatedListView: View {
     var body: some View {
         VStack(spacing: 0) {
             HStack {
-                Text("\(appState.outdatedCount) update\(appState.outdatedCount == 1 ? "" : "s") available")
+                Text("\(appState.outdatedCount) updates available")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                 Spacer()

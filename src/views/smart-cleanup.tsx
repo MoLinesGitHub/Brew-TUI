@@ -2,14 +2,14 @@ import React, { useEffect, useState } from 'react';
 import { Box, Text, useInput } from 'ink';
 import { useCleanupStore } from '../stores/cleanup-store.js';
 import { useBrewStream } from '../hooks/use-brew-stream.js';
-import { Loading } from '../components/common/loading.js';
-import { ErrorMessage } from '../components/common/loading.js';
+import { Loading, ErrorMessage } from '../components/common/loading.js';
 import { ConfirmDialog } from '../components/common/confirm-dialog.js';
 import { ProgressLog } from '../components/common/progress-log.js';
 import { StatCard } from '../components/common/stat-card.js';
+import { t } from '../i18n/index.js';
 
 export function SmartCleanupView() {
-  const { summary, selected, loading, error, analyze, toggleSelect, selectAll, deselectAll } = useCleanupStore();
+  const { summary, selected, loading, error, analyze, toggleSelect, selectAll } = useCleanupStore();
   const [cursor, setCursor] = useState(0);
   const [confirmClean, setConfirmClean] = useState(false);
   const stream = useBrewStream();
@@ -21,7 +21,7 @@ export function SmartCleanupView() {
   useInput((input, key) => {
     if (confirmClean || stream.isRunning) return;
 
-    if (input === 'r') { analyze(); return; }
+    if (input === 'r') { void analyze(); return; }
     if (key.return && candidates[cursor]) {
       toggleSelect(candidates[cursor].name);
       return;
@@ -29,19 +29,19 @@ export function SmartCleanupView() {
     if (input === 'a') { selectAll(); return; }
     if (input === 'c' && selected.size > 0) { setConfirmClean(true); return; }
 
-    if (input === 'j' || key.downArrow) setCursor((c) => Math.min(c + 1, candidates.length - 1));
+    if (input === 'j' || key.downArrow) setCursor((c) => Math.min(c + 1, Math.max(0, candidates.length - 1)));
     else if (input === 'k' || key.upArrow) setCursor((c) => Math.max(c - 1, 0));
   });
 
-  if (loading) return <Loading message="Analyzing packages... (checking disk usage)" />;
+  if (loading) return <Loading message={t('loading_cleanup')} />;
   if (error) return <ErrorMessage message={error} />;
 
   if (stream.isRunning || stream.lines.length > 0) {
     return (
       <Box flexDirection="column">
-        <ProgressLog lines={stream.lines} isRunning={stream.isRunning} title="Cleaning up..." />
+        <ProgressLog lines={stream.lines} isRunning={stream.isRunning} title={t('cleanup_cleaning')} />
         {!stream.isRunning && (
-          <Text color="green" bold>{'\u2714'} Cleanup complete! Press r to re-analyze.</Text>
+          <Text color="green" bold>{'\u2714'} {t('cleanup_complete')}</Text>
         )}
       </Box>
     );
@@ -49,24 +49,24 @@ export function SmartCleanupView() {
 
   return (
     <Box flexDirection="column">
-      <Text bold>{'\u{1F9F9}'} Smart Cleanup</Text>
+      <Text bold>{'\u{1F9F9}'} {t('cleanup_title')}</Text>
 
       {summary && (
         <Box gap={1} marginY={1}>
-          <StatCard label="Orphans" value={candidates.length} color={candidates.length > 0 ? 'yellow' : 'green'} />
-          <StatCard label="Reclaimable" value={summary.totalReclaimableFormatted} color="cyan" />
-          <StatCard label="Selected" value={selected.size} color={selected.size > 0 ? 'green' : 'gray'} />
+          <StatCard label={t('cleanup_orphans')} value={candidates.length} color={candidates.length > 0 ? 'yellow' : 'green'} />
+          <StatCard label={t('cleanup_reclaimable')} value={summary.totalReclaimableFormatted} color="cyan" />
+          <StatCard label={t('cleanup_selected')} value={selected.size} color={selected.size > 0 ? 'green' : 'gray'} />
         </Box>
       )}
 
       {confirmClean && (
         <Box marginY={1}>
           <ConfirmDialog
-            message={`Uninstall ${selected.size} packages?`}
+            message={t('cleanup_confirmUninstall', { count: selected.size })}
             onConfirm={() => {
               setConfirmClean(false);
               const names = Array.from(selected);
-              stream.run(['uninstall', ...names]);
+              void stream.run(['uninstall', ...names]);
             }}
             onCancel={() => setConfirmClean(false)}
           />
@@ -74,7 +74,7 @@ export function SmartCleanupView() {
       )}
 
       {candidates.length === 0 && !confirmClean && (
-        <Text color="green" bold>{'\u2714'} No orphaned packages found. Your system is clean!</Text>
+        <Text color="green" bold>{'\u2714'} {t('cleanup_systemClean')}</Text>
       )}
 
       {candidates.length > 0 && !confirmClean && (
@@ -94,7 +94,7 @@ export function SmartCleanupView() {
           })}
           <Box marginTop={1}>
             <Text color="gray">
-              {cursor + 1}/{candidates.length} {'\u2502'} enter:toggle a:all c:clean r:refresh
+              {cursor + 1}/{candidates.length} {'\u2502'} enter:{t('hint_toggle')} a:{t('hint_all')} c:{t('hint_clean')} r:{t('hint_refresh')}
             </Text>
           </Box>
         </Box>

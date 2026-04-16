@@ -34,8 +34,11 @@
     "zustand": "^5.0.0"
   },
   "devDependencies": {
+    "@rollup/rollup-darwin-arm64": "^4.60.1",
     "@types/node": "^22.0.0",
     "@types/react": "^18.3.0",
+    "@typescript-eslint/eslint-plugin": "^8.58.0",
+    "@typescript-eslint/parser": "^8.58.0",
     "eslint": "^9.0.0",
     "ink-testing-library": "^4.0.0",
     "prettier": "^3.4.0",

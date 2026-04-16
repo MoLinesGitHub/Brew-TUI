@@ -1,12 +1,35 @@
 import { readFile, writeFile, readdir, rm } from 'node:fs/promises';
-import { join } from 'node:path';
+import { join, basename } from 'node:path';
 import { PROFILES_DIR, ensureDataDirs } from '../data-dir.js';
 import { execBrew, streamBrew } from '../brew-cli.js';
 import { getInstalled, getLeaves } from '../brew-api.js';
+import { t } from '../../i18n/index.js';
 import type { Profile, ProfileFile } from './types.js';
 
+/**
+ * Validate a profile name to prevent path traversal.
+ * Only allows alphanumeric characters, hyphens, underscores, and spaces.
+ * Throws if the name contains path separators or traversal sequences.
+ */
+const MAX_PROFILE_NAME_LENGTH = 100;
+
+function validateProfileName(name: string): void {
+  if (!name || name.trim().length === 0) {
+    throw new Error('Profile name cannot be empty');
+  }
+  if (name.length > MAX_PROFILE_NAME_LENGTH) {
+    throw new Error(`Profile name is too long (max ${MAX_PROFILE_NAME_LENGTH} characters)`);
+  }
+  if (!/^[\w\s-]+$/.test(name)) {
+    throw new Error(`Invalid profile name: "${name}". Only letters, numbers, spaces, hyphens, and underscores are allowed.`);
+  }
+}
+
 function profilePath(name: string): string {
-  return join(PROFILES_DIR, `${name}.json`);
+  validateProfileName(name);
+  // Use basename as an additional defense-in-depth guard: strips any directory
+  // component that might survive the regex check on edge-case OS behavior.
+  return join(PROFILES_DIR, `${basename(name)}.json`);
 }
 
 export async function listProfiles(): Promise<string[]> {
@@ -21,7 +44,15 @@ export async function listProfiles(): Promise<string[]> {
 
 export async function loadProfile(name: string): Promise<Profile> {
   const raw = await readFile(profilePath(name), 'utf-8');
-  const file = JSON.parse(raw) as ProfileFile;
+  let file: ProfileFile;
+  try {
+    file = JSON.parse(raw) as ProfileFile;
+  } catch (err) {
+    throw new Error(`Profile "${name}" is corrupted: ${err instanceof Error ? err.message : String(err)}`);
+  }
+  if (!file.profile) {
+    throw new Error(`Profile "${name}" is missing required data`);
+  }
   return file.profile;
 }
 
@@ -71,7 +102,7 @@ export async function* importProfile(profile: Profile): AsyncGenerator<string> {
 
   // Add missing taps
   for (const tap of profile.taps) {
-    yield `Tapping ${tap}...`;
+    yield t('profileMgr_tapping', { name: tap });
     try {
       await execBrew(['tap', tap]);
     } catch { /* may already be tapped */ }
@@ -80,7 +111,7 @@ export async function* importProfile(profile: Profile): AsyncGenerator<string> {
   // Install missing formulae
   const missingFormulae = profile.formulae.filter((f) => !installedFormulae.has(f));
   for (const name of missingFormulae) {
-    yield `Installing ${name}...`;
+    yield t('profileMgr_installing', { name });
     for await (const line of streamBrew(['install', name])) {
       yield line;
     }
@@ -89,12 +120,12 @@ export async function* importProfile(profile: Profile): AsyncGenerator<string> {
   // Install missing casks
   const missingCasks = profile.casks.filter((c) => !installedCasks.has(c));
   for (const name of missingCasks) {
-    yield `Installing cask ${name}...`;
+    yield t('profileMgr_installingCask', { name });
     for await (const line of streamBrew(['install', '--cask', name])) {
       yield line;
     }
   }
 
   const totalInstalled = missingFormulae.length + missingCasks.length;
-  yield `Done! Installed ${totalInstalled} packages.`;
+  yield t('profileMgr_importDone', { count: totalInstalled });
 }

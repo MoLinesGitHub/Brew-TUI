@@ -1,5 +1,4 @@
 import { readFile, writeFile, rename } from 'node:fs/promises';
-import { join, dirname } from 'node:path';
 import { HISTORY_PATH, ensureDataDirs } from '../data-dir.js';
 import type { HistoryEntry, HistoryFile, HistoryAction } from './types.js';
 
@@ -9,7 +8,8 @@ export async function loadHistory(): Promise<HistoryEntry[]> {
   try {
     const raw = await readFile(HISTORY_PATH, 'utf-8');
     const file = JSON.parse(raw) as HistoryFile;
-    return file.entries ?? [];
+    const entries = file.entries;
+    return Array.isArray(entries) ? entries : [];
   } catch {
     return [];
   }

@@ -2,21 +2,23 @@ import React from 'react';
 import { Box, Text } from 'ink';
 import { useNavigationStore } from '../../stores/navigation-store.js';
 import { isProView } from '../../lib/license/feature-gate.js';
+import { t, useLocaleStore } from '../../i18n/index.js';
 import type { ViewId } from '../../lib/types.js';
+import type { TranslationKey } from '../../i18n/en.js';
 
-const VIEW_LABELS: Record<ViewId, string> = {
-  dashboard: 'Dashboard',
-  installed: 'Installed',
-  search: 'Search',
-  outdated: 'Outdated',
-  'package-info': 'Pkg Info',
-  services: 'Services',
-  doctor: 'Doctor',
-  profiles: 'Profiles',
-  'smart-cleanup': 'Cleanup',
-  history: 'History',
-  'security-audit': 'Security',
-  account: 'Account',
+const VIEW_LABEL_KEYS: Record<ViewId, TranslationKey> = {
+  dashboard: 'view_dashboard',
+  installed: 'view_installed',
+  search: 'view_search',
+  outdated: 'view_outdated',
+  'package-info': 'view_packageInfo',
+  services: 'view_services',
+  doctor: 'view_doctor',
+  profiles: 'view_profiles',
+  'smart-cleanup': 'view_smartCleanup',
+  history: 'view_history',
+  'security-audit': 'view_securityAudit',
+  account: 'view_account',
 };
 
 const VIEW_KEYS: Record<ViewId, string> = {
@@ -34,14 +36,16 @@ const TAB_VIEWS: ViewId[] = [
 
 export function Header() {
   const currentView = useNavigationStore((s) => s.currentView);
+  useLocaleStore((s) => s.locale); // subscribe so header re-renders on locale change
 
   return (
     <Box borderStyle="single" borderBottom borderLeft={false} borderRight={false} borderTop={false} paddingX={1} flexWrap="wrap">
-      <Text bold color="green">{'\u{1F37A}'} Brew-TUI</Text>
+      <Text bold color="green">{'\u{1F37A}'} {t('app_title')}</Text>
       <Text> </Text>
       {TAB_VIEWS.map((view, i) => {
         const key = VIEW_KEYS[view];
-        const label = key ? `${key}:${VIEW_LABELS[view]}` : VIEW_LABELS[view];
+        const viewLabel = t(VIEW_LABEL_KEYS[view]);
+        const label = key ? `${key}:${viewLabel}` : viewLabel;
         const isPro = isProView(view);
 
         return (
@@ -54,7 +58,7 @@ export function Header() {
             >
               {label}
             </Text>
-            {isPro && <Text color="yellow" bold> PRO</Text>}
+            {isPro && <Text color="yellow" bold> {t('pro_badge')}</Text>}
           </React.Fragment>
         );
       })}

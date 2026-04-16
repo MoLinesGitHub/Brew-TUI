@@ -6,12 +6,14 @@ import { useDebounce } from '../hooks/use-debounce.js';
 import { formulaeToListItems, casksToListItems } from '../lib/brew-api.js';
 import { SearchInput } from '../components/common/search-input.js';
 import { StatusBadge } from '../components/common/status-badge.js';
-import { Loading } from '../components/common/loading.js';
+import { Loading, ErrorMessage } from '../components/common/loading.js';
 import { truncate } from '../utils/format.js';
+import { t } from '../i18n/index.js';
+import { useModalStore } from '../stores/modal-store.js';
 import type { PackageListItem } from '../lib/types.js';
 
 export function InstalledView() {
-  const { formulae, casks, loading, fetchInstalled } = useBrewStore();
+  const { formulae, casks, loading, errors, fetchInstalled } = useBrewStore();
   const navigate = useNavigationStore((s) => s.navigate);
   const selectPackage = useNavigationStore((s) => s.selectPackage);
 
@@ -20,8 +22,19 @@ export function InstalledView() {
   const [tab, setTab] = useState<'formulae' | 'casks'>('formulae');
   const [isSearching, setIsSearching] = useState(false);
   const debouncedFilter = useDebounce(filter, 200);
+  const { openModal, closeModal } = useModalStore();
 
   useEffect(() => { fetchInstalled(); }, []);
+
+  // While search bar is active, suppress global Escape so it only clears
+  // the search bar rather than navigating away from this view.
+  useEffect(() => {
+    if (isSearching) {
+      openModal();
+      return () => { closeModal(); };
+    }
+    return undefined;
+  }, [isSearching]);
 
   const allItems: PackageListItem[] = useMemo(() => {
     const items = tab === 'formulae'
@@ -50,7 +63,7 @@ export function InstalledView() {
     }
 
     if (input === 'j' || key.downArrow) {
-      setCursor((c) => Math.min(c + 1, allItems.length - 1));
+      setCursor((c) => Math.min(c + 1, Math.max(0, allItems.length - 1)));
     } else if (input === 'k' || key.upArrow) {
       setCursor((c) => Math.max(c - 1, 0));
     } else if (input === 'g') {
@@ -66,11 +79,12 @@ export function InstalledView() {
     }
   }, { isActive: true });
 
-  if (loading.installed) return <Loading message="Loading installed packages..." />;
+  if (loading.installed) return <Loading message={t('loading_installed')} />;
+  if (errors.installed) return <ErrorMessage message={errors.installed} />;
 
-  const maxVisible = 20;
-  const start = Math.max(0, cursor - Math.floor(maxVisible / 2));
-  const visible = allItems.slice(start, start + maxVisible);
+  const MAX_VISIBLE_ROWS = 20;
+  const start = Math.max(0, cursor - Math.floor(MAX_VISIBLE_ROWS / 2));
+  const visible = allItems.slice(start, start + MAX_VISIBLE_ROWS);
 
   return (
     <Box flexDirection="column">
@@ -80,16 +94,16 @@ export function InstalledView() {
           color={tab === 'formulae' ? 'cyan' : 'gray'}
           underline={tab === 'formulae'}
         >
-          Formulae ({formulae.length})
+          {t('installed_formulaeCount', { count: formulae.length })}
         </Text>
         <Text
           bold={tab === 'casks'}
           color={tab === 'casks' ? 'magenta' : 'gray'}
           underline={tab === 'casks'}
         >
-          Casks ({casks.length})
+          {t('installed_casksCount', { count: casks.length })}
         </Text>
-        <Text color="gray" italic>  f:toggle</Text>
+        <Text color="gray" italic>  f:{t('hint_toggle')}</Text>
       </Box>
 
       {isSearching && (
@@ -99,7 +113,7 @@ export function InstalledView() {
       )}
 
       {!isSearching && filter && (
-        <Text color="gray" italic>Filter: "{filter}" ({allItems.length} matches)</Text>
+        <Text color="gray" italic>{t('installed_filterDisplay', { query: filter, count: allItems.length })}</Text>
       )}
 
       <Box flexDirection="column">
@@ -113,10 +127,10 @@ export function InstalledView() {
                 {item.name}
               </Text>
               <Text color="green">{item.version}</Text>
-              {item.outdated && <StatusBadge label="outdated" variant="warning" />}
-              {item.pinned && <StatusBadge label="pinned" variant="info" />}
-              {item.kegOnly && <StatusBadge label="keg-only" variant="muted" />}
-              {item.installedAsDependency && <StatusBadge label="dep" variant="muted" />}
+              {item.outdated && <StatusBadge label={t('badge_outdated')} variant="warning" />}
+              {item.pinned && <StatusBadge label={t('badge_pinned')} variant="info" />}
+              {item.kegOnly && <StatusBadge label={t('badge_kegOnly')} variant="muted" />}
+              {item.installedAsDependency && <StatusBadge label={t('badge_dep')} variant="muted" />}
               <Text color="gray">{truncate(item.desc, 40)}</Text>
             </Box>
           );
@@ -127,8 +141,8 @@ export function InstalledView() {
         <Text color="gray">
           {allItems.length > 0
             ? `${cursor + 1}/${allItems.length}`
-            : 'No packages found'}
-          {' '}{'\u2502'} /:search f:toggle enter:info
+            : t('installed_noPackages')}
+          {' '}{'\u2502'} /:{t('hint_search')} f:{t('hint_toggle')} enter:{t('hint_info')}
         </Text>
       </Box>
     </Box>

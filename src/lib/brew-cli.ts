@@ -57,11 +57,19 @@ export async function* streamBrew(args: string[]): AsyncGenerator<string> {
     });
   });
 
-  while (!done || lines.length > 0) {
-    if (lines.length > 0) {
-      yield lines.shift()!;
-    } else if (!done) {
-      await new Promise((r) => setTimeout(r, 50));
+  try {
+    while (!done || lines.length > 0) {
+      if (lines.length > 0) {
+        yield lines.shift()!;
+      } else if (!done) {
+        await new Promise((r) => setTimeout(r, 50));
+      }
+    }
+  } finally {
+    // Kill the child process if the consumer abandoned the generator early
+    // (e.g. via break or component unmount triggering generator.return()).
+    if (!done) {
+      proc.kill();
     }
   }
 

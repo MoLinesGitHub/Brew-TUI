@@ -22,6 +22,7 @@ let project = Project(
             infoPlist: .extendingDefault(with: [
                 "LSUIElement": true,
                 "CFBundleDisplayName": "BrewBar",
+                "CFBundleDevelopmentRegion": "en",
                 "NSHumanReadableCopyright": "MoLines Designs",
             ]),
             sources: ["BrewBar/Sources/**"],

@@ -1,26 +1,52 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Box, Text, useInput } from 'ink';
 import { TextInput } from '@inkjs/ui';
 import { useProfileStore } from '../stores/profile-store.js';
-import { useBrewStream } from '../hooks/use-brew-stream.js';
 import { Loading } from '../components/common/loading.js';
 import { ConfirmDialog } from '../components/common/confirm-dialog.js';
 import { ProgressLog } from '../components/common/progress-log.js';
+import { t } from '../i18n/index.js';
+import { useModalStore } from '../stores/modal-store.js';
 import * as manager from '../lib/profiles/profile-manager.js';
 
 type Mode = 'list' | 'detail' | 'create-name' | 'create-desc' | 'importing';
 
 export function ProfilesView() {
-  const { profileNames, selectedProfile, loading, fetchProfiles, loadProfile, exportCurrent, deleteProfile } = useProfileStore();
+  const { profileNames, selectedProfile, loading, loadError, fetchProfiles, loadProfile, exportCurrent, deleteProfile } = useProfileStore();
   const [cursor, setCursor] = useState(0);
   const [mode, setMode] = useState<Mode>('list');
   const [newName, setNewName] = useState('');
-  const [newDesc, setNewDesc] = useState('');
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [importLines, setImportLines] = useState<string[]>([]);
   const [importRunning, setImportRunning] = useState(false);
+  const { openModal, closeModal } = useModalStore();
+  // Holds the active import generator so it can be cancelled on unmount,
+  // which terminates the underlying brew child process via streamBrew's finally block.
+  const importGenRef = useRef<AsyncGenerator<string> | null>(null);
+  const mountedRef = useRef(true);
 
   useEffect(() => { fetchProfiles(); }, []);
+
+  // Cancel any in-flight import when this view unmounts.
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      importGenRef.current?.return(undefined);
+      importGenRef.current = null;
+    };
+  }, []);
+
+  // Suppress global keys while in any sub-panel so Escape/q/numbers don't
+  // navigate away while the user is typing a name, typing a description,
+  // viewing detail, or watching an import stream.
+  useEffect(() => {
+    if (mode === 'detail' || mode === 'create-name' || mode === 'create-desc' || mode === 'importing') {
+      openModal();
+      return () => { closeModal(); };
+    }
+    return undefined;
+  }, [mode]);
 
   useInput((input, key) => {
     if (mode !== 'list' || confirmDelete) return;
@@ -28,24 +54,24 @@ export function ProfilesView() {
     if (input === 'n') { setMode('create-name'); return; }
     if (input === 'd' && profileNames[cursor]) { setConfirmDelete(true); return; }
     if (key.return && profileNames[cursor]) {
-      loadProfile(profileNames[cursor]);
+      void loadProfile(profileNames[cursor]);
       setMode('detail');
       return;
     }
     if (input === 'i' && profileNames[cursor]) {
-      startImport(profileNames[cursor]);
+      void startImport(profileNames[cursor]);
       return;
     }
 
-    if (input === 'j' || key.downArrow) setCursor((c) => Math.min(c + 1, profileNames.length - 1));
+    if (input === 'j' || key.downArrow) setCursor((c) => Math.min(c + 1, Math.max(0, profileNames.length - 1)));
     else if (input === 'k' || key.upArrow) setCursor((c) => Math.max(c - 1, 0));
   });
 
-  useInput((_input, key) => {
-    if (mode === 'detail' && key.escape) {
+  useInput((input, key) => {
+    if (key.escape || input === 'q') {
       setMode('list');
     }
-  });
+  }, { isActive: mode === 'detail' });
 
   const startImport = async (name: string) => {
     setMode('importing');
@@ -53,25 +79,33 @@ export function ProfilesView() {
     setImportRunning(true);
     try {
       const profile = await manager.loadProfile(name);
-      for await (const line of manager.importProfile(profile)) {
+      const gen = manager.importProfile(profile);
+      importGenRef.current = gen;
+      for await (const line of gen) {
+        if (!mountedRef.current) break;
         setImportLines((prev) => [...prev.slice(-99), line]);
       }
     } catch (err) {
-      setImportLines((prev) => [...prev, `Error: ${err instanceof Error ? err.message : err}`]);
+      if (mountedRef.current) {
+        setImportLines((prev) => [...prev, `${t('error_prefix')}${err instanceof Error ? err.message : err}`]);
+      }
     } finally {
-      setImportRunning(false);
+      importGenRef.current = null;
+      if (mountedRef.current) {
+        setImportRunning(false);
+      }
     }
   };
 
-  if (loading) return <Loading message="Loading profiles..." />;
+  if (loading) return <Loading message={t('loading_profiles')} />;
 
   if (mode === 'importing') {
     return (
       <Box flexDirection="column">
-        <ProgressLog lines={importLines} isRunning={importRunning} title="Importing profile..." />
+        <ProgressLog lines={importLines} isRunning={importRunning} title={t('profiles_importTitle')} />
         {!importRunning && (
           <Box marginTop={1}>
-            <Text color="green" bold>{'\u2714'} Import complete. Press any key.</Text>
+            <Text color="green" bold>{'\u2714'} {t('profiles_importComplete')}</Text>
           </Box>
         )}
       </Box>
@@ -81,9 +115,9 @@ export function ProfilesView() {
   if (mode === 'create-name') {
     return (
       <Box flexDirection="column">
-        <Text bold>Create Profile — Name:</Text>
+        <Text bold>{t('profiles_createName')}</Text>
         <TextInput
-          placeholder="e.g. work, personal, project-x"
+          placeholder={t('profiles_namePlaceholder')}
           onSubmit={(val) => { setNewName(val); setMode('create-desc'); }}
         />
       </Box>
@@ -93,15 +127,17 @@ export function ProfilesView() {
   if (mode === 'create-desc') {
     return (
       <Box flexDirection="column">
-        <Text bold>Create Profile "{newName}" — Description:</Text>
+        <Text bold>{t('profiles_createDesc', { name: newName })}</Text>
+        {loadError && <Text color="red">{t('error_prefix')}{loadError}</Text>}
         <TextInput
-          placeholder="Brief description of this setup"
+          placeholder={t('profiles_descPlaceholder')}
           onSubmit={async (val) => {
-            setNewDesc(val);
-            await exportCurrent(newName, val);
-            setMode('list');
-            setNewName('');
-            setNewDesc('');
+            try {
+              await exportCurrent(newName, val);
+            } finally {
+              setMode('list');
+              setNewName('');
+            }
           }}
         />
       </Box>
@@ -113,18 +149,18 @@ export function ProfilesView() {
       <Box flexDirection="column">
         <Text bold color="cyan">{selectedProfile.name}</Text>
         <Text color="gray">{selectedProfile.description}</Text>
-        <Text color="gray">Created: {new Date(selectedProfile.createdAt).toLocaleDateString()}</Text>
+        <Text color="gray">{t('profiles_created', { date: new Date(selectedProfile.createdAt).toLocaleDateString() })}</Text>
         <Box marginTop={1} flexDirection="column">
-          <Text bold>Formulae ({selectedProfile.formulae.length})</Text>
+          <Text bold>{t('profiles_formulaeCount', { count: selectedProfile.formulae.length })}</Text>
           <Box paddingLeft={2} flexDirection="column">
             {selectedProfile.formulae.slice(0, 30).map((f) => (
               <Text key={f} color="gray">{f}</Text>
             ))}
             {selectedProfile.formulae.length > 30 && (
-              <Text color="gray" italic>...and {selectedProfile.formulae.length - 30} more</Text>
+              <Text color="gray" italic>{t('common_andMore', { count: selectedProfile.formulae.length - 30 })}</Text>
             )}
           </Box>
-          <Text bold>Casks ({selectedProfile.casks.length})</Text>
+          <Text bold>{t('profiles_casksCount', { count: selectedProfile.casks.length })}</Text>
           <Box paddingLeft={2} flexDirection="column">
             {selectedProfile.casks.map((c) => (
               <Text key={c} color="gray">{c}</Text>
@@ -132,7 +168,7 @@ export function ProfilesView() {
           </Box>
         </Box>
         <Box marginTop={1}>
-          <Text color="gray">esc:back i:import this profile</Text>
+          <Text color="gray">esc:{t('hint_back')} i:{t('hint_importProfile')}</Text>
         </Box>
       </Box>
     );
@@ -140,13 +176,13 @@ export function ProfilesView() {
 
   return (
     <Box flexDirection="column">
-      <Text bold>{'\u{1F4C1}'} Package Profiles ({profileNames.length})</Text>
+      <Text bold>{'\u{1F4C1}'} {t('profiles_title', { count: profileNames.length })}</Text>
 
       {confirmDelete && profileNames[cursor] && (
         <Box marginY={1}>
           <ConfirmDialog
-            message={`Delete profile "${profileNames[cursor]}"?`}
-            onConfirm={() => { deleteProfile(profileNames[cursor]); setConfirmDelete(false); }}
+            message={t('profiles_confirmDelete', { name: profileNames[cursor] })}
+            onConfirm={() => { void deleteProfile(profileNames[cursor]); setConfirmDelete(false); }}
             onCancel={() => setConfirmDelete(false)}
           />
         </Box>
@@ -154,8 +190,8 @@ export function ProfilesView() {
 
       {profileNames.length === 0 && !confirmDelete && (
         <Box marginTop={1} flexDirection="column">
-          <Text color="gray" italic>No profiles saved yet.</Text>
-          <Text color="gray">Press <Text color="cyan" bold>n</Text> to export your current setup as a profile.</Text>
+          <Text color="gray" italic>{t('profiles_noProfiles')}</Text>
+          <Text color="gray">{t('profiles_press')} <Text color="cyan" bold>n</Text> {t('profiles_exportHint')}</Text>
         </Box>
       )}
 
@@ -171,7 +207,7 @@ export function ProfilesView() {
             );
           })}
           <Box marginTop={1}>
-            <Text color="gray">{cursor + 1}/{profileNames.length} {'\u2502'} n:new enter:details i:import d:delete</Text>
+            <Text color="gray">{cursor + 1}/{profileNames.length} {'\u2502'} n:{t('hint_new')} enter:{t('hint_details')} i:{t('hint_import')} d:{t('hint_delete')}</Text>
           </Box>
         </Box>
       )}

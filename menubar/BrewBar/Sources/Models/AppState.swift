@@ -16,6 +16,7 @@ final class AppState {
     var errorServices: [BrewService] { services.filter(\.hasError) }
 
     func refresh() async {
+        guard !isLoading else { return }
         isLoading = true
         error = nil
 
@@ -37,20 +38,32 @@ final class AppState {
     }
 
     func upgrade(package name: String) async {
+        guard !isLoading else { return }
+        isLoading = true
+        error = nil
         do {
             try await checker.upgradePackage(name)
-            await refresh()
         } catch {
-            self.error = "Upgrade failed: \(error.localizedDescription)"
+            self.error = String(localized: "Upgrade failed: \(error.localizedDescription)")
+            isLoading = false
+            return
         }
+        isLoading = false
+        await refresh()
     }
 
     func upgradeAll() async {
+        guard !isLoading else { return }
+        isLoading = true
+        error = nil
         do {
             try await checker.upgradeAll()
-            await refresh()
         } catch {
-            self.error = "Upgrade all failed: \(error.localizedDescription)"
+            self.error = String(localized: "Upgrade all failed: \(error.localizedDescription)")
+            isLoading = false
+            return
         }
+        isLoading = false
+        await refresh()
     }
 }

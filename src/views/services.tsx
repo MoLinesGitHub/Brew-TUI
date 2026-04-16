@@ -1,10 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { Box, Text, useInput } from 'ink';
 import { useBrewStore } from '../stores/brew-store.js';
-import { Loading } from '../components/common/loading.js';
+import { Loading, ErrorMessage } from '../components/common/loading.js';
 import { StatusBadge } from '../components/common/status-badge.js';
-import type { BrewService } from '../lib/types.js';
-
+import { t } from '../i18n/index.js';
 const STATUS_VARIANTS = {
   started: 'success',
   stopped: 'muted',
@@ -13,7 +12,7 @@ const STATUS_VARIANTS = {
 } as const;
 
 export function ServicesView() {
-  const { services, loading, fetchServices, serviceAction } = useBrewStore();
+  const { services, loading, errors, fetchServices, serviceAction } = useBrewStore();
   const [cursor, setCursor] = useState(0);
   const [actionInProgress, setActionInProgress] = useState(false);
 
@@ -23,20 +22,21 @@ export function ServicesView() {
     if (actionInProgress) return;
 
     if (input === 'j' || key.downArrow) {
-      setCursor((c) => Math.min(c + 1, services.length - 1));
+      setCursor((c) => Math.min(c + 1, Math.max(0, services.length - 1)));
     } else if (input === 'k' || key.upArrow) {
       setCursor((c) => Math.max(c - 1, 0));
     } else if (input === 'r') {
-      fetchServices();
+      void fetchServices();
     }
 
     const svc = services[cursor];
     if (!svc) return;
 
-    const doAction = async (action: 'start' | 'stop' | 'restart') => {
+    const doAction = (action: 'start' | 'stop' | 'restart') => {
       setActionInProgress(true);
-      await serviceAction(svc.name, action);
-      setActionInProgress(false);
+      void serviceAction(svc.name, action).finally(() => {
+        setActionInProgress(false);
+      });
     };
 
     if (input === 's') doAction('start');
@@ -44,26 +44,27 @@ export function ServicesView() {
     else if (input === 'R') doAction('restart');
   });
 
-  if (loading.services) return <Loading message="Loading services..." />;
+  if (loading.services) return <Loading message={t('loading_services')} />;
+  if (errors.services) return <ErrorMessage message={errors.services} />;
 
   if (services.length === 0) {
     return (
       <Box flexDirection="column">
-        <Text bold>{'\u2699\uFE0F'}  Homebrew Services</Text>
-        <Text color="gray" italic>No services found</Text>
+        <Text bold>{'\u2699\uFE0F'}  {t('services_title')}</Text>
+        <Text color="gray" italic>{t('services_noServices')}</Text>
       </Box>
     );
   }
 
   return (
     <Box flexDirection="column">
-      <Text bold>{'\u2699\uFE0F'}  Homebrew Services ({services.length})</Text>
+      <Text bold>{'\u2699\uFE0F'}  {t('services_titleCount', { count: services.length })}</Text>
 
       <Box flexDirection="column" marginTop={1}>
         <Box gap={1} marginBottom={1}>
-          <Text bold color="gray">{'  '}Name</Text>
-          <Text bold color="gray">{'          '}Status</Text>
-          <Text bold color="gray">{'  '}User</Text>
+          <Text bold color="gray">{'  '}{t('services_name')}</Text>
+          <Text bold color="gray">{'          '}{t('services_status')}</Text>
+          <Text bold color="gray">{'  '}{t('services_user')}</Text>
         </Box>
 
         {services.map((svc, i) => {
@@ -77,18 +78,18 @@ export function ServicesView() {
               <StatusBadge label={svc.status} variant={STATUS_VARIANTS[svc.status]} />
               <Text color="gray">{svc.user ?? '-'}</Text>
               {svc.exit_code != null && svc.exit_code !== 0 && (
-                <Text color="red">(exit {svc.exit_code})</Text>
+                <Text color="red">{t('common_exit', { code: svc.exit_code })}</Text>
               )}
             </Box>
           );
         })}
       </Box>
 
-      {actionInProgress && <Text color="cyan">Processing...</Text>}
+      {actionInProgress && <Text color="cyan">{t('services_processing')}</Text>}
 
       <Box marginTop={1}>
         <Text color="gray">
-          {cursor + 1}/{services.length} {'\u2502'} s:start S:stop R:restart r:refresh
+          {cursor + 1}/{services.length} {'\u2502'} s:{t('hint_start')} S:{t('hint_stop')} R:{t('hint_restart')} r:{t('hint_refresh')}
         </Text>
       </Box>
     </Box>

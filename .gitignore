@@ -2,6 +2,13 @@ node_modules/
 build/
 *.tsbuildinfo
 .DS_Store
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+
+# macOS
 *.xcworkspace
 *.xcodeproj
 menubar/Derived/

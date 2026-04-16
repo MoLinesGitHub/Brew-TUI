@@ -1,24 +1,14 @@
 import React from 'react';
 import { Box, Text } from 'ink';
+import { t } from '../../i18n/index.js';
 import type { ViewId } from '../../lib/types.js';
+import type { TranslationKey } from '../../i18n/en.js';
 
-const FEATURE_INFO: Record<string, { title: string; description: string }> = {
-  profiles: {
-    title: 'Package Profiles',
-    description: 'Export and import your Homebrew setup across machines. Save named profiles for work, personal, or project-specific configurations.',
-  },
-  'smart-cleanup': {
-    title: 'Smart Cleanup',
-    description: 'Find orphaned packages, analyze disk usage per package, and reclaim disk space with one-click intelligent cleanup.',
-  },
-  history: {
-    title: 'Action History',
-    description: 'Track every install, uninstall, and upgrade with timestamps. Search and filter your package management history.',
-  },
-  'security-audit': {
-    title: 'Security Audit',
-    description: 'Scan installed packages against known vulnerabilities (CVEs). See severity levels, affected versions, and available fixes.',
-  },
+const FEATURE_KEYS: Record<string, { title: TranslationKey; desc: TranslationKey }> = {
+  profiles: { title: 'upgrade_profiles', desc: 'upgrade_profilesDesc' },
+  'smart-cleanup': { title: 'upgrade_cleanup', desc: 'upgrade_cleanupDesc' },
+  history: { title: 'upgrade_history', desc: 'upgrade_historyDesc' },
+  'security-audit': { title: 'upgrade_security', desc: 'upgrade_securityDesc' },
 };
 
 interface UpgradePromptProps {
@@ -26,8 +16,10 @@ interface UpgradePromptProps {
 }
 
 export function UpgradePrompt({ viewId }: UpgradePromptProps) {
-  const info = FEATURE_INFO[viewId];
-  if (!info) return null;
+  const keys = FEATURE_KEYS[viewId];
+  if (!keys) return null;
+
+  const title = t(keys.title);
 
   return (
     <Box flexDirection="column" alignItems="center" paddingY={2}>
@@ -39,17 +31,17 @@ export function UpgradePrompt({ viewId }: UpgradePromptProps) {
         flexDirection="column"
         alignItems="center"
       >
-        <Text bold color="yellow">{'\u2B50'} {info.title} — Pro Feature</Text>
+        <Text bold color="yellow">{'\u2B50'} {t('upgrade_proFeature', { title })}</Text>
         <Text> </Text>
-        <Text color="white">{info.description}</Text>
+        <Text color="white">{t(keys.desc)}</Text>
         <Text> </Text>
         <Box flexDirection="column" alignItems="center">
-          <Text color="cyan" bold>$9/month or $49/year</Text>
+          <Text color="cyan" bold>{t('upgrade_pricing')}</Text>
           <Text> </Text>
-          <Text color="gray">Activate with:</Text>
-          <Text color="green" bold>  brew-tui activate {'<'}your-license-key{'>'}</Text>
+          <Text color="gray">{t('upgrade_activateWith')}</Text>
+          <Text color="green" bold>  {t('upgrade_activateCmd')}</Text>
           <Text> </Text>
-          <Text color="gray">Brew-TUI Pro — $9/month or $49/year</Text>
+          <Text color="gray">{t('upgrade_proLabel')}</Text>
         </Box>
       </Box>
     </Box>

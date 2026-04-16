@@ -11,9 +11,9 @@ final class SchedulerService {
 
         var label: String {
             switch self {
-            case .oneHour: "Every hour"
-            case .fourHours: "Every 4 hours"
-            case .eightHours: "Every 8 hours"
+            case .oneHour: String(localized: "Every hour")
+            case .fourHours: String(localized: "Every 4 hours")
+            case .eightHours: String(localized: "Every 8 hours")
             }
         }
     }
@@ -80,8 +80,8 @@ final class SchedulerService {
 
     private func sendNotification(count: Int) {
         let content = UNMutableNotificationContent()
-        content.title = "Homebrew Updates"
-        content.body = "\(count) package\(count == 1 ? "" : "s") can be updated."
+        content.title = String(localized: "Homebrew Updates")
+        content.body = String(localized: "\(count) packages can be updated.")
         content.sound = .default
 
         let request = UNNotificationRequest(

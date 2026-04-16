@@ -1,5 +1,7 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Box, Text, useInput } from 'ink';
+import { t, useLocaleStore } from '../../i18n/index.js';
+import { useModalStore } from '../../stores/modal-store.js';
 
 interface ConfirmDialogProps {
   message: string;
@@ -8,18 +10,28 @@ interface ConfirmDialogProps {
 }
 
 export function ConfirmDialog({ message, onConfirm, onCancel }: ConfirmDialogProps) {
-  useInput((input) => {
+  const locale = useLocaleStore((s) => s.locale);
+  const { openModal, closeModal } = useModalStore();
+
+  useEffect(() => {
+    openModal();
+    return () => { closeModal(); };
+  }, []);
+
+  useInput((input, key) => {
     if (input === 'y' || input === 'Y') onConfirm();
-    else if (input === 'n' || input === 'N' || input === 'q') onCancel();
+    else if (locale === 'es' && (input === 's' || input === 'S')) onConfirm();
+    else if (input === 'n' || input === 'N') onCancel();
+    else if (key.escape) onCancel();
   });
 
   return (
     <Box borderStyle="double" borderColor="yellow" paddingX={2} paddingY={1} flexDirection="column">
       <Text bold color="yellow">{message}</Text>
       <Box marginTop={1}>
-        <Text color="green">[Y]es</Text>
+        <Text color="green">{t('confirm_yes')}</Text>
         <Text> / </Text>
-        <Text color="red">[N]o</Text>
+        <Text color="red">{t('confirm_no')}</Text>
       </Box>
     </Box>
   );

@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { Box, Text, useInput } from 'ink';
 import { useSecurityStore } from '../stores/security-store.js';
-import { Loading } from '../components/common/loading.js';
-import { ErrorMessage } from '../components/common/loading.js';
+import { Loading, ErrorMessage } from '../components/common/loading.js';
 import { StatCard } from '../components/common/stat-card.js';
 import { StatusBadge } from '../components/common/status-badge.js';
+import { t, tp } from '../i18n/index.js';
 import type { Severity } from '../lib/security/types.js';
 
 const SEVERITY_COLORS: Record<Severity, string> = {
@@ -33,39 +33,39 @@ export function SecurityAuditView() {
   const results = summary?.results ?? [];
 
   useInput((input, key) => {
-    if (input === 'r') { scan(); return; }
+    if (input === 'r') { void scan(); return; }
 
-    if (input === 'j' || key.downArrow) setCursor((c) => Math.min(c + 1, results.length - 1));
+    if (input === 'j' || key.downArrow) setCursor((c) => Math.min(c + 1, Math.max(0, results.length - 1)));
     else if (input === 'k' || key.upArrow) setCursor((c) => Math.max(c - 1, 0));
     else if (key.return && results[cursor]) {
       setExpandedPkg(expandedPkg === results[cursor].packageName ? null : results[cursor].packageName);
     }
   });
 
-  if (loading) return <Loading message="Scanning packages against OSV vulnerability database..." />;
+  if (loading) return <Loading message={t('loading_security')} />;
   if (error) return <ErrorMessage message={error} />;
 
   return (
     <Box flexDirection="column">
-      <Text bold>{'\u{1F6E1}\uFE0F'}  Security Audit</Text>
+      <Text bold>{'\u{1F6E1}\uFE0F'}  {t('security_title')}</Text>
 
       {summary && (
         <Box gap={1} marginY={1}>
-          <StatCard label="Scanned" value={summary.totalPackages} color="cyan" />
+          <StatCard label={t('security_scanned')} value={summary.totalPackages} color="cyan" />
           <StatCard
-            label="Vulnerable"
+            label={t('security_vulnerable')}
             value={summary.vulnerablePackages}
             color={summary.vulnerablePackages > 0 ? 'red' : 'green'}
           />
-          {summary.criticalCount > 0 && <StatCard label="Critical" value={summary.criticalCount} color="red" />}
-          {summary.highCount > 0 && <StatCard label="High" value={summary.highCount} color="red" />}
-          {summary.mediumCount > 0 && <StatCard label="Medium" value={summary.mediumCount} color="yellow" />}
+          {summary.criticalCount > 0 && <StatCard label={t('security_critical')} value={summary.criticalCount} color="red" />}
+          {summary.highCount > 0 && <StatCard label={t('security_high')} value={summary.highCount} color="red" />}
+          {summary.mediumCount > 0 && <StatCard label={t('security_medium')} value={summary.mediumCount} color="yellow" />}
         </Box>
       )}
 
       {results.length === 0 && summary && (
         <Box marginTop={1}>
-          <Text color="green" bold>{'\u2714'} No known vulnerabilities found in your installed packages!</Text>
+          <Text color="green" bold>{'\u2714'} {t('security_noVulns')}</Text>
         </Box>
       )}
 
@@ -84,7 +84,7 @@ export function SecurityAuditView() {
                     {pkg.packageName}
                   </Text>
                   <Text color="gray">{pkg.installedVersion}</Text>
-                  <Text color="gray">({pkg.vulnerabilities.length} vuln{pkg.vulnerabilities.length !== 1 ? 's' : ''})</Text>
+                  <Text color="gray">{tp('plural_vulns', pkg.vulnerabilities.length)}</Text>
                   <Text color="gray">{isExpanded ? '\u25BC' : '\u25B6'}</Text>
                 </Box>
 
@@ -98,7 +98,7 @@ export function SecurityAuditView() {
                         </Box>
                         <Text color="gray" wrap="wrap">{vuln.summary}</Text>
                         {vuln.fixedVersion && (
-                          <Text color="green">Fixed in: {vuln.fixedVersion}</Text>
+                          <Text color="green">{t('security_fixedIn', { version: vuln.fixedVersion })}</Text>
                         )}
                       </Box>
                     ))}
@@ -110,7 +110,7 @@ export function SecurityAuditView() {
 
           <Box marginTop={1}>
             <Text color="gray">
-              {cursor + 1}/{results.length} {'\u2502'} enter:expand r:rescan
+              {cursor + 1}/{results.length} {'\u2502'} enter:{t('hint_expand')} r:{t('hint_rescan')}
             </Text>
           </Box>
         </Box>

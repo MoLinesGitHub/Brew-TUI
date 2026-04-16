@@ -26,6 +26,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
+    func applicationWillTerminate(_ notification: Notification) {
+        badgeTimer?.invalidate()
+        badgeTimer = nil
+        scheduler.stop()
+    }
+
     // MARK: - brew-tui dependency check
 
     private func checkBrewTuiInstalled() -> Bool {
@@ -60,18 +66,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func showBrewTuiRequired() {
         let alert = NSAlert()
-        alert.messageText = "Brew-TUI is required"
-        alert.informativeText = """
-            BrewBar requires Brew-TUI to be installed.
-
-            Install it with:
-              npm install -g brew-tui
-
-            Then relaunch BrewBar.
-            """
+        alert.messageText = String(localized: "Brew-TUI is required")
+        alert.informativeText = String(localized: "BrewBar requires Brew-TUI to be installed.\n\nInstall it with:\n  npm install -g brew-tui\n\nThen relaunch BrewBar.")
         alert.alertStyle = .critical
-        alert.addButton(withTitle: "Copy Install Command")
-        alert.addButton(withTitle: "Quit")
+        alert.addButton(withTitle: String(localized: "Copy Install Command"))
+        alert.addButton(withTitle: String(localized: "Quit"))
 
         let response = alert.runModal()
 
@@ -91,7 +90,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if let button = statusItem.button {
             button.image = NSImage(
                 systemSymbolName: "mug.fill",
-                accessibilityDescription: "BrewBar"
+                accessibilityDescription: String(localized: "BrewBar")
             )
             button.image?.isTemplate = true
             button.action = #selector(togglePopover)
@@ -115,7 +114,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         button.title = count > 0 ? " \(count)" : ""
         button.image = NSImage(
             systemSymbolName: "mug.fill",
-            accessibilityDescription: count > 0 ? "BrewBar — \(count) updates" : "BrewBar"
+            accessibilityDescription: count > 0 ? String(localized: "BrewBar — \(count) updates") : String(localized: "BrewBar")
         )
         button.image?.isTemplate = true
     }

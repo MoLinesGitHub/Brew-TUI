@@ -84,9 +84,9 @@ export function SmartCleanupView() {
             const isSelected = selected.has(c.name);
             return (
               <Box key={c.name} gap={1}>
-                <Text color={isCurrent ? 'cyan' : 'white'}>{isCurrent ? '\u276F' : ' '}</Text>
+                <Text color={isCurrent ? 'cyan' : 'white'}>{isCurrent ? '\u25B6' : ' '}</Text>
                 <Text color={isSelected ? 'green' : 'gray'}>{isSelected ? '\u2611' : '\u2610'}</Text>
-                <Text bold={isCurrent} color={isCurrent ? 'white' : 'gray'}>{c.name}</Text>
+                <Text bold={isCurrent} inverse={isCurrent} color={isCurrent ? 'white' : 'gray'}>{c.name}</Text>
                 <Text color="yellow">{c.diskUsageFormatted}</Text>
                 <Text color="gray">[{c.reason}]</Text>
               </Box>

@@ -25,7 +25,7 @@ export function DashboardView() {
   if (errors.installed) return <ErrorMessage message={errors.installed} />;
 
   return (
-    <Box flexDirection="column" gap={1}>
+    <Box flexDirection="column" gap={2}>
       <Text bold color="green">{'\u{1F4CA}'} {t('dashboard_overview')}</Text>
 
       <Box gap={1} flexWrap="wrap">
@@ -44,9 +44,9 @@ export function DashboardView() {
       </Box>
 
       {config && (
-        <Box flexDirection="column" marginTop={1}>
+        <Box flexDirection="column">
           <Text bold color="white">{'\u2139\uFE0F'}  {t('dashboard_systemInfo')}</Text>
-          <Box paddingLeft={2} flexDirection="column">
+          <Box borderStyle="round" borderColor="gray" paddingX={2} paddingY={0} flexDirection="column" marginTop={1}>
             <Text><Text color="gray">{t('dashboard_homebrew')}</Text> {config.HOMEBREW_VERSION}</Text>
             <Text><Text color="gray">{t('dashboard_prefix')}</Text>   {config.HOMEBREW_PREFIX}</Text>
             <Text><Text color="gray">{t('dashboard_updated')}</Text>  {config.coreUpdated}</Text>

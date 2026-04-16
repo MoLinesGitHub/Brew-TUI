@@ -122,8 +122,8 @@ export function InstalledView() {
           const isCurrent = idx === cursor;
           return (
             <Box key={item.name} gap={1}>
-              <Text color={isCurrent ? 'cyan' : 'white'}>{isCurrent ? '\u276F' : ' '}</Text>
-              <Text bold={isCurrent} color={isCurrent ? 'white' : 'gray'}>
+              <Text color={isCurrent ? 'cyan' : 'white'}>{isCurrent ? '\u25B6' : ' '}</Text>
+              <Text bold={isCurrent} inverse={isCurrent} color={isCurrent ? 'white' : 'gray'}>
                 {item.name}
               </Text>
               <Text color="green">{item.version}</Text>

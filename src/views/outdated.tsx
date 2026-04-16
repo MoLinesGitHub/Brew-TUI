@@ -97,8 +97,8 @@ export function OutdatedView() {
             const isCurrent = i === cursor;
             return (
               <Box key={pkg.name} gap={1}>
-                <Text color={isCurrent ? 'cyan' : 'white'}>{isCurrent ? '\u276F' : ' '}</Text>
-                <Text bold={isCurrent} color={isCurrent ? 'white' : 'gray'}>
+                <Text color={isCurrent ? 'cyan' : 'white'}>{isCurrent ? '\u25B6' : ' '}</Text>
+                <Text bold={isCurrent} inverse={isCurrent} color={isCurrent ? 'white' : 'gray'}>
                   {pkg.name}
                 </Text>
                 <Text color="red">{pkg.installed_versions[0] ?? ''}</Text>

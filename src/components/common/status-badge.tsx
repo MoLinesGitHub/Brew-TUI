@@ -3,12 +3,12 @@ import { Text } from 'ink';
 
 type BadgeVariant = 'success' | 'warning' | 'error' | 'info' | 'muted';
 
-const COLORS: Record<BadgeVariant, string> = {
-  success: 'green',
-  warning: 'yellow',
-  error: 'red',
-  info: 'cyan',
-  muted: 'gray',
+const BADGE_STYLES: Record<BadgeVariant, { icon: string; color: string }> = {
+  success: { icon: '\u2714', color: 'green' },
+  warning: { icon: '\u25CF', color: 'yellow' },
+  error: { icon: '\u2718', color: 'red' },
+  info: { icon: '\u25C6', color: 'cyan' },
+  muted: { icon: '\u25CB', color: 'gray' },
 };
 
 interface StatusBadgeProps {
@@ -17,5 +17,6 @@ interface StatusBadgeProps {
 }
 
 export function StatusBadge({ label, variant }: StatusBadgeProps) {
-  return <Text color={COLORS[variant]}>[{label}]</Text>;
+  const { icon, color } = BADGE_STYLES[variant];
+  return <Text color={color}>{icon} {label}</Text>;
 }

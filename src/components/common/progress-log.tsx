@@ -14,7 +14,7 @@ export function ProgressLog({ lines, isRunning, title, maxVisible = 15 }: Progre
   const visible = lines.slice(-maxVisible);
 
   return (
-    <Box flexDirection="column" borderStyle="single" paddingX={1}>
+    <Box flexDirection="column" borderStyle="round" borderColor="cyan" paddingX={1}>
       {title && (
         <Box marginBottom={1}>
           {isRunning && <Spinner label="" />}

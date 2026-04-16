@@ -33,7 +33,7 @@ export function Footer() {
   const defs = VIEW_HINT_DEFS[currentView] ?? [];
 
   return (
-    <Box paddingX={1} marginTop={0} flexWrap="wrap">
+    <Box borderStyle="single" borderTop borderBottom={false} borderLeft={false} borderRight={false} borderColor="gray" paddingX={1} flexWrap="wrap">
       {defs.map((def, i) => {
         const text = renderHint(def);
         return (

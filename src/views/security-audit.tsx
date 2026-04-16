@@ -78,9 +78,9 @@ export function SecurityAuditView() {
             return (
               <Box key={pkg.packageName} flexDirection="column">
                 <Box gap={1}>
-                  <Text color={isCurrent ? 'cyan' : 'white'}>{isCurrent ? '\u276F' : ' '}</Text>
+                  <Text color={isCurrent ? 'cyan' : 'white'}>{isCurrent ? '\u25B6' : ' '}</Text>
                   <StatusBadge label={pkg.maxSeverity} variant={SEVERITY_BADGE[pkg.maxSeverity]} />
-                  <Text bold={isCurrent} color={isCurrent ? 'white' : 'gray'}>
+                  <Text bold={isCurrent} inverse={isCurrent} color={isCurrent ? 'white' : 'gray'}>
                     {pkg.packageName}
                   </Text>
                   <Text color="gray">{pkg.installedVersion}</Text>

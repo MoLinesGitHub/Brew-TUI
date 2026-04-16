@@ -61,18 +61,18 @@ export function ServicesView() {
       <Text bold>{'\u2699\uFE0F'}  {t('services_titleCount', { count: services.length })}</Text>
 
       <Box flexDirection="column" marginTop={1}>
-        <Box gap={1} marginBottom={1}>
-          <Text bold color="gray">{'  '}{t('services_name')}</Text>
-          <Text bold color="gray">{'          '}{t('services_status')}</Text>
-          <Text bold color="gray">{'  '}{t('services_user')}</Text>
+        <Box gap={1} borderStyle="single" borderBottom borderTop={false} borderLeft={false} borderRight={false} borderColor="gray" paddingBottom={0}>
+          <Text bold color="white">{'  '}{t('services_name').padEnd(22)}</Text>
+          <Text bold color="white">{t('services_status').padEnd(12)}</Text>
+          <Text bold color="white">{t('services_user')}</Text>
         </Box>
 
         {services.map((svc, i) => {
           const isCurrent = i === cursor;
           return (
             <Box key={svc.name} gap={1}>
-              <Text color={isCurrent ? 'cyan' : 'white'}>{isCurrent ? '\u276F' : ' '}</Text>
-              <Text bold={isCurrent} color={isCurrent ? 'white' : 'gray'}>
+              <Text color={isCurrent ? 'cyan' : 'white'}>{isCurrent ? '\u25B6' : ' '}</Text>
+              <Text bold={isCurrent} inverse={isCurrent} color={isCurrent ? 'white' : 'gray'}>
                 {svc.name.padEnd(20)}
               </Text>
               <StatusBadge label={svc.status} variant={STATUS_VARIANTS[svc.status]} />

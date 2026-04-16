@@ -128,8 +128,8 @@ export function SearchView() {
                 const isCurrent = i === cursor;
                 return (
                   <Box key={name} gap={1}>
-                    <Text color={isCurrent ? 'cyan' : 'white'}>{isCurrent ? '\u276F' : ' '}</Text>
-                    <Text bold={isCurrent}>{name}</Text>
+                    <Text color={isCurrent ? 'cyan' : 'white'}>{isCurrent ? '\u25B6' : ' '}</Text>
+                    <Text bold={isCurrent} inverse={isCurrent}>{name}</Text>
                   </Box>
                 );
               })}
@@ -144,8 +144,8 @@ export function SearchView() {
                 const isCurrent = idx === cursor;
                 return (
                   <Box key={name} gap={1}>
-                    <Text color={isCurrent ? 'magenta' : 'white'}>{isCurrent ? '\u276F' : ' '}</Text>
-                    <Text bold={isCurrent}>{name}</Text>
+                    <Text color={isCurrent ? 'magenta' : 'white'}>{isCurrent ? '\u25B6' : ' '}</Text>
+                    <Text bold={isCurrent} inverse={isCurrent}>{name}</Text>
                   </Box>
                 );
               })}

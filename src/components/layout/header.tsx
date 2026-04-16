@@ -39,7 +39,7 @@ export function Header() {
   useLocaleStore((s) => s.locale); // subscribe so header re-renders on locale change
 
   return (
-    <Box borderStyle="single" borderBottom borderLeft={false} borderRight={false} borderTop={false} paddingX={1} flexWrap="wrap">
+    <Box borderStyle="bold" borderBottom borderLeft={false} borderRight={false} borderTop={false} paddingX={1} flexWrap="wrap">
       <Text bold color="green">{'\u{1F37A}'} {t('app_title')}</Text>
       <Text> </Text>
       {TAB_VIEWS.map((view, i) => {

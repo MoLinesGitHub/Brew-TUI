@@ -11,7 +11,7 @@ export function AppLayout({ children }: AppLayoutProps) {
   return (
     <Box flexDirection="column" width="100%">
       <Header />
-      <Box flexDirection="column" flexGrow={1} paddingX={1} paddingY={1}>
+      <Box flexDirection="column" flexGrow={1} paddingX={2} paddingY={1}>
         {children}
       </Box>
       <Footer />

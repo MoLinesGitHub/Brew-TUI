@@ -132,9 +132,9 @@ export function HistoryView() {
 
             return (
               <Box key={entry.id} gap={1}>
-                <Text color={isCurrent ? 'cyan' : 'white'}>{isCurrent ? '\u276F' : ' '}</Text>
+                <Text color={isCurrent ? 'cyan' : 'white'}>{isCurrent ? '\u25B6' : ' '}</Text>
                 <Text color={color} bold>{icon}</Text>
-                <Text bold={isCurrent} color={isCurrent ? 'white' : 'gray'}>
+                <Text bold={isCurrent} inverse={isCurrent} color={isCurrent ? 'white' : 'gray'}>
                   {t(ACTION_LABEL_KEYS[entry.action]).padEnd(12)}
                 </Text>
                 <Text color="white">{entry.packageName ?? t('history_all')}</Text>

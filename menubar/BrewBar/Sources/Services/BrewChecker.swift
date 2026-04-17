@@ -22,19 +22,30 @@ struct BrewChecker: Sendable {
         try await withCheckedThrowingContinuation { continuation in
             let process = Process()
             let pipe = Pipe()
-            var resumed = false
-            let lock = NSLock()
 
-            func resumeOnce(with result: Result<Data, Error>) {
-                lock.lock()
-                defer { lock.unlock() }
-                guard !resumed else { return }
-                resumed = true
-                switch result {
-                case .success(let data): continuation.resume(returning: data)
-                case .failure(let error): continuation.resume(throwing: error)
+            // Thread-safe exactly-once continuation wrapper
+            final class OnceGuard: @unchecked Sendable {
+                private var resumed = false
+                private let lock = NSLock()
+                private let continuation: CheckedContinuation<Data, Error>
+
+                init(_ continuation: CheckedContinuation<Data, Error>) {
+                    self.continuation = continuation
+                }
+
+                func resume(with result: Result<Data, Error>) {
+                    lock.lock()
+                    defer { lock.unlock() }
+                    guard !resumed else { return }
+                    resumed = true
+                    switch result {
+                    case .success(let data): continuation.resume(returning: data)
+                    case .failure(let error): continuation.resume(throwing: error)
+                    }
                 }
             }
+
+            let guard_ = OnceGuard(continuation)
 
             process.executableURL = URL(fileURLWithPath: brewPath)
             process.arguments = arguments
@@ -47,19 +58,19 @@ struct BrewChecker: Sendable {
             process.terminationHandler = { proc in
                 let data = pipe.fileHandleForReading.readDataToEndOfFile()
                 if proc.terminationStatus == 0 {
-                    resumeOnce(with: .success(data))
+                    guard_.resume(with: .success(data))
                 } else {
-                    resumeOnce(with: .failure(BrewError.processExited(proc.terminationStatus)))
+                    guard_.resume(with: .failure(BrewError.processExited(proc.terminationStatus)))
                 }
             }
 
             do {
                 try process.run()
             } catch let error as CocoaError where error.code == .fileNoSuchFile || error.code == .fileReadNoSuchFile {
-                resumeOnce(with: .failure(BrewError.brewNotInstalled))
+                guard_.resume(with: .failure(BrewError.brewNotInstalled))
                 return
             } catch {
-                resumeOnce(with: .failure(error))
+                guard_.resume(with: .failure(error))
                 return
             }
 
@@ -67,7 +78,7 @@ struct BrewChecker: Sendable {
             DispatchQueue.global().asyncAfter(deadline: .now() + Self.processTimeout) {
                 if process.isRunning {
                     process.terminate()
-                    resumeOnce(with: .failure(BrewError.timeout))
+                    guard_.resume(with: .failure(BrewError.timeout))
                 }
             }
         }

@@ -2,7 +2,7 @@
   "sourceLanguage" : "en",
   "strings" : {
     "%lld packages can be updated." : {
-      "extractionState" : "stale",
+      "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "variations" : {
@@ -43,7 +43,7 @@
       }
     },
     "%lld updates available" : {
-      "extractionState" : "stale",
+      "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "variations" : {
@@ -94,7 +94,7 @@
       }
     },
     "brew command timed out" : {
-      "extractionState" : "stale",
+      "extractionState" : "manual",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -105,7 +105,7 @@
       }
     },
     "brew exited with code %lld" : {
-      "extractionState" : "stale",
+      "extractionState" : "manual",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -116,7 +116,7 @@
       }
     },
     "Brew-TUI is required" : {
-      "extractionState" : "stale",
+      "extractionState" : "manual",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -127,7 +127,7 @@
       }
     },
     "BrewBar" : {
-      "extractionState" : "stale",
+      "extractionState" : "manual",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -138,7 +138,7 @@
       }
     },
     "BrewBar — %lld updates" : {
-      "extractionState" : "stale",
+      "extractionState" : "manual",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -149,7 +149,7 @@
       }
     },
     "BrewBar requires Brew-TUI to be installed.\n\nInstall it with:\n  npm install -g brew-tui\n\nThen relaunch BrewBar." : {
-      "extractionState" : "stale",
+      "extractionState" : "manual",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -170,7 +170,7 @@
       }
     },
     "Check interval" : {
-      "extractionState" : "stale",
+      "extractionState" : "manual",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -181,7 +181,7 @@
       }
     },
     "Checking for updates..." : {
-      "extractionState" : "stale",
+      "extractionState" : "manual",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -192,7 +192,7 @@
       }
     },
     "Copy Install Command" : {
-      "extractionState" : "stale",
+      "extractionState" : "manual",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -203,7 +203,7 @@
       }
     },
     "Done" : {
-      "extractionState" : "stale",
+      "extractionState" : "manual",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -214,7 +214,7 @@
       }
     },
     "Every 4 hours" : {
-      "extractionState" : "stale",
+      "extractionState" : "manual",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -225,7 +225,7 @@
       }
     },
     "Every 8 hours" : {
-      "extractionState" : "stale",
+      "extractionState" : "manual",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -236,7 +236,7 @@
       }
     },
     "Every hour" : {
-      "extractionState" : "stale",
+      "extractionState" : "manual",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -247,7 +247,7 @@
       }
     },
     "exit %lld" : {
-      "extractionState" : "stale",
+      "extractionState" : "manual",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -258,7 +258,7 @@
       }
     },
     "Homebrew is not installed. Install it from https://brew.sh" : {
-      "extractionState" : "stale",
+      "extractionState" : "manual",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -279,7 +279,7 @@
       }
     },
     "Last checked %@" : {
-      "extractionState" : "stale",
+      "extractionState" : "manual",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -290,7 +290,7 @@
       }
     },
     "Launch at login" : {
-      "extractionState" : "stale",
+      "extractionState" : "manual",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -301,7 +301,7 @@
       }
     },
     "Notifications" : {
-      "extractionState" : "stale",
+      "extractionState" : "manual",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -322,7 +322,7 @@
       }
     },
     "Open Brew-TUI" : {
-      "extractionState" : "stale",
+      "extractionState" : "manual",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -333,7 +333,7 @@
       }
     },
     "Quit" : {
-      "extractionState" : "stale",
+      "extractionState" : "manual",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -344,7 +344,7 @@
       }
     },
     "Retry" : {
-      "extractionState" : "stale",
+      "extractionState" : "manual",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -355,7 +355,7 @@
       }
     },
     "Service Errors" : {
-      "extractionState" : "stale",
+      "extractionState" : "manual",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -366,7 +366,7 @@
       }
     },
     "Upgrade All" : {
-      "extractionState" : "stale",
+      "extractionState" : "manual",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -377,7 +377,7 @@
       }
     },
     "Upgrade all failed: %@" : {
-      "extractionState" : "stale",
+      "extractionState" : "manual",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -388,7 +388,7 @@
       }
     },
     "Upgrade failed: %@" : {
-      "extractionState" : "stale",
+      "extractionState" : "manual",
       "localizations" : {
         "es" : {
           "stringUnit" : {

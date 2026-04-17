@@ -118,7 +118,7 @@ export function AccountView() {
       <Box marginTop={2}>
         <Text color="#6B7280">
           {status === 'pro' ? `d:${t('hint_deactivate')}` : ''}
-          {' '}{t('app_version', { version: process.env.APP_VERSION ?? '0.0.0' })}
+          {' '}{t('app_version', { version: process.env.APP_VERSION ?? '0.1.0' })}
         </Text>
       </Box>
     </Box>

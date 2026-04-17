@@ -23,7 +23,7 @@ export function DoctorView() {
       <Box flexDirection="column" marginTop={1}>
         {doctorClean && (
           <Box>
-            <Text color="green" bold>{'\u2714'} {t('doctor_clean')}</Text>
+            <Text color="cyanBright" bold>{'\u2714'} {t('doctor_clean')}</Text>
           </Box>
         )}
 
@@ -41,9 +41,8 @@ export function DoctorView() {
       </Box>
 
       <Box marginTop={1}>
-        <Text color="gray">
+        <Text color="white" bold>
           {doctorWarnings.length > 0 ? tp('plural_warnings', doctorWarnings.length) : ''}
-          {' '}{'\u2502'} r:{t('hint_refresh')}
         </Text>
       </Box>
     </Box>

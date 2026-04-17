@@ -13,7 +13,7 @@ import type { TranslationKey } from '../i18n/en.js';
 import type { HistoryAction } from '../lib/history/types.js';
 
 const ACTION_ICONS: Record<HistoryAction, { icon: string; color: string }> = {
-  install: { icon: '+', color: 'green' },
+  install: { icon: '+', color: 'cyanBright' },
   uninstall: { icon: '-', color: 'red' },
   upgrade: { icon: '\u2191', color: 'cyan' },
   'upgrade-all': { icon: '\u21C8', color: 'cyan' },
@@ -124,6 +124,9 @@ export function HistoryView() {
 
       {filtered.length > 0 && !confirmClear && (
         <Box flexDirection="column">
+          {start > 0 && (
+            <Text color="gray" dimColor>  {t('scroll_moreAbove', { count: start })}</Text>
+          )}
           {visible.map((entry, i) => {
             const idx = start + i;
             const isCurrent = idx === cursor;
@@ -145,10 +148,13 @@ export function HistoryView() {
               </Box>
             );
           })}
+          {start + MAX_VISIBLE_ROWS < filtered.length && (
+            <Text color="gray" dimColor>  {t('scroll_moreBelow', { count: filtered.length - start - MAX_VISIBLE_ROWS })}</Text>
+          )}
 
           <Box marginTop={1}>
-            <Text color="gray">
-              {cursor + 1}/{filtered.length} {'\u2502'} /:{t('hint_search')} f:{t('hint_filter')}({filter}) c:{t('hint_clear')}
+            <Text color="white" bold>
+              {cursor + 1}/{filtered.length}
             </Text>
           </Box>
         </Box>

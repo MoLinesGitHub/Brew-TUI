@@ -44,7 +44,7 @@ export function AccountView() {
       <Box flexDirection="column" marginTop={1} paddingLeft={2}>
         <Box gap={1}>
           <Text color="gray">{t('account_statusLabel')}</Text>
-          {status === 'pro' && <Text color="green" bold>{t('account_pro')}</Text>}
+          {status === 'pro' && <Text color="cyanBright" bold>{t('account_pro')}</Text>}
           {status === 'free' && <Text color="gray">{t('account_free')}</Text>}
           {status === 'expired' && <Text color="red">{t('account_expired')}</Text>}
           {status === 'validating' && <Text color="cyan">{t('account_validating')}</Text>}
@@ -82,13 +82,13 @@ export function AccountView() {
         )}
 
         {status === 'free' && (
-          <Box flexDirection="column" marginTop={2} borderStyle="round" borderColor="yellow" paddingX={2} paddingY={1}>
-            <Text bold color="yellow">{'\u2B50'} {t('account_upgradeTitle')}</Text>
+          <Box flexDirection="column" marginTop={2} borderStyle="round" borderColor="cyan" paddingX={2} paddingY={1}>
+            <Text bold color="cyanBright">{'\u2B50'} {t('account_upgradeTitle')}</Text>
             <Text> </Text>
             <Text>{t('account_unlockDesc')}</Text>
             <Text color="cyan" bold>{t('account_pricing')}</Text>
             <Text> </Text>
-            <Text color="gray">{t('account_runActivate')} <Text color="green" bold>{t('account_activateCmd')}</Text></Text>
+            <Text color="gray">{t('account_runActivate')} <Text color="cyanBright" bold>{t('account_activateCmd')}</Text></Text>
           </Box>
         )}
 

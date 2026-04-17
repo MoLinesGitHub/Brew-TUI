@@ -88,8 +88,8 @@ export function ServicesView() {
       {actionInProgress && <Text color="cyan">{t('services_processing')}</Text>}
 
       <Box marginTop={1}>
-        <Text color="gray">
-          {cursor + 1}/{services.length} {'\u2502'} s:{t('hint_start')} S:{t('hint_stop')} R:{t('hint_restart')} r:{t('hint_refresh')}
+        <Text color="white" bold>
+          {cursor + 1}/{services.length}
         </Text>
       </Box>
     </Box>

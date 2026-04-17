@@ -290,6 +290,10 @@ const en = {
   plural_vulns_other: '({{count}} vulns)',
   plural_warnings_one: '{{count}} warning',
   plural_warnings_other: '{{count}} warnings',
+
+  // ── Scroll indicators ──
+  scroll_moreAbove: '\u2191 {{count}} more',
+  scroll_moreBelow: '\u2193 {{count}} more',
 };
 
 export default en;

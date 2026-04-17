@@ -4,7 +4,7 @@ import { Text } from 'ink';
 type BadgeVariant = 'success' | 'warning' | 'error' | 'info' | 'muted';
 
 const BADGE_STYLES: Record<BadgeVariant, { icon: string; color: string }> = {
-  success: { icon: '\u2714', color: 'green' },
+  success: { icon: '\u2714', color: 'cyanBright' },
   warning: { icon: '\u25CF', color: 'yellow' },
   error: { icon: '\u2718', color: 'red' },
   info: { icon: '\u25C6', color: 'cyan' },

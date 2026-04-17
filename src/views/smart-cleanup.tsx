@@ -41,7 +41,7 @@ export function SmartCleanupView() {
       <Box flexDirection="column">
         <ProgressLog lines={stream.lines} isRunning={stream.isRunning} title={t('cleanup_cleaning')} />
         {!stream.isRunning && (
-          <Text color="green" bold>{'\u2714'} {t('cleanup_complete')}</Text>
+          <Text color="cyanBright" bold>{'\u2714'} {t('cleanup_complete')}</Text>
         )}
       </Box>
     );
@@ -53,9 +53,9 @@ export function SmartCleanupView() {
 
       {summary && (
         <Box gap={1} marginY={1}>
-          <StatCard label={t('cleanup_orphans')} value={candidates.length} color={candidates.length > 0 ? 'yellow' : 'green'} />
-          <StatCard label={t('cleanup_reclaimable')} value={summary.totalReclaimableFormatted} color="cyan" />
-          <StatCard label={t('cleanup_selected')} value={selected.size} color={selected.size > 0 ? 'green' : 'gray'} />
+          <StatCard label={t('cleanup_orphans')} value={candidates.length} color={candidates.length > 0 ? 'yellow' : 'cyanBright'} />
+          <StatCard label={t('cleanup_reclaimable')} value={summary.totalReclaimableFormatted} color="cyanBright" />
+          <StatCard label={t('cleanup_selected')} value={selected.size} color={selected.size > 0 ? 'cyanBright' : 'gray'} />
         </Box>
       )}
 
@@ -74,7 +74,7 @@ export function SmartCleanupView() {
       )}
 
       {candidates.length === 0 && !confirmClean && (
-        <Text color="green" bold>{'\u2714'} {t('cleanup_systemClean')}</Text>
+        <Text color="cyanBright" bold>{'\u2714'} {t('cleanup_systemClean')}</Text>
       )}
 
       {candidates.length > 0 && !confirmClean && (
@@ -85,7 +85,7 @@ export function SmartCleanupView() {
             return (
               <Box key={c.name} gap={1}>
                 <Text color={isCurrent ? 'cyan' : 'white'}>{isCurrent ? '\u25B6' : ' '}</Text>
-                <Text color={isSelected ? 'green' : 'gray'}>{isSelected ? '\u2611' : '\u2610'}</Text>
+                <Text color={isSelected ? 'cyanBright' : 'gray'}>{isSelected ? '\u2611' : '\u2610'}</Text>
                 <Text bold={isCurrent} inverse={isCurrent} color={isCurrent ? 'white' : 'gray'}>{c.name}</Text>
                 <Text color="yellow">{c.diskUsageFormatted}</Text>
                 <Text color="gray">[{c.reason}]</Text>
@@ -93,8 +93,8 @@ export function SmartCleanupView() {
             );
           })}
           <Box marginTop={1}>
-            <Text color="gray">
-              {cursor + 1}/{candidates.length} {'\u2502'} enter:{t('hint_toggle')} a:{t('hint_all')} c:{t('hint_clean')} r:{t('hint_refresh')}
+            <Text color="white" bold>
+              {cursor + 1}/{candidates.length}
             </Text>
           </Box>
         </Box>

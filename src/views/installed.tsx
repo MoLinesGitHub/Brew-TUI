@@ -26,8 +26,6 @@ export function InstalledView() {
 
   useEffect(() => { fetchInstalled(); }, []);
 
-  // While search bar is active, suppress global Escape so it only clears
-  // the search bar rather than navigating away from this view.
   useEffect(() => {
     if (isSearching) {
       openModal();
@@ -88,35 +86,56 @@ export function InstalledView() {
 
   return (
     <Box flexDirection="column">
-      <Box gap={2} marginBottom={1}>
-        <Text
-          bold={tab === 'formulae'}
-          color={tab === 'formulae' ? 'cyan' : 'gray'}
-          underline={tab === 'formulae'}
+      {/* Tab selector — both tabs always have a round border so the tab bar
+          height stays constant when switching (prevents content jump). The
+          inactive tab uses a dim gray border to signal it is not selected. */}
+      <Box marginBottom={1} gap={1}>
+        <Box
+          borderStyle="round"
+          borderColor={tab === 'formulae' ? 'cyan' : 'gray'}
+          paddingX={1}
         >
-          {t('installed_formulaeCount', { count: formulae.length })}
-        </Text>
-        <Text
-          bold={tab === 'casks'}
-          color={tab === 'casks' ? 'magenta' : 'gray'}
-          underline={tab === 'casks'}
+          <Text bold={tab === 'formulae'} color={tab === 'formulae' ? 'cyan' : 'gray'}>
+            {'\u{1F4E6}'} {t('installed_formulaeCount', { count: formulae.length })}
+          </Text>
+        </Box>
+        <Box
+          borderStyle="round"
+          borderColor={tab === 'casks' ? 'magentaBright' : 'gray'}
+          paddingX={1}
         >
-          {t('installed_casksCount', { count: casks.length })}
-        </Text>
-        <Text color="gray" italic>  f:{t('hint_toggle')}</Text>
+          <Text bold={tab === 'casks'} color={tab === 'casks' ? 'magentaBright' : 'gray'}>
+            {'\u{1F37A}'} {t('installed_casksCount', { count: casks.length })}
+          </Text>
+        </Box>
       </Box>
 
+      {/* Search bar */}
       {isSearching && (
-        <Box marginBottom={1}>
+        <Box marginBottom={1} borderStyle="round" borderColor="cyan" paddingX={1}>
           <SearchInput defaultValue={filter} onChange={setFilter} isActive={isSearching} />
         </Box>
       )}
 
-      {!isSearching && filter && (
-        <Text color="gray" italic>{t('installed_filterDisplay', { query: filter, count: allItems.length })}</Text>
-      )}
+      {/* Column header — 1 space prefix matches the 1-char cursor glyph in data
+          rows; gap={1} is shared by both header and data rows via the parent Box,
+          so widths must match: ' ' + gap(1) + padEnd(27) aligns with data rows. */}
+      <Box gap={1} borderStyle="single" borderBottom borderTop={false} borderLeft={false} borderRight={false} borderColor="gray">
+        <Text color="white" bold>{' '}{'Package'.padEnd(27)}</Text>
+        <Text color="white" bold>{'Version'.padEnd(12)}</Text>
+        <Text color="white" bold>{'Status'}</Text>
+      </Box>
 
+      {/* Package list */}
       <Box flexDirection="column">
+        {visible.length === 0 && (
+          <Box paddingY={1} justifyContent="center">
+            <Text color="gray" italic>{t('installed_noPackages')}</Text>
+          </Box>
+        )}
+        {start > 0 && (
+          <Text color="gray" dimColor>  {t('scroll_moreAbove', { count: start })}</Text>
+        )}
         {visible.map((item, i) => {
           const idx = start + i;
           const isCurrent = idx === cursor;
@@ -124,25 +143,28 @@ export function InstalledView() {
             <Box key={item.name} gap={1}>
               <Text color={isCurrent ? 'cyan' : 'white'}>{isCurrent ? '\u25B6' : ' '}</Text>
               <Text bold={isCurrent} inverse={isCurrent} color={isCurrent ? 'white' : 'gray'}>
-                {item.name}
+                {truncate(item.name, 27).padEnd(27)}
               </Text>
-              <Text color="green">{item.version}</Text>
+              <Text color="cyanBright">{item.version.padEnd(12)}</Text>
               {item.outdated && <StatusBadge label={t('badge_outdated')} variant="warning" />}
               {item.pinned && <StatusBadge label={t('badge_pinned')} variant="info" />}
               {item.kegOnly && <StatusBadge label={t('badge_kegOnly')} variant="muted" />}
               {item.installedAsDependency && <StatusBadge label={t('badge_dep')} variant="muted" />}
-              <Text color="gray">{truncate(item.desc, 40)}</Text>
+              {!item.outdated && !item.pinned && !item.kegOnly && !item.installedAsDependency && (
+                <Text color="gray" dimColor>{truncate(item.desc, 30)}</Text>
+              )}
             </Box>
           );
         })}
+        {start + MAX_VISIBLE_ROWS < allItems.length && (
+          <Text color="gray" dimColor>  {t('scroll_moreBelow', { count: allItems.length - start - MAX_VISIBLE_ROWS })}</Text>
+        )}
       </Box>
 
+      {/* Status bar */}
       <Box marginTop={1}>
-        <Text color="gray">
-          {allItems.length > 0
-            ? `${cursor + 1}/${allItems.length}`
-            : t('installed_noPackages')}
-          {' '}{'\u2502'} /:{t('hint_search')} f:{t('hint_toggle')} enter:{t('hint_info')}
+        <Text color="white" bold>
+          {allItems.length > 0 ? `${cursor + 1}/${allItems.length}` : '0/0'}
         </Text>
       </Box>
     </Box>

@@ -3,6 +3,7 @@ import { Box, Text, useInput } from 'ink';
 import { useBrewStore } from '../stores/brew-store.js';
 import { useBrewStream } from '../hooks/use-brew-stream.js';
 import { Loading, ErrorMessage } from '../components/common/loading.js';
+import { StatusBadge } from '../components/common/status-badge.js';
 import { ProgressLog } from '../components/common/progress-log.js';
 import { ConfirmDialog } from '../components/common/confirm-dialog.js';
 import { t } from '../i18n/index.js';
@@ -50,7 +51,7 @@ export function OutdatedView() {
         />
         {!stream.isRunning && (
           <Box marginTop={1}>
-            <Text color={stream.error ? 'red' : 'green'} bold>
+            <Text color={stream.error ? 'red' : 'cyanBright'} bold>
               {stream.error ? `\u2718 ${stream.error}` : `\u2714 ${t('outdated_upgradeComplete')}`}
             </Text>
             <Text color="gray"> {t('outdated_pressRefresh')}</Text>
@@ -87,7 +88,7 @@ export function OutdatedView() {
 
       {allOutdated.length === 0 && !confirmAction && (
         <Box marginTop={1}>
-          <Text color="green" bold>{'\u2714'} {t('outdated_upToDate')}</Text>
+          <Text color="cyanBright" bold>{'\u2714'} {t('outdated_upToDate')}</Text>
         </Box>
       )}
 
@@ -103,15 +104,15 @@ export function OutdatedView() {
                 </Text>
                 <Text color="red">{pkg.installed_versions[0] ?? ''}</Text>
                 <Text color="gray">{'\u2192'}</Text>
-                <Text color="green">{pkg.current_version}</Text>
-                {pkg.pinned && <Text color="cyan">{t('outdated_pinned')}</Text>}
+                <Text color="cyanBright">{pkg.current_version}</Text>
+                {pkg.pinned && <StatusBadge label={t('outdated_pinned')} variant="info" />}
               </Box>
             );
           })}
 
           <Box marginTop={1}>
-            <Text color="gray">
-              {cursor + 1}/{allOutdated.length} {'\u2502'} enter:{t('hint_upgrade')} A:{t('hint_upgradeAll')} r:{t('hint_refresh')}
+            <Text color="white" bold>
+              {cursor + 1}/{allOutdated.length}
             </Text>
           </Box>
         </Box>

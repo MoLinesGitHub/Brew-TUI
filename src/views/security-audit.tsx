@@ -55,7 +55,7 @@ export function SecurityAuditView() {
           <StatCard
             label={t('security_vulnerable')}
             value={summary.vulnerablePackages}
-            color={summary.vulnerablePackages > 0 ? 'red' : 'green'}
+            color={summary.vulnerablePackages > 0 ? 'red' : 'cyanBright'}
           />
           {summary.criticalCount > 0 && <StatCard label={t('security_critical')} value={summary.criticalCount} color="red" />}
           {summary.highCount > 0 && <StatCard label={t('security_high')} value={summary.highCount} color="red" />}
@@ -65,7 +65,7 @@ export function SecurityAuditView() {
 
       {results.length === 0 && summary && (
         <Box marginTop={1}>
-          <Text color="green" bold>{'\u2714'} {t('security_noVulns')}</Text>
+          <Text color="cyanBright" bold>{'\u2714'} {t('security_noVulns')}</Text>
         </Box>
       )}
 
@@ -98,7 +98,7 @@ export function SecurityAuditView() {
                         </Box>
                         <Text color="gray" wrap="wrap">{vuln.summary}</Text>
                         {vuln.fixedVersion && (
-                          <Text color="green">{t('security_fixedIn', { version: vuln.fixedVersion })}</Text>
+                          <Text color="cyanBright">{t('security_fixedIn', { version: vuln.fixedVersion })}</Text>
                         )}
                       </Box>
                     ))}
@@ -109,8 +109,8 @@ export function SecurityAuditView() {
           })}
 
           <Box marginTop={1}>
-            <Text color="gray">
-              {cursor + 1}/{results.length} {'\u2502'} enter:{t('hint_expand')} r:{t('hint_rescan')}
+            <Text color="white" bold>
+              {cursor + 1}/{results.length}
             </Text>
           </Box>
         </Box>

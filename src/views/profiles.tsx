@@ -105,7 +105,7 @@ export function ProfilesView() {
         <ProgressLog lines={importLines} isRunning={importRunning} title={t('profiles_importTitle')} />
         {!importRunning && (
           <Box marginTop={1}>
-            <Text color="green" bold>{'\u2714'} {t('profiles_importComplete')}</Text>
+            <Text color="cyanBright" bold>{'\u2714'} {t('profiles_importComplete')}</Text>
           </Box>
         )}
       </Box>
@@ -207,7 +207,7 @@ export function ProfilesView() {
             );
           })}
           <Box marginTop={1}>
-            <Text color="gray">{cursor + 1}/{profileNames.length} {'\u2502'} n:{t('hint_new')} enter:{t('hint_details')} i:{t('hint_import')} d:{t('hint_delete')}</Text>
+            <Text color="white" bold>{cursor + 1}/{profileNames.length}</Text>
           </Box>
         </Box>
       )}

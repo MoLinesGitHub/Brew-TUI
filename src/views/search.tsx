@@ -80,7 +80,7 @@ export function SearchView() {
         />
         {!stream.isRunning && (
           <Box marginTop={1}>
-            <Text color={stream.error ? 'red' : 'green'} bold>
+            <Text color={stream.error ? 'red' : 'cyanBright'} bold>
               {stream.error ? `\u2718 ${stream.error}` : `\u2714 ${t('search_installComplete')}`}
             </Text>
           </Box>
@@ -133,22 +133,28 @@ export function SearchView() {
                   </Box>
                 );
               })}
+              {results.formulae.length > 20 && (
+                <Text color="gray" dimColor>  {t('scroll_moreBelow', { count: results.formulae.length - 20 })}</Text>
+              )}
             </Box>
           )}
 
           {results.casks.length > 0 && (
             <Box flexDirection="column">
-              <Text bold color="magenta">{t('search_casksHeader', { count: results.casks.length })}</Text>
+              <Text bold color="magentaBright">{t('search_casksHeader', { count: results.casks.length })}</Text>
               {results.casks.slice(0, 20).map((name, i) => {
                 const idx = results.formulae.length + i;
                 const isCurrent = idx === cursor;
                 return (
                   <Box key={name} gap={1}>
-                    <Text color={isCurrent ? 'magenta' : 'white'}>{isCurrent ? '\u25B6' : ' '}</Text>
+                    <Text color={isCurrent ? 'cyan' : 'white'}>{isCurrent ? '\u25B6' : ' '}</Text>
                     <Text bold={isCurrent} inverse={isCurrent}>{name}</Text>
                   </Box>
                 );
               })}
+              {results.casks.length > 20 && (
+                <Text color="gray" dimColor>  {t('scroll_moreBelow', { count: results.casks.length - 20 })}</Text>
+              )}
             </Box>
           )}
 
@@ -157,9 +163,8 @@ export function SearchView() {
           )}
 
           <Box marginTop={1}>
-            <Text color="gray">
+            <Text color="white" bold>
               {allResults.length > 0 ? `${cursor + 1}/${allResults.length}` : ''}
-              {' '}{'\u2502'} enter:{t('hint_install')} esc:{t('hint_clear')}
             </Text>
           </Box>
         </Box>

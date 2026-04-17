@@ -292,6 +292,10 @@ const es: Translations = {
   plural_vulns_other: '({{count}} vulns)',
   plural_warnings_one: '{{count}} advertencia',
   plural_warnings_other: '{{count}} advertencias',
+
+  // ── Scroll indicators ──
+  scroll_moreAbove: '\u2191 {{count}} m\u00E1s',
+  scroll_moreBelow: '\u2193 {{count}} m\u00E1s',
 };
 
 export default es;

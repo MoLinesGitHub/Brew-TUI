@@ -39,12 +39,12 @@ export function Footer() {
         return (
           <React.Fragment key={text}>
             {i > 0 && <Text color="gray"> {'\u2502'} </Text>}
-            <Text color="yellowBright" dimColor>{text}</Text>
+            <Text color="cyan" dimColor>{text}</Text>
           </React.Fragment>
         );
       })}
       <Text color="gray"> {'\u2502'} </Text>
-      <Text color="yellowBright" dimColor>L:{t('hint_lang')}({locale})</Text>
+      <Text color="cyan" dimColor>L:{t('hint_lang')}({locale})</Text>
     </Box>
   );
 }

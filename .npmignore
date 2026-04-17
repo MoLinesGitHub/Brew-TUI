@@ -1,3 +1,4 @@
+# Source (only publish build/)
 src/
 menubar/
 *.ts
@@ -5,6 +6,8 @@ menubar/
 tsup.config.ts
 tsconfig.json
 eslint.config.js
+
+# Dev/System
 .DS_Store
 .env
 .env.*
@@ -13,3 +16,4 @@ node_modules/
 *.tsbuildinfo
 .git/
 .gitignore
+.npmignore

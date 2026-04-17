@@ -6,6 +6,7 @@ export interface Profile {
   formulae: string[];
   casks: string[];
   taps: string[];
+  exportedBy?: string; // Layer 16: Watermark — who exported this profile
 }
 
 export interface ProfileFile {

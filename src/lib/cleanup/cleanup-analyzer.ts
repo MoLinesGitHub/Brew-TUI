@@ -2,6 +2,7 @@ import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { execBrew } from '../brew-cli.js';
 import { formatBytes } from '../../utils/format.js';
+import { requirePro } from '../license/pro-guard.js';
 import type { Formula } from '../types.js';
 import type { CleanupCandidate, CleanupSummary } from './types.js';
 
@@ -30,6 +31,8 @@ export async function analyzeCleanup(
   formulae: Formula[],
   leaves: string[],
 ): Promise<CleanupSummary> {
+  requirePro();
+
   const leavesSet = new Set(leaves);
 
   // Build reverse dependency map

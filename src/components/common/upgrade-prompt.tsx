@@ -26,14 +26,15 @@ export function UpgradePrompt({ viewId }: UpgradePromptProps) {
       <Box
         borderStyle="double"
         borderColor="#FF6B2B"
-        paddingX={4}
+        paddingX={3}
         paddingY={2}
         flexDirection="column"
         alignItems="center"
+        width="80%"
       >
         <Text bold color="#FF6B2B">{'\u2B50'} {t('upgrade_proFeature', { title })}</Text>
         <Text> </Text>
-        <Text color="#F9FAFB">{t(keys.desc)}</Text>
+        <Text color="#F9FAFB" wrap="wrap">{t(keys.desc)}</Text>
         <Text> </Text>
         <Box flexDirection="column" alignItems="center">
           <Text color="#06B6D4" bold>{t('upgrade_pricing')}</Text>

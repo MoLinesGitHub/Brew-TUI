@@ -1,10 +1,13 @@
 import { readFile, writeFile, rename } from 'node:fs/promises';
 import { HISTORY_PATH, ensureDataDirs } from '../data-dir.js';
+import { requirePro } from '../license/pro-guard.js';
 import type { HistoryEntry, HistoryFile, HistoryAction } from './types.js';
 
 const MAX_ENTRIES = 1000;
 
 export async function loadHistory(): Promise<HistoryEntry[]> {
+  requirePro();
+
   try {
     const raw = await readFile(HISTORY_PATH, 'utf-8');
     const file = JSON.parse(raw) as HistoryFile;
@@ -29,6 +32,7 @@ export async function appendEntry(
   success: boolean,
   error: string | null = null,
 ): Promise<void> {
+  requirePro();
   const entries = await loadHistory();
 
   const entry: HistoryEntry = {
@@ -50,5 +54,6 @@ export async function appendEntry(
 }
 
 export async function clearHistory(): Promise<void> {
+  requirePro();
   await saveHistory([]);
 }

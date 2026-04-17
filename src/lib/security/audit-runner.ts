@@ -1,4 +1,5 @@
 import { queryVulnerabilities } from './osv-api.js';
+import { requirePro } from '../license/pro-guard.js';
 import type { Formula, Cask } from '../types.js';
 import type { PackageAuditResult, SecurityAuditSummary, Severity } from './types.js';
 
@@ -14,6 +15,8 @@ export async function runSecurityAudit(
   formulae: Formula[],
   casks: Cask[],
 ): Promise<SecurityAuditSummary> {
+  requirePro();
+
   const packages: Array<{ name: string; version: string }> = [];
 
   for (const f of formulae) {

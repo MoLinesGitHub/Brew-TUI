@@ -4,7 +4,7 @@ export interface LicenseData {
   status: 'active' | 'expired' | 'inactive';
   customerEmail: string;
   customerName: string;
-  plan: 'monthly' | 'yearly';
+  plan: 'pro';
   activatedAt: string;
   expiresAt: string | null;
   lastValidatedAt: string;
@@ -12,7 +12,11 @@ export interface LicenseData {
 
 export interface LicenseFile {
   version: 1;
-  license: LicenseData | null;
+  license?: LicenseData | null; // legacy unencrypted
+  hmac?: string; // legacy
+  encrypted?: string; // AES-256-GCM encrypted license JSON
+  iv?: string;
+  tag?: string;
 }
 
 export type LicenseStatus = 'free' | 'pro' | 'expired' | 'validating';

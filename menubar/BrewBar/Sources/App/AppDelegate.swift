@@ -10,19 +10,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var badgeTimer: Timer?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        guard checkBrewTuiInstalled() else {
-            showBrewTuiRequired()
-            return
-        }
+        Task {
+            guard await checkBrewTuiInstalled() else {
+                showBrewTuiRequired()
+                return
+            }
 
-        setupStatusItem()
-        setupPopover()
+            setupStatusItem()
+            setupPopover()
 
-        scheduler.start(state: appState)
-        Task { await appState.refresh() }
+            scheduler.start(state: appState)
+            await appState.refresh()
 
-        badgeTimer = Timer.scheduledTimer(withTimeInterval: 2, repeats: true) { [weak self] _ in
-            Task { @MainActor in self?.updateBadge() }
+            badgeTimer = Timer.scheduledTimer(withTimeInterval: 2, repeats: true) { [weak self] _ in
+                Task { @MainActor in self?.updateBadge() }
+            }
         }
     }
 
@@ -34,7 +36,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     // MARK: - brew-tui dependency check
 
-    private func checkBrewTuiInstalled() -> Bool {
+    private func checkBrewTuiInstalled() async -> Bool {
         let paths = [
             "/usr/local/bin/brew-tui",
             "/opt/homebrew/bin/brew-tui",
@@ -48,7 +50,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
         }
 
-        // Fallback: check via shell PATH
+        // Fallback: check via shell PATH (non-blocking via terminationHandler)
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/bin/which")
         process.arguments = ["brew-tui"]
@@ -56,9 +58,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         process.standardError = FileHandle.nullDevice
 
         do {
-            try process.run()
-            process.waitUntilExit()
-            return process.terminationStatus == 0
+            let found = try await withCheckedThrowingContinuation { (cont: CheckedContinuation<Bool, Error>) in
+                process.terminationHandler = { proc in
+                    cont.resume(returning: proc.terminationStatus == 0)
+                }
+                do {
+                    try process.run()
+                } catch {
+                    cont.resume(throwing: error)
+                }
+            }
+            return found
         } catch {
             return false
         }
@@ -102,9 +112,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         popover = NSPopover()
         popover.contentSize = NSSize(width: 340, height: 420)
         popover.behavior = .transient
-        popover.contentViewController = NSHostingController(
-            rootView: PopoverView(appState: appState, scheduler: scheduler)
-        )
+        // contentViewController is set fresh on each open in togglePopover()
+        // to ensure SwiftUI @State is initialised correctly each time.
     }
 
     private func updateBadge() {
@@ -114,7 +123,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         button.title = count > 0 ? " \(count)" : ""
         button.image = NSImage(
             systemSymbolName: "mug.fill",
-            accessibilityDescription: count > 0 ? String(localized: "BrewBar — \(count) updates") : String(localized: "BrewBar")
+            accessibilityDescription: count > 0 ? String(format: String(localized: "BrewBar — %lld updates"), Int64(count)) : String(localized: "BrewBar")
         )
         button.image?.isTemplate = true
     }

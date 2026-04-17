@@ -4,6 +4,8 @@ import { PROFILES_DIR, ensureDataDirs } from '../data-dir.js';
 import { execBrew, streamBrew } from '../brew-cli.js';
 import { getInstalled, getLeaves } from '../brew-api.js';
 import { t } from '../../i18n/index.js';
+import { requirePro } from '../license/pro-guard.js';
+import { getWatermark } from '../license/watermark.js';
 import type { Profile, ProfileFile } from './types.js';
 
 /**
@@ -33,6 +35,7 @@ function profilePath(name: string): string {
 }
 
 export async function listProfiles(): Promise<string[]> {
+  requirePro();
   await ensureDataDirs();
   try {
     const files = await readdir(PROFILES_DIR);
@@ -43,6 +46,7 @@ export async function listProfiles(): Promise<string[]> {
 }
 
 export async function loadProfile(name: string): Promise<Profile> {
+  requirePro();
   const raw = await readFile(profilePath(name), 'utf-8');
   let file: ProfileFile;
   try {
@@ -57,18 +61,22 @@ export async function loadProfile(name: string): Promise<Profile> {
 }
 
 export async function saveProfile(profile: Profile): Promise<void> {
+  requirePro();
   await ensureDataDirs();
   const file: ProfileFile = { version: 1, profile };
   await writeFile(profilePath(profile.name), JSON.stringify(file, null, 2), 'utf-8');
 }
 
 export async function deleteProfile(name: string): Promise<void> {
+  requirePro();
   try {
     await rm(profilePath(name));
   } catch { /* may not exist */ }
 }
 
 export async function exportCurrentSetup(name: string, description: string): Promise<Profile> {
+  requirePro();
+
   const [installed, leaves, tapsRaw] = await Promise.all([
     getInstalled(),
     getLeaves(),
@@ -89,6 +97,7 @@ export async function exportCurrentSetup(name: string, description: string): Pro
     formulae: leaves,
     casks,
     taps,
+    exportedBy: getWatermark(), // Layer 16: Watermark — who exported this profile
   };
 
   await saveProfile(profile);
@@ -96,6 +105,8 @@ export async function exportCurrentSetup(name: string, description: string): Pro
 }
 
 export async function* importProfile(profile: Profile): AsyncGenerator<string> {
+  requirePro();
+
   const installed = await getInstalled();
   const installedFormulae = new Set(installed.formulae.map((f) => f.name));
   const installedCasks = new Set(installed.casks.filter((c) => c.installed).map((c) => c.token));

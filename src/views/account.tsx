@@ -7,7 +7,7 @@ import { GRADIENTS } from '../utils/gradient.js';
 import { t } from '../i18n/index.js';
 
 export function AccountView() {
-  const { status, license, deactivate } = useLicenseStore();
+  const { status, license, deactivate, degradation } = useLicenseStore();
   const [confirmDeactivate, setConfirmDeactivate] = useState(false);
   const [deactivating, setDeactivating] = useState(false);
 
@@ -52,6 +52,16 @@ export function AccountView() {
           {status === 'validating' && <Text color="#38BDF8">{t('account_validating')}</Text>}
         </Box>
 
+        {(degradation === 'warning' || degradation === 'limited') && license && (
+          <Box marginTop={1} borderStyle="round" borderColor="#F59E0B" paddingX={2} paddingY={0}>
+            <Text color="#F59E0B">
+              {t('license_offlineWarning', {
+                days: Math.floor((Date.now() - new Date(license.lastValidatedAt).getTime()) / (24 * 60 * 60 * 1000)),
+              })}
+            </Text>
+          </Box>
+        )}
+
         {license && (
           <>
             <Box gap={1}>
@@ -64,7 +74,7 @@ export function AccountView() {
             </Box>
             <Box gap={1}>
               <Text color="#9CA3AF">{t('account_planLabel')}</Text>
-              <Text>{license.plan === 'monthly' ? t('account_monthlyPrice') : t('account_yearlyPrice')}</Text>
+              <Text color="#22C55E" bold>Pro</Text>
             </Box>
             <Box gap={1}>
               <Text color="#9CA3AF">{t('account_keyLabel')}</Text>

@@ -9,14 +9,15 @@ final class AppState {
     var lastChecked: Date?
     var isLoading = false
     var error: String?
+    var servicesError: String?
 
     private let checker = BrewChecker()
 
     var outdatedCount: Int { outdatedPackages.count }
     var errorServices: [BrewService] { services.filter(\.hasError) }
 
-    func refresh() async {
-        guard !isLoading else { return }
+    func refresh(force: Bool = false) async {
+        guard force || !isLoading else { return }
         isLoading = true
         error = nil
 
@@ -30,8 +31,9 @@ final class AppState {
 
         do {
             services = try await checker.checkServices()
+            servicesError = nil
         } catch {
-            // Services are non-critical
+            servicesError = error.localizedDescription
         }
 
         isLoading = false
@@ -44,12 +46,12 @@ final class AppState {
         do {
             try await checker.upgradePackage(name)
         } catch {
-            self.error = String(localized: "Upgrade failed: \(error.localizedDescription)")
+            self.error = String(format: String(localized: "Upgrade failed: %@"), error.localizedDescription)
             isLoading = false
             return
         }
-        isLoading = false
-        await refresh()
+        // Stay in loading state — refresh(force:) bypasses the guard
+        await refresh(force: true)
     }
 
     func upgradeAll() async {
@@ -59,11 +61,11 @@ final class AppState {
         do {
             try await checker.upgradeAll()
         } catch {
-            self.error = String(localized: "Upgrade all failed: \(error.localizedDescription)")
+            self.error = String(format: String(localized: "Upgrade all failed: %@"), error.localizedDescription)
             isLoading = false
             return
         }
-        isLoading = false
-        await refresh()
+        // Stay in loading state — refresh(force:) bypasses the guard
+        await refresh(force: true)
     }
 }

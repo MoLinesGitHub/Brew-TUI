@@ -81,11 +81,11 @@ final class SchedulerService {
     private func sendNotification(count: Int) {
         let content = UNMutableNotificationContent()
         content.title = String(localized: "Homebrew Updates")
-        content.body = String(localized: "\(count) packages can be updated.")
+        content.body = String(format: String(localized: "%lld packages can be updated."), Int64(count))
         content.sound = .default
 
         let request = UNNotificationRequest(
-            identifier: "brewbar-outdated-\(Date().timeIntervalSince1970)",
+            identifier: "brewbar-outdated",
             content: content,
             trigger: nil
         )

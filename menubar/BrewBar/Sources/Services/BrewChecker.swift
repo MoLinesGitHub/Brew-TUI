@@ -40,6 +40,8 @@ struct BrewChecker: Sendable {
 
             do {
                 try process.run()
+            } catch let error as CocoaError where error.code == .fileNoSuchFile || error.code == .fileReadNoSuchFile {
+                continuation.resume(throwing: BrewError.brewNotInstalled)
             } catch {
                 continuation.resume(throwing: error)
             }
@@ -67,11 +69,14 @@ struct BrewChecker: Sendable {
 
 enum BrewError: LocalizedError {
     case processExited(Int32)
+    case brewNotInstalled
 
     var errorDescription: String? {
         switch self {
         case .processExited(let code):
-            String(localized: "brew exited with code \(code)")
+            String(format: String(localized: "brew exited with code %lld"), Int64(code))
+        case .brewNotInstalled:
+            String(localized: "Homebrew is not installed. Install it from https://brew.sh")
         }
     }
 }

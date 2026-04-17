@@ -169,8 +169,11 @@ struct PopoverView: View {
 
     private func openBrewTUI() {
         let script = "tell application \"Terminal\" to do script \"brew-tui\""
-        if let appleScript = NSAppleScript(source: script) {
-            appleScript.executeAndReturnError(nil)
+        guard let appleScript = NSAppleScript(source: script) else { return }
+        var errorInfo: NSDictionary?
+        appleScript.executeAndReturnError(&errorInfo)
+        if let errorInfo {
+            NSLog("[BrewBar] Failed to open Brew-TUI: %@", errorInfo.description)
         }
     }
 }

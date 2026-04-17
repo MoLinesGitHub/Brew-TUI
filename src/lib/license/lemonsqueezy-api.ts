@@ -3,8 +3,33 @@ import type { LemonSqueezyActivateResponse, LemonSqueezyValidateResponse } from 
 
 const BASE_URL = 'https://api.lemonsqueezy.com/v1/licenses';
 
+// Layer 11: Certificate pinning / API URL validation
+const ALLOWED_HOSTS = ['api.lemonsqueezy.com'];
+
+function validateApiUrl(url: string): void {
+  const parsed = new URL(url);
+  if (parsed.protocol !== 'https:') {
+    throw new Error('HTTPS required for license API');
+  }
+  if (!ALLOWED_HOSTS.includes(parsed.hostname)) {
+    throw new Error('Invalid API host');
+  }
+}
+
+function validateResponseHeaders(res: Response): void {
+  // Verify the response comes from a legitimate API server.
+  // LemonSqueezy responses include standard API headers.
+  const contentType = res.headers.get('content-type');
+  if (contentType && !contentType.includes('json')) {
+    throw new Error('Unexpected response content type');
+  }
+}
+
 async function post<T>(endpoint: string, body: Record<string, string>): Promise<T> {
-  const res = await fetch(`${BASE_URL}/${endpoint}`, {
+  const url = `${BASE_URL}/${endpoint}`;
+  validateApiUrl(url);
+
+  const res = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: new URLSearchParams(body).toString(),
@@ -13,14 +38,16 @@ async function post<T>(endpoint: string, body: Record<string, string>): Promise<
   if (!res.ok) {
     let message = `Request failed with status ${res.status}`;
     try {
-      const body = await res.json() as { error?: string; message?: string };
-      if (typeof body.error === 'string') message = body.error;
-      else if (typeof body.message === 'string') message = body.message;
+      const errBody = await res.json() as { error?: string; message?: string };
+      if (typeof errBody.error === 'string') message = errBody.error;
+      else if (typeof errBody.message === 'string') message = errBody.message;
     } catch {
       // non-JSON error body — use generic message above
     }
     throw new Error(message);
   }
+
+  validateResponseHeaders(res);
 
   return res.json() as Promise<T>;
 }

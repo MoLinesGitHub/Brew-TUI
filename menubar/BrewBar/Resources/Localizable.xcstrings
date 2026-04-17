@@ -331,6 +331,16 @@
         }
       }
     },
+    "Homebrew is not installed. Install it from https://brew.sh" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Homebrew no est\u00E1 instalado. Inst\u00E1lalo desde https://brew.sh"
+          }
+        }
+      }
+    },
     "brew exited with code %lld" : {
       "localizations" : {
         "es" : {

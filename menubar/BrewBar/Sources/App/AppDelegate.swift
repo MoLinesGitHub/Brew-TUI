@@ -8,9 +8,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let appState = AppState()
     private let scheduler = SchedulerService()
     private var badgeTimer: Timer?
+    private var launchTask: Task<Void, Never>?
+    private var lastBadgeCount = -1
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        Task {
+        launchTask = Task {
             guard await checkBrewTuiInstalled() else {
                 showBrewTuiRequired()
                 return
@@ -29,6 +31,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationWillTerminate(_ notification: Notification) {
+        launchTask?.cancel()
+        launchTask = nil
         badgeTimer?.invalidate()
         badgeTimer = nil
         scheduler.stop()
@@ -120,6 +124,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         guard let button = statusItem.button else { return }
 
         let count = appState.outdatedCount
+        guard count != lastBadgeCount else { return } // Skip if unchanged
+        lastBadgeCount = count
+
         button.title = count > 0 ? " \(count)" : ""
         button.image = NSImage(
             systemSymbolName: "mug.fill",

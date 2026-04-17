@@ -1,0 +1,15 @@
+src/
+menubar/
+*.ts
+!*.d.ts
+tsup.config.ts
+tsconfig.json
+eslint.config.js
+.DS_Store
+.env
+.env.*
+.claude/
+node_modules/
+*.tsbuildinfo
+.git/
+.gitignore

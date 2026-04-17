@@ -341,6 +341,26 @@
         }
       }
     },
+    "Notifications are disabled in System Settings. Enable them in System Settings > Notifications > BrewBar." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Las notificaciones est\u00E1n desactivadas en Ajustes del Sistema. Act\u00EDvalas en Ajustes del Sistema > Notificaciones > BrewBar."
+          }
+        }
+      }
+    },
+    "brew command timed out" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El comando brew tard\u00F3 demasiado"
+          }
+        }
+      }
+    },
     "brew exited with code %lld" : {
       "localizations" : {
         "es" : {

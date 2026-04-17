@@ -21,7 +21,7 @@ struct PopoverView: View {
                 OutdatedListView(appState: appState)
             }
 
-            if !appState.errorServices.isEmpty {
+            if !appState.errorServices.isEmpty || appState.servicesError != nil {
                 Divider()
                 servicesErrorView
             }
@@ -100,7 +100,7 @@ struct PopoverView: View {
                 .font(.headline)
                 .foregroundStyle(.secondary)
             if let last = appState.lastChecked {
-                Text("Last checked \(last, format: .relative(presentation: .named))")
+                Text(String(format: String(localized: "Last checked %@"), last.formatted(.relative(presentation: .named))))
                     .font(.caption2)
                     .foregroundStyle(.tertiary)
             }
@@ -114,13 +114,18 @@ struct PopoverView: View {
             Label("Service Errors", systemImage: "exclamationmark.triangle")
                 .font(.caption)
                 .foregroundStyle(.orange)
+            if let servicesError = appState.servicesError {
+                Text(servicesError)
+                    .font(.caption2)
+                    .foregroundStyle(.red)
+            }
             ForEach(appState.errorServices) { svc in
                 HStack {
                     Text(svc.name)
                         .font(.caption2)
                     Spacer()
                     if let code = svc.exitCode {
-                        Text("exit \(code)")
+                        Text(String(format: String(localized: "exit %lld"), Int64(code)))
                             .font(.caption2)
                             .foregroundStyle(.red)
                     }

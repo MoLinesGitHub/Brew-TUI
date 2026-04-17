@@ -7,13 +7,29 @@
     "brew-tui": "./bin/brew-tui.js"
   },
   "main": "./build/index.js",
+  "files": [
+    "build/",
+    "bin/",
+    "LICENSE",
+    "README.md"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MoLinesGitHub/Brew-TUI.git"
+  },
+  "bugs": {
+    "url": "https://github.com/MoLinesGitHub/Brew-TUI/issues"
+  },
+  "homepage": "https://github.com/MoLinesGitHub/Brew-TUI#readme",
+  "author": "MoLines Designs",
   "scripts": {
     "dev": "tsx src/index.tsx",
     "build": "tsup",
     "test": "vitest run",
     "test:watch": "vitest",
     "lint": "eslint src/",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "npm run typecheck && npm run build"
   },
   "keywords": [
     "homebrew",

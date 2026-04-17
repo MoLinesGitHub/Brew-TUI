@@ -16,10 +16,25 @@ struct BrewChecker: Sendable {
         } ?? candidates[0]
     }
 
+    private static let processTimeout: TimeInterval = 60 // seconds
+
     private func run(_ arguments: [String]) async throws -> Data {
         try await withCheckedThrowingContinuation { continuation in
             let process = Process()
             let pipe = Pipe()
+            var resumed = false
+            let lock = NSLock()
+
+            func resumeOnce(with result: Result<Data, Error>) {
+                lock.lock()
+                defer { lock.unlock() }
+                guard !resumed else { return }
+                resumed = true
+                switch result {
+                case .success(let data): continuation.resume(returning: data)
+                case .failure(let error): continuation.resume(throwing: error)
+                }
+            }
 
             process.executableURL = URL(fileURLWithPath: brewPath)
             process.arguments = arguments
@@ -32,18 +47,28 @@ struct BrewChecker: Sendable {
             process.terminationHandler = { proc in
                 let data = pipe.fileHandleForReading.readDataToEndOfFile()
                 if proc.terminationStatus == 0 {
-                    continuation.resume(returning: data)
+                    resumeOnce(with: .success(data))
                 } else {
-                    continuation.resume(throwing: BrewError.processExited(proc.terminationStatus))
+                    resumeOnce(with: .failure(BrewError.processExited(proc.terminationStatus)))
                 }
             }
 
             do {
                 try process.run()
             } catch let error as CocoaError where error.code == .fileNoSuchFile || error.code == .fileReadNoSuchFile {
-                continuation.resume(throwing: BrewError.brewNotInstalled)
+                resumeOnce(with: .failure(BrewError.brewNotInstalled))
+                return
             } catch {
-                continuation.resume(throwing: error)
+                resumeOnce(with: .failure(error))
+                return
+            }
+
+            // Timeout: kill the process if it takes too long
+            DispatchQueue.global().asyncAfter(deadline: .now() + Self.processTimeout) {
+                if process.isRunning {
+                    process.terminate()
+                    resumeOnce(with: .failure(BrewError.timeout))
+                }
             }
         }
     }
@@ -70,6 +95,7 @@ struct BrewChecker: Sendable {
 enum BrewError: LocalizedError {
     case processExited(Int32)
     case brewNotInstalled
+    case timeout
 
     var errorDescription: String? {
         switch self {
@@ -77,6 +103,8 @@ enum BrewError: LocalizedError {
             String(format: String(localized: "brew exited with code %lld"), Int64(code))
         case .brewNotInstalled:
             String(localized: "Homebrew is not installed. Install it from https://brew.sh")
+        case .timeout:
+            String(localized: "brew command timed out")
         }
     }
 }

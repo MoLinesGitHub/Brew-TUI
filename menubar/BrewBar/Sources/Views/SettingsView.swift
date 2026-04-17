@@ -24,8 +24,21 @@ struct SettingsView: View {
 
                 Toggle("Notifications", isOn: Binding(
                     get: { scheduler.notificationsEnabled },
-                    set: { scheduler.notificationsEnabled = $0 }
+                    set: { newValue in
+                        scheduler.notificationsEnabled = newValue
+                        if newValue {
+                            // Re-sync after toggling on — if system denied, it will flip back off
+                            Task { await scheduler.syncNotificationPermission() }
+                        }
+                    }
                 ))
+                .disabled(scheduler.notificationsDenied)
+
+                if scheduler.notificationsDenied {
+                    Text("Notifications are disabled in System Settings. Enable them in System Settings > Notifications > BrewBar.")
+                        .font(.caption)
+                        .foregroundStyle(.orange)
+                }
 
                 Toggle("Launch at login", isOn: $launchAtLogin)
                     .onChange(of: launchAtLogin) { _, newValue in
@@ -50,5 +63,8 @@ struct SettingsView: View {
         }
         .padding()
         .frame(width: 300)
+        .task {
+            await scheduler.syncNotificationPermission()
+        }
     }
 }

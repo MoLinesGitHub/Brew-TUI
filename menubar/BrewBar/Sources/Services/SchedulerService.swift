@@ -32,23 +32,58 @@ final class SchedulerService {
         }
     }
 
+    /// True when the OS has denied notification permission — shown in Settings UI
+    var notificationsDenied = false
+
     private var timer: Timer?
     private weak var state: AppState?
+
+    private static let hasLaunchedKey = "hasLaunchedBefore"
 
     init() {
         let saved = UserDefaults.standard.integer(forKey: "checkInterval")
         interval = Interval(rawValue: saved) ?? .oneHour
-        notificationsEnabled = UserDefaults.standard.bool(forKey: "notificationsEnabled")
+
+        if !UserDefaults.standard.bool(forKey: Self.hasLaunchedKey) {
+            UserDefaults.standard.set(true, forKey: Self.hasLaunchedKey)
+            notificationsEnabled = true
+            UserDefaults.standard.set(true, forKey: "notificationsEnabled")
+            requestNotificationPermission()
+        } else {
+            notificationsEnabled = UserDefaults.standard.bool(forKey: "notificationsEnabled")
+        }
     }
 
     func start(state: AppState) {
         self.state = state
         restartTimer()
+        // Sync toggle with actual system permission on each launch
+        Task { await syncNotificationPermission() }
     }
 
     func stop() {
         timer?.invalidate()
         timer = nil
+    }
+
+    /// Query the OS for the actual notification authorization status.
+    /// If the user denied permission, turn off the toggle and flag it.
+    func syncNotificationPermission() async {
+        let settings = await UNUserNotificationCenter.current().notificationSettings()
+        switch settings.authorizationStatus {
+        case .denied:
+            notificationsDenied = true
+            if notificationsEnabled {
+                notificationsEnabled = false
+                UserDefaults.standard.set(false, forKey: "notificationsEnabled")
+            }
+        case .authorized, .provisional, .ephemeral:
+            notificationsDenied = false
+        case .notDetermined:
+            notificationsDenied = false
+        @unknown default:
+            notificationsDenied = false
+        }
     }
 
     private func restartTimer() {
@@ -70,12 +105,26 @@ final class SchedulerService {
         let newCount = state.outdatedCount
 
         if notificationsEnabled && newCount > previousCount {
-            sendNotification(count: newCount)
+            // Re-check permission before sending
+            await syncNotificationPermission()
+            if notificationsEnabled {
+                sendNotification(count: newCount)
+            }
         }
     }
 
     private func requestNotificationPermission() {
-        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { _, _ in }
+        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { [weak self] granted, _ in
+            Task { @MainActor in
+                if !granted {
+                    self?.notificationsDenied = true
+                    self?.notificationsEnabled = false
+                    UserDefaults.standard.set(false, forKey: "notificationsEnabled")
+                } else {
+                    self?.notificationsDenied = false
+                }
+            }
+        }
     }
 
     private func sendNotification(count: Int) {

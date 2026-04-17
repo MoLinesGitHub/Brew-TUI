@@ -102,11 +102,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
 
         if let button = statusItem.button {
-            button.image = NSImage(
-                systemSymbolName: "mug.fill",
-                accessibilityDescription: String(localized: "BrewBar")
-            )
-            button.image?.isTemplate = true
+            let icon = NSImage(named: "MenuBarIcon")
+            icon?.isTemplate = true
+            button.image = icon
+            button.image?.accessibilityDescription = String(localized: "BrewBar")
             button.action = #selector(togglePopover)
             button.target = self
         }
@@ -128,11 +127,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         lastBadgeCount = count
 
         button.title = count > 0 ? " \(count)" : ""
-        button.image = NSImage(
-            systemSymbolName: "mug.fill",
-            accessibilityDescription: count > 0 ? String(format: String(localized: "BrewBar — %lld updates"), Int64(count)) : String(localized: "BrewBar")
-        )
-        button.image?.isTemplate = true
+        let icon = NSImage(named: "MenuBarIcon")
+        icon?.isTemplate = true
+        icon?.accessibilityDescription = count > 0 ? String(format: String(localized: "BrewBar — %lld updates"), Int64(count)) : String(localized: "BrewBar")
+        button.image = icon
     }
 
     @objc private func togglePopover() {

@@ -12,6 +12,7 @@ interface ProfileState {
   loadProfile: (name: string) => Promise<void>;
   exportCurrent: (name: string, description: string) => Promise<void>;
   deleteProfile: (name: string) => Promise<void>;
+  updateProfile: (oldName: string, newName: string, newDescription: string) => Promise<void>;
 }
 
 export const useProfileStore = create<ProfileState>((set) => ({
@@ -52,5 +53,17 @@ export const useProfileStore = create<ProfileState>((set) => ({
     await manager.deleteProfile(name);
     const names = await manager.listProfiles();
     set({ profileNames: names, selectedProfile: null });
+  },
+
+  updateProfile: async (oldName, newName, newDescription) => {
+    set({ loadError: null });
+    try {
+      await manager.updateProfile(oldName, newName, newDescription);
+      const names = await manager.listProfiles();
+      const updated = await manager.loadProfile(newName);
+      set({ profileNames: names, selectedProfile: updated });
+    } catch (err) {
+      set({ loadError: err instanceof Error ? err.message : String(err) });
+    }
   },
 }));

@@ -1,9 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { Box, Text, useInput } from 'ink';
 import { useSecurityStore } from '../stores/security-store.js';
+import { useBrewStream } from '../hooks/use-brew-stream.js';
 import { Loading, ErrorMessage } from '../components/common/loading.js';
 import { StatCard } from '../components/common/stat-card.js';
 import { StatusBadge } from '../components/common/status-badge.js';
+import { ConfirmDialog } from '../components/common/confirm-dialog.js';
+import { ProgressLog } from '../components/common/progress-log.js';
 import { SectionHeader } from '../components/common/section-header.js';
 import { GRADIENTS } from '../utils/gradient.js';
 import { t, tp } from '../i18n/index.js';
@@ -29,13 +32,21 @@ export function SecurityAuditView() {
   const { summary, loading, error, scan } = useSecurityStore();
   const [cursor, setCursor] = useState(0);
   const [expandedPkg, setExpandedPkg] = useState<string | null>(null);
+  const [confirmUpgrade, setConfirmUpgrade] = useState<string | null>(null);
+  const stream = useBrewStream();
 
   useEffect(() => { scan(); }, []);
 
   const results = summary?.results ?? [];
 
   useInput((input, key) => {
+    if (confirmUpgrade || stream.isRunning) return;
+
     if (input === 'r') { void scan(); return; }
+    if (input === 'u' && results[cursor]) {
+      setConfirmUpgrade(results[cursor].packageName);
+      return;
+    }
 
     if (input === 'j' || key.downArrow) setCursor((c) => Math.min(c + 1, Math.max(0, results.length - 1)));
     else if (input === 'k' || key.upArrow) setCursor((c) => Math.max(c - 1, 0));
@@ -70,6 +81,27 @@ export function SecurityAuditView() {
           <Box borderStyle="round" borderColor="#22C55E" paddingX={2} paddingY={0}>
             <Text color="#22C55E" bold>{'\u2714'} {t('security_noVulns')}</Text>
           </Box>
+        </Box>
+      )}
+
+      {confirmUpgrade && (
+        <Box marginY={1}>
+          <ConfirmDialog
+            message={t('security_confirmUpgrade', { name: confirmUpgrade })}
+            onConfirm={async () => {
+              const name = confirmUpgrade;
+              setConfirmUpgrade(null);
+              await stream.run(['upgrade', name]);
+              void scan();
+            }}
+            onCancel={() => setConfirmUpgrade(null)}
+          />
+        </Box>
+      )}
+
+      {(stream.isRunning || stream.lines.length > 0) && (
+        <Box marginY={1}>
+          <ProgressLog lines={stream.lines} isRunning={stream.isRunning} title={t('hint_upgrade')} />
         </Box>
       )}
 

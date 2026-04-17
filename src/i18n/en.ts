@@ -45,10 +45,15 @@ const en = {
   hint_clear: 'clear',
   hint_scan: 'scan',
   hint_expand: 'expand',
+  hint_cancel: 'cancel',
+  hint_force: 'force uninstall (ignore deps)',
   hint_rescan: 'rescan',
   hint_deactivate: 'deactivate',
   hint_importProfile: 'import this profile',
   hint_lang: 'lang',
+  hint_replay: 'replay',
+  hint_edit: 'edit',
+  hint_pin: 'pin/unpin',
 
   // ── Loading / progress ──
   loading_default: 'Loading...',
@@ -113,6 +118,7 @@ const en = {
   installed_casksCount: 'Casks ({{count}})',
   installed_filterDisplay: 'Filter: "{{query}}" ({{count}} matches)',
   installed_noPackages: 'No packages found',
+  installed_confirmUninstall: 'Uninstall {{name}}?',
 
   // ── Search ──
   search_placeholder: 'Search Homebrew packages... (enter to search)',
@@ -165,6 +171,8 @@ const en = {
   services_status: 'Status',
   services_user: 'User',
   services_processing: 'Processing...',
+  services_confirmStop: 'Stop service {{name}}?',
+  services_confirmRestart: 'Restart service {{name}}?',
 
   // ── Doctor ──
   doctor_title: 'Homebrew Doctor',
@@ -186,6 +194,8 @@ const en = {
   profiles_noProfiles: 'No profiles saved yet.',
   profiles_press: 'Press',
   profiles_exportHint: 'to export your current setup as a profile.',
+  profiles_editName: 'Edit Profile \u2014 Name:',
+  profiles_editDesc: 'Edit Profile "{{name}}" \u2014 Description:',
 
   // ── Smart Cleanup ──
   cleanup_title: 'Smart Cleanup',
@@ -195,6 +205,8 @@ const en = {
   cleanup_reclaimable: 'Reclaimable',
   cleanup_selected: 'Selected',
   cleanup_confirmUninstall: 'Uninstall {{count}} packages?',
+  cleanup_confirmForce: 'Some packages have dependencies. Force uninstall {{count}} packages? (ignores dependencies)',
+  cleanup_depError: 'Some packages could not be removed due to dependencies.',
   cleanup_systemClean: 'No orphaned packages found. Your system is clean!',
 
   // ── History ──
@@ -209,6 +221,8 @@ const en = {
   history_actionUninstall: 'uninstall',
   history_actionUpgrade: 'upgrade',
   history_actionUpgradeAll: 'upgrade-all',
+  history_confirmReplay: 'Re-run: {{action}} {{name}}?',
+  history_replayAll: 'Re-run: upgrade all packages?',
 
   // ── Security Audit ──
   security_title: 'Security Audit',
@@ -219,6 +233,7 @@ const en = {
   security_medium: 'Medium',
   security_noVulns: 'No known vulnerabilities found in your installed packages!',
   security_fixedIn: 'Fixed in: {{version}}',
+  security_confirmUpgrade: 'Upgrade {{name}} to fix vulnerabilities?',
 
   // ── Account ──
   account_title: 'Account & License',

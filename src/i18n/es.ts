@@ -47,10 +47,15 @@ const es: Translations = {
   hint_clear: 'borrar',
   hint_scan: 'escanear',
   hint_expand: 'expandir',
+  hint_cancel: 'cancelar',
+  hint_force: 'forzar (ignorar deps)',
   hint_rescan: 're-escanear',
   hint_deactivate: 'desactivar',
   hint_importProfile: 'importar este perfil',
   hint_lang: 'idioma',
+  hint_replay: 'repetir',
+  hint_edit: 'editar',
+  hint_pin: 'fijar/desfijar',
 
   // ── Loading / progress ──
   loading_default: 'Cargando...',
@@ -115,6 +120,7 @@ const es: Translations = {
   installed_casksCount: 'Casks ({{count}})',
   installed_filterDisplay: 'Filtro: "{{query}}" ({{count}} coincidencias)',
   installed_noPackages: 'No se encontraron paquetes',
+  installed_confirmUninstall: '\u00BFDesinstalar {{name}}?',
 
   // ── Search ──
   search_placeholder: 'Buscar paquetes Homebrew... (enter para buscar)',
@@ -167,6 +173,8 @@ const es: Translations = {
   services_status: 'Estado',
   services_user: 'Usuario',
   services_processing: 'Procesando...',
+  services_confirmStop: '\u00BFDetener servicio {{name}}?',
+  services_confirmRestart: '\u00BFReiniciar servicio {{name}}?',
 
   // ── Doctor ──
   doctor_title: 'Homebrew Doctor',
@@ -188,6 +196,8 @@ const es: Translations = {
   profiles_noProfiles: 'A\u00FAn no hay perfiles guardados.',
   profiles_press: 'Presiona',
   profiles_exportHint: 'para exportar tu configuraci\u00F3n actual como perfil.',
+  profiles_editName: 'Editar Perfil \u2014 Nombre:',
+  profiles_editDesc: 'Editar Perfil "{{name}}" \u2014 Descripci\u00F3n:',
 
   // ── Smart Cleanup ──
   cleanup_title: 'Limpieza Inteligente',
@@ -197,6 +207,8 @@ const es: Translations = {
   cleanup_reclaimable: 'Recuperable',
   cleanup_selected: 'Seleccionados',
   cleanup_confirmUninstall: '\u00BFDesinstalar {{count}} paquetes?',
+  cleanup_confirmForce: 'Algunos paquetes tienen dependencias. \u00BFForzar desinstalaci\u00F3n de {{count}} paquetes? (ignora dependencias)',
+  cleanup_depError: 'Algunos paquetes no pudieron eliminarse por dependencias.',
   cleanup_systemClean: '\u00A1No se encontraron paquetes hu\u00E9rfanos. Tu sistema est\u00E1 limpio!',
 
   // ── History ──
@@ -211,6 +223,8 @@ const es: Translations = {
   history_actionUninstall: 'desinstalar',
   history_actionUpgrade: 'actualizar',
   history_actionUpgradeAll: 'actualizar-todo',
+  history_confirmReplay: '\u00BFRe-ejecutar: {{action}} {{name}}?',
+  history_replayAll: '\u00BFRe-ejecutar: actualizar todos los paquetes?',
 
   // ── Security Audit ──
   security_title: 'Auditor\u00EDa de Seguridad',
@@ -221,6 +235,7 @@ const es: Translations = {
   security_medium: 'Medios',
   security_noVulns: '\u00A1No se encontraron vulnerabilidades conocidas en tus paquetes instalados!',
   security_fixedIn: 'Corregido en: {{version}}',
+  security_confirmUpgrade: '\u00BFActualizar {{name}} para corregir vulnerabilidades?',
 
   // ── Account ──
   account_title: 'Cuenta y Licencia',

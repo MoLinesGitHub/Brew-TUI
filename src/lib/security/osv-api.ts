@@ -55,14 +55,12 @@ function getFixedVersion(vuln: OsvVulnerability): string | null {
   return null;
 }
 
-export async function queryVulnerabilities(
-  packages: Array<{ name: string; version: string }>,
-): Promise<Map<string, Vulnerability[]>> {
-  const queries: OsvQuery[] = packages.map((p) => ({
-    package: { name: p.name, ecosystem: 'Homebrew' },
-    version: p.version,
-  }));
+const BATCH_SIZE = 100;
 
+async function queryBatch(
+  packages: Array<{ name: string; version: string }>,
+  queries: OsvQuery[],
+): Promise<Map<string, Vulnerability[]>> {
   const res = await fetch(OSV_BATCH_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -70,6 +68,10 @@ export async function queryVulnerabilities(
   });
 
   if (!res.ok) {
+    // On 400, try individual queries to isolate bad packages
+    if (res.status === 400 && queries.length > 1) {
+      return queryOneByOne(packages);
+    }
     throw new Error(`OSV API error: ${res.status} ${res.statusText}`);
   }
 
@@ -90,6 +92,46 @@ export async function queryVulnerabilities(
         references: v.references?.map((r) => r.url) ?? [],
       })),
     );
+  }
+
+  return result;
+}
+
+async function queryOneByOne(
+  packages: Array<{ name: string; version: string }>,
+): Promise<Map<string, Vulnerability[]>> {
+  const result = new Map<string, Vulnerability[]>();
+
+  for (const pkg of packages) {
+    try {
+      const partial = await queryBatch(
+        [pkg],
+        [{ package: { name: pkg.name, ecosystem: 'Homebrew' }, version: pkg.version }],
+      );
+      for (const [k, v] of partial) result.set(k, v);
+    } catch {
+      // Skip packages that the API rejects
+    }
+  }
+
+  return result;
+}
+
+export async function queryVulnerabilities(
+  packages: Array<{ name: string; version: string }>,
+): Promise<Map<string, Vulnerability[]>> {
+  const result = new Map<string, Vulnerability[]>();
+
+  // Split into batches to stay within OSV API limits
+  for (let i = 0; i < packages.length; i += BATCH_SIZE) {
+    const batch = packages.slice(i, i + BATCH_SIZE);
+    const queries: OsvQuery[] = batch.map((p) => ({
+      package: { name: p.name, ecosystem: 'Homebrew' },
+      version: p.version,
+    }));
+
+    const partial = await queryBatch(batch, queries);
+    for (const [k, v] of partial) result.set(k, v);
   }
 
   return result;

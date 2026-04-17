@@ -128,6 +128,15 @@ export const useBrewStore = create<BrewState>((set) => ({
   },
 
   fetchAll: async () => {
+    // Update Homebrew indices first so outdated/installed data is fresh.
+    // This is equivalent to the auto-update that `brew` does by default,
+    // which we disable per-command with HOMEBREW_NO_AUTO_UPDATE=1.
+    try {
+      await api.brewUpdate();
+    } catch {
+      // Non-critical: if update fails (offline, etc.), continue with stale data
+    }
+
     const store = useBrewStore.getState();
     await Promise.all([
       store.fetchInstalled(),

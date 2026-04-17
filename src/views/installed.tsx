@@ -3,9 +3,12 @@ import { Box, Text, useInput } from 'ink';
 import { useBrewStore } from '../stores/brew-store.js';
 import { useNavigationStore } from '../stores/navigation-store.js';
 import { useDebounce } from '../hooks/use-debounce.js';
+import { useBrewStream } from '../hooks/use-brew-stream.js';
 import { formulaeToListItems, casksToListItems } from '../lib/brew-api.js';
 import { SearchInput } from '../components/common/search-input.js';
 import { StatusBadge } from '../components/common/status-badge.js';
+import { ConfirmDialog } from '../components/common/confirm-dialog.js';
+import { ProgressLog } from '../components/common/progress-log.js';
 import { Loading, ErrorMessage } from '../components/common/loading.js';
 import { truncate } from '../utils/format.js';
 import { t } from '../i18n/index.js';
@@ -21,7 +24,9 @@ export function InstalledView() {
   const [cursor, setCursor] = useState(0);
   const [tab, setTab] = useState<'formulae' | 'casks'>('formulae');
   const [isSearching, setIsSearching] = useState(false);
+  const [confirmUninstall, setConfirmUninstall] = useState<string | null>(null);
   const debouncedFilter = useDebounce(filter, 200);
+  const stream = useBrewStream();
   const { openModal, closeModal } = useModalStore();
 
   useEffect(() => { fetchInstalled(); }, []);
@@ -47,6 +52,8 @@ export function InstalledView() {
   }, [formulae, casks, tab, debouncedFilter]);
 
   useInput((input, key) => {
+    if (confirmUninstall || stream.isRunning) return;
+
     if (isSearching) {
       if (key.escape) {
         setIsSearching(false);
@@ -57,6 +64,11 @@ export function InstalledView() {
 
     if (input === '/') {
       setIsSearching(true);
+      return;
+    }
+
+    if (input === 'u' && allItems[cursor]) {
+      setConfirmUninstall(allItems[cursor].name);
       return;
     }
 
@@ -79,6 +91,27 @@ export function InstalledView() {
 
   if (loading.installed) return <Loading message={t('loading_installed')} />;
   if (errors.installed) return <ErrorMessage message={errors.installed} />;
+
+  if (stream.isRunning || stream.lines.length > 0) {
+    return (
+      <Box flexDirection="column">
+        <ProgressLog
+          lines={stream.lines}
+          isRunning={stream.isRunning}
+          title={t('pkgInfo_uninstalling', { name: '...' })}
+        />
+        {!stream.isRunning && (
+          <Box marginTop={1}>
+            <Box borderStyle="round" borderColor={stream.error ? '#EF4444' : '#22C55E'} paddingX={2} paddingY={0}>
+              <Text color={stream.error ? '#EF4444' : '#22C55E'} bold>
+                {stream.error ? `\u2718 ${stream.error}` : `\u2714 ${t('pkgInfo_done')}`}
+              </Text>
+            </Box>
+          </Box>
+        )}
+      </Box>
+    );
+  }
 
   const MAX_VISIBLE_ROWS = 20;
   const start = Math.max(0, cursor - Math.floor(MAX_VISIBLE_ROWS / 2));
@@ -109,6 +142,19 @@ export function InstalledView() {
           </Text>
         </Box>
       </Box>
+
+      {/* Uninstall confirmation */}
+      {confirmUninstall && (
+        <ConfirmDialog
+          message={t('installed_confirmUninstall', { name: confirmUninstall })}
+          onConfirm={() => {
+            const name = confirmUninstall;
+            setConfirmUninstall(null);
+            void stream.run(['uninstall', name]).then(() => { fetchInstalled(); });
+          }}
+          onCancel={() => setConfirmUninstall(null)}
+        />
+      )}
 
       {/* Search bar */}
       {isSearching && (

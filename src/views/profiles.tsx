@@ -11,14 +11,16 @@ import { t } from '../i18n/index.js';
 import { useModalStore } from '../stores/modal-store.js';
 import * as manager from '../lib/profiles/profile-manager.js';
 
-type Mode = 'list' | 'detail' | 'create-name' | 'create-desc' | 'importing';
+type Mode = 'list' | 'detail' | 'create-name' | 'create-desc' | 'importing' | 'edit-name' | 'edit-desc';
 
 export function ProfilesView() {
-  const { profileNames, selectedProfile, loading, loadError, fetchProfiles, loadProfile, exportCurrent, deleteProfile } = useProfileStore();
+  const { profileNames, selectedProfile, loading, loadError, fetchProfiles, loadProfile, exportCurrent, deleteProfile, updateProfile } = useProfileStore();
   const [cursor, setCursor] = useState(0);
   const [mode, setMode] = useState<Mode>('list');
   const [newName, setNewName] = useState('');
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [editName, setEditName] = useState('');
+  const [editDesc, setEditDesc] = useState('');
   const [importLines, setImportLines] = useState<string[]>([]);
   const [importRunning, setImportRunning] = useState(false);
   const { openModal, closeModal } = useModalStore();
@@ -43,7 +45,7 @@ export function ProfilesView() {
   // navigate away while the user is typing a name, typing a description,
   // viewing detail, or watching an import stream.
   useEffect(() => {
-    if (mode === 'detail' || mode === 'create-name' || mode === 'create-desc' || mode === 'importing') {
+    if (mode === 'detail' || mode === 'create-name' || mode === 'create-desc' || mode === 'importing' || mode === 'edit-name' || mode === 'edit-desc') {
       openModal();
       return () => { closeModal(); };
     }
@@ -72,6 +74,12 @@ export function ProfilesView() {
   useInput((input, key) => {
     if (key.escape || input === 'q') {
       setMode('list');
+      return;
+    }
+    if (input === 'e' && selectedProfile) {
+      setEditName(selectedProfile.name);
+      setEditDesc(selectedProfile.description);
+      setMode('edit-name');
     }
   }, { isActive: mode === 'detail' });
 
@@ -148,6 +156,38 @@ export function ProfilesView() {
     );
   }
 
+  if (mode === 'edit-name') {
+    return (
+      <Box flexDirection="column">
+        <Text bold>{t('profiles_editName')}</Text>
+        <TextInput
+          defaultValue={editName}
+          onSubmit={(val) => { setEditName(val); setMode('edit-desc'); }}
+        />
+      </Box>
+    );
+  }
+
+  if (mode === 'edit-desc') {
+    return (
+      <Box flexDirection="column">
+        <Text bold>{t('profiles_editDesc', { name: editName })}</Text>
+        {loadError && <Text color="#EF4444">{t('error_prefix')}{loadError}</Text>}
+        <TextInput
+          defaultValue={editDesc}
+          onSubmit={async (val) => {
+            if (selectedProfile) {
+              await updateProfile(selectedProfile.name, editName, val);
+            }
+            setMode('detail');
+            setEditName('');
+            setEditDesc('');
+          }}
+        />
+      </Box>
+    );
+  }
+
   if (mode === 'detail' && selectedProfile) {
     return (
       <Box flexDirection="column">
@@ -172,7 +212,7 @@ export function ProfilesView() {
           </Box>
         </Box>
         <Box marginTop={1}>
-          <Text color="#6B7280">esc:{t('hint_back')} i:{t('hint_importProfile')}</Text>
+          <Text color="#6B7280">esc:{t('hint_back')} e:{t('hint_edit')} i:{t('hint_importProfile')}</Text>
         </Box>
       </Box>
     );

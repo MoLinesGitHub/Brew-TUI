@@ -34,6 +34,7 @@ export function PackageInfoView() {
   const [confirmAction, setConfirmAction] = useState<string | null>(null);
   const activeActionRef = useRef<string>('install');
   const mountedRef = useRef(true);
+  const hasRefreshed = useRef(false);
   const stream = useBrewStream();
 
   useEffect(() => {
@@ -49,8 +50,21 @@ export function PackageInfoView() {
       .catch((err) => { if (mountedRef.current) { setError(err.message); setLoading(false); } });
   }, [packageName]);
 
-  useInput((input, _key) => {
-    if (confirmAction || stream.isRunning) return;
+  useEffect(() => {
+    if (!stream.isRunning && !stream.error && stream.lines.length > 0 && !hasRefreshed.current && packageName) {
+      hasRefreshed.current = true;
+      api.getFormulaInfo(packageName)
+        .then((f) => { if (mountedRef.current) { setFormula(f); } })
+        .catch(() => { /* ignore refresh errors */ });
+    }
+  }, [stream.isRunning, stream.error]);
+
+  useInput((input, key) => {
+    if (stream.isRunning) {
+      if (key.escape) stream.cancel();
+      return;
+    }
+    if (confirmAction) return;
 
     if (!formula) return;
 
@@ -76,10 +90,16 @@ export function PackageInfoView() {
     return (
       <Box flexDirection="column">
         <ProgressLog lines={stream.lines} isRunning={stream.isRunning} title={t(ACTION_PROGRESS_KEYS[activeActionRef.current] ?? ACTION_PROGRESS_KEYS['install']!, { name: formula.name })} />
+        {stream.isRunning && (
+          <Text color="#6B7280">esc:{t('hint_cancel')}</Text>
+        )}
         {!stream.isRunning && (
-          <Text color={stream.error ? '#EF4444' : '#22C55E'} bold>
-            {stream.error ? `\u2718 ${stream.error}` : `\u2714 ${t('pkgInfo_done')}`}
-          </Text>
+          <>
+            <Text color={stream.error ? '#EF4444' : '#22C55E'} bold>
+              {stream.error ? `\u2718 ${stream.error}` : `\u2714 ${t('pkgInfo_done')}`}
+            </Text>
+            <Text color="#6B7280">esc:{t('hint_back')}</Text>
+          </>
         )}
       </Box>
     );
@@ -96,6 +116,7 @@ export function PackageInfoView() {
           onConfirm={() => {
             const action = confirmAction;
             activeActionRef.current = action ?? 'install';
+            hasRefreshed.current = false;
             setConfirmAction(null);
             if (action === 'install') void stream.run(['install', formula.name]);
             else if (action === 'uninstall') void stream.run(['uninstall', formula.name]);

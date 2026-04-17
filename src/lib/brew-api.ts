@@ -1,7 +1,20 @@
+import { spawn } from 'node:child_process';
 import { execBrew, streamBrew } from './brew-cli.js';
 import { parseInstalledJson, parseOutdatedJson, parseServicesJson, parseFormulaInfoJson } from './parsers/json-parser.js';
 import { parseSearchResults, parseDoctorOutput, parseBrewConfig, parseLeavesOutput } from './parsers/text-parser.js';
 import type { Formula, Cask, OutdatedPackage, BrewService, BrewConfig, PackageListItem } from './types.js';
+
+export async function brewUpdate(): Promise<void> {
+  // Run brew update WITHOUT HOMEBREW_NO_AUTO_UPDATE so it actually fetches
+  return new Promise((resolve, reject) => {
+    const proc = spawn('brew', ['update'], { stdio: 'ignore' });
+    proc.on('close', (code) => {
+      if (code === 0) resolve();
+      else reject(new Error(`brew update exited with code ${code}`));
+    });
+    proc.on('error', reject);
+  });
+}
 
 export async function getInstalled(): Promise<{ formulae: Formula[]; casks: Cask[] }> {
   const raw = await execBrew(['info', '--json=v2', '--installed']);

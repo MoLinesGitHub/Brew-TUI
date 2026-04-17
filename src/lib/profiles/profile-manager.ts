@@ -104,6 +104,21 @@ export async function exportCurrentSetup(name: string, description: string): Pro
   return profile;
 }
 
+export async function updateProfile(oldName: string, newName: string, newDescription: string): Promise<void> {
+  requirePro();
+  const profile = await loadProfile(oldName);
+  if (oldName !== newName) {
+    await deleteProfile(oldName);
+  }
+  const updated: Profile = {
+    ...profile,
+    name: newName,
+    description: newDescription,
+    updatedAt: new Date().toISOString(),
+  };
+  await saveProfile(updated);
+}
+
 export async function* importProfile(profile: Profile): AsyncGenerator<string> {
   requirePro();
 

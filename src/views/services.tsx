@@ -3,6 +3,7 @@ import { Box, Text, useInput } from 'ink';
 import { useBrewStore } from '../stores/brew-store.js';
 import { Loading, ErrorMessage } from '../components/common/loading.js';
 import { StatusBadge } from '../components/common/status-badge.js';
+import { ConfirmDialog } from '../components/common/confirm-dialog.js';
 import { SectionHeader } from '../components/common/section-header.js';
 import { GRADIENTS } from '../utils/gradient.js';
 import { t } from '../i18n/index.js';
@@ -17,11 +18,13 @@ export function ServicesView() {
   const { services, loading, errors, fetchServices, serviceAction } = useBrewStore();
   const [cursor, setCursor] = useState(0);
   const [actionInProgress, setActionInProgress] = useState(false);
+  const [confirmAction, setConfirmAction] = useState<{ type: 'stop' | 'restart'; name: string } | null>(null);
 
   useEffect(() => { fetchServices(); }, []);
 
   useInput((input, key) => {
     if (actionInProgress) return;
+    if (confirmAction) return;
 
     if (input === 'j' || key.downArrow) {
       setCursor((c) => Math.min(c + 1, Math.max(0, services.length - 1)));
@@ -42,8 +45,8 @@ export function ServicesView() {
     };
 
     if (input === 's') doAction('start');
-    else if (input === 'S') doAction('stop');
-    else if (input === 'R') doAction('restart');
+    else if (input === 'S') setConfirmAction({ type: 'stop', name: svc.name });
+    else if (input === 'R') setConfirmAction({ type: 'restart', name: svc.name });
   });
 
   if (loading.services) return <Loading message={t('loading_services')} />;
@@ -61,6 +64,27 @@ export function ServicesView() {
   return (
     <Box flexDirection="column">
       <SectionHeader emoji={'\u2699\uFE0F'} title={t('services_titleCount', { count: services.length })} gradient={GRADIENTS.ocean} />
+
+      {confirmAction && (
+        <Box marginY={1}>
+          <ConfirmDialog
+            message={
+              confirmAction.type === 'stop'
+                ? t('services_confirmStop', { name: confirmAction.name })
+                : t('services_confirmRestart', { name: confirmAction.name })
+            }
+            onConfirm={() => {
+              const { type, name } = confirmAction;
+              setConfirmAction(null);
+              setActionInProgress(true);
+              void serviceAction(name, type).finally(() => {
+                setActionInProgress(false);
+              });
+            }}
+            onCancel={() => setConfirmAction(null)}
+          />
+        </Box>
+      )}
 
       <Box flexDirection="column" marginTop={1}>
         <Box gap={1} borderStyle="single" borderBottom borderTop={false} borderLeft={false} borderRight={false} borderColor="#4B5563" paddingBottom={0}>

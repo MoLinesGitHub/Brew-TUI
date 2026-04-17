@@ -1,12 +1,14 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { Box, Text, useInput } from 'ink';
 import { TextInput } from '@inkjs/ui';
+import { useBrewStore } from '../stores/brew-store.js';
 import { useBrewStream } from '../hooks/use-brew-stream.js';
 import { Loading } from '../components/common/loading.js';
 import { ProgressLog } from '../components/common/progress-log.js';
 import { ConfirmDialog } from '../components/common/confirm-dialog.js';
 import { t } from '../i18n/index.js';
 import { useModalStore } from '../stores/modal-store.js';
+import { useNavigationStore } from '../stores/navigation-store.js';
 import * as api from '../lib/brew-api.js';
 
 export function SearchView() {
@@ -17,6 +19,10 @@ export function SearchView() {
   const [confirmInstall, setConfirmInstall] = useState<string | null>(null);
   const stream = useBrewStream();
   const { openModal, closeModal } = useModalStore();
+  const navigate = useNavigationStore((s) => s.navigate);
+  const selectPackage = useNavigationStore((s) => s.selectPackage);
+  const fetchInstalled = useBrewStore((s) => s.fetchInstalled);
+  const hasRefreshed = useRef(false);
 
   // Suppress global Escape while results are showing so Escape clears results
   // rather than navigating away from this view.
@@ -45,17 +51,36 @@ export function SearchView() {
     }
   }, []);
 
+  useEffect(() => {
+    if (!stream.isRunning && !stream.error && stream.lines.length > 0 && !hasRefreshed.current) {
+      hasRefreshed.current = true;
+      void fetchInstalled();
+    }
+  }, [stream.isRunning, stream.error]);
+
   const allResults = results ? [...results.formulae, ...results.casks] : [];
 
   useInput((input, key) => {
-    if (confirmInstall || stream.isRunning) return;
+    if (stream.isRunning) {
+      if (key.escape) stream.cancel();
+      return;
+    }
+    if (confirmInstall) return;
 
     if (key.return && !results) {
       void doSearch(query);
       return;
     }
 
+    // Enter → navigate to package-info view (preview details, deps, caveats)
     if (key.return && allResults[cursor]) {
+      selectPackage(allResults[cursor]);
+      navigate('package-info');
+      return;
+    }
+
+    // 'i' → install directly (with confirmation)
+    if (input === 'i' && allResults[cursor]) {
       setConfirmInstall(allResults[cursor]);
       return;
     }
@@ -78,13 +103,17 @@ export function SearchView() {
           isRunning={stream.isRunning}
           title={t('search_installing')}
         />
+        {stream.isRunning && (
+          <Text color="#6B7280">esc:{t('hint_cancel')}</Text>
+        )}
         {!stream.isRunning && (
-          <Box marginTop={1}>
+          <Box flexDirection="column" marginTop={1}>
             <Box borderStyle="round" borderColor={stream.error ? '#EF4444' : '#22C55E'} paddingX={2} paddingY={0}>
               <Text color={stream.error ? '#EF4444' : '#22C55E'} bold>
                 {stream.error ? `\u2718 ${stream.error}` : `\u2714 ${t('search_installComplete')}`}
               </Text>
             </Box>
+            <Text color="#6B7280">esc:{t('hint_back')}</Text>
           </Box>
         )}
       </Box>
@@ -114,6 +143,7 @@ export function SearchView() {
           message={t('search_confirmInstall', { name: confirmInstall })}
           onConfirm={() => {
             const name = confirmInstall;
+            hasRefreshed.current = false;
             setConfirmInstall(null);
             void stream.run(['install', name]);
           }}

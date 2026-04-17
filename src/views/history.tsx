@@ -1,18 +1,20 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { Box, Text, useInput } from 'ink';
 import { useHistoryStore } from '../stores/history-store.js';
+import { useBrewStream } from '../hooks/use-brew-stream.js';
 import { useDebounce } from '../hooks/use-debounce.js';
 import { Loading, ErrorMessage } from '../components/common/loading.js';
 import { StatusBadge } from '../components/common/status-badge.js';
 import { SearchInput } from '../components/common/search-input.js';
 import { ConfirmDialog } from '../components/common/confirm-dialog.js';
+import { ProgressLog } from '../components/common/progress-log.js';
 import { SectionHeader } from '../components/common/section-header.js';
 import { GRADIENTS } from '../utils/gradient.js';
 import { formatRelativeTime } from '../utils/format.js';
 import { t } from '../i18n/index.js';
 import { useModalStore } from '../stores/modal-store.js';
 import type { TranslationKey } from '../i18n/en.js';
-import type { HistoryAction } from '../lib/history/types.js';
+import type { HistoryAction, HistoryEntry } from '../lib/history/types.js';
 
 const ACTION_ICONS: Record<HistoryAction, { icon: string; color: string }> = {
   install: { icon: '+', color: '#22C55E' },
@@ -37,6 +39,8 @@ export function HistoryView() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   const [confirmClear, setConfirmClear] = useState(false);
+  const [confirmReplay, setConfirmReplay] = useState<HistoryEntry | null>(null);
+  const stream = useBrewStream();
   const debouncedQuery = useDebounce(searchQuery, 200);
   const { openModal, closeModal } = useModalStore();
 
@@ -65,7 +69,7 @@ export function HistoryView() {
   }, [entries, filter, debouncedQuery]);
 
   useInput((input, key) => {
-    if (confirmClear) return;
+    if (confirmClear || confirmReplay || stream.isRunning) return;
 
     if (isSearching) {
       if (key.escape) {
@@ -83,6 +87,10 @@ export function HistoryView() {
       return;
     }
     if (input === 'c' && entries.length > 0) { setConfirmClear(true); return; }
+    if (key.return && filtered[cursor]) {
+      setConfirmReplay(filtered[cursor]);
+      return;
+    }
 
     if (input === 'j' || key.downArrow) setCursor((c) => Math.min(c + 1, Math.max(0, filtered.length - 1)));
     else if (input === 'k' || key.upArrow) setCursor((c) => Math.max(c - 1, 0));
@@ -116,6 +124,36 @@ export function HistoryView() {
           onConfirm={() => { void clearHistory(); setConfirmClear(false); }}
           onCancel={() => setConfirmClear(false)}
         />
+      )}
+
+      {confirmReplay && (
+        <ConfirmDialog
+          message={
+            confirmReplay.action === 'upgrade-all'
+              ? t('history_replayAll')
+              : t('history_confirmReplay', { action: t(ACTION_LABEL_KEYS[confirmReplay.action]), name: confirmReplay.packageName ?? '' })
+          }
+          onConfirm={async () => {
+            const entry = confirmReplay;
+            setConfirmReplay(null);
+            let args: string[];
+            switch (entry.action) {
+              case 'install': args = ['install', entry.packageName!]; break;
+              case 'uninstall': args = ['uninstall', entry.packageName!]; break;
+              case 'upgrade': args = ['upgrade', entry.packageName!]; break;
+              case 'upgrade-all': args = ['upgrade']; break;
+            }
+            await stream.run(args);
+            void fetchHistory();
+          }}
+          onCancel={() => setConfirmReplay(null)}
+        />
+      )}
+
+      {(stream.isRunning || stream.lines.length > 0) && (
+        <Box marginY={1}>
+          <ProgressLog lines={stream.lines} isRunning={stream.isRunning} title={t('hint_replay')} />
+        </Box>
       )}
 
       {filtered.length === 0 && !confirmClear && (

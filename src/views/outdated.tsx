@@ -1,7 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Box, Text, useInput } from 'ink';
 import { useBrewStore } from '../stores/brew-store.js';
 import { useBrewStream } from '../hooks/use-brew-stream.js';
+import { execBrew } from '../lib/brew-cli.js';
 import { Loading, ErrorMessage } from '../components/common/loading.js';
 import { StatusBadge } from '../components/common/status-badge.js';
 import { ProgressLog } from '../components/common/progress-log.js';
@@ -20,13 +21,25 @@ export function OutdatedView() {
     | { type: 'all' }
     | null
   >(null);
+  const hasRefreshed = useRef(false);
 
   useEffect(() => { fetchOutdated(); }, []);
+
+  useEffect(() => {
+    if (!stream.isRunning && !stream.error && stream.lines.length > 0 && !hasRefreshed.current) {
+      hasRefreshed.current = true;
+      void fetchOutdated();
+    }
+  }, [stream.isRunning, stream.error]);
 
   const allOutdated = [...outdated.formulae, ...outdated.casks];
 
   useInput((input, key) => {
-    if (confirmAction || stream.isRunning) return;
+    if (stream.isRunning) {
+      if (key.escape) stream.cancel();
+      return;
+    }
+    if (confirmAction) return;
 
     if (input === 'j' || key.downArrow) {
       setCursor((c) => Math.min(c + 1, Math.max(0, allOutdated.length - 1)));
@@ -36,6 +49,10 @@ export function OutdatedView() {
       setConfirmAction({ type: 'single', name: allOutdated[cursor].name });
     } else if (input === 'A' && allOutdated.length > 0) {
       setConfirmAction({ type: 'all' });
+    } else if (input === 'p' && allOutdated[cursor]) {
+      const pkg = allOutdated[cursor];
+      void execBrew([pkg.pinned ? 'unpin' : 'pin', pkg.name]).then(() => void fetchOutdated());
+      return;
     } else if (input === 'r') {
       void fetchOutdated();
     }
@@ -52,14 +69,18 @@ export function OutdatedView() {
           isRunning={stream.isRunning}
           title={t('outdated_upgrading')}
         />
+        {stream.isRunning && (
+          <Text color="#6B7280">esc:{t('hint_cancel')}</Text>
+        )}
         {!stream.isRunning && (
-          <Box marginTop={1}>
+          <Box flexDirection="column" marginTop={1}>
             <Box borderStyle="round" borderColor={stream.error ? '#EF4444' : '#22C55E'} paddingX={2} paddingY={0}>
               <Text color={stream.error ? '#EF4444' : '#22C55E'} bold>
                 {stream.error ? `\u2718 ${stream.error}` : `\u2714 ${t('outdated_upgradeComplete')}`}
               </Text>
               <Text color="#9CA3AF"> {t('outdated_pressRefresh')}</Text>
             </Box>
+            <Text color="#6B7280">r:{t('hint_refresh')} esc:{t('hint_back')}</Text>
           </Box>
         )}
       </Box>
@@ -79,6 +100,7 @@ export function OutdatedView() {
                 : t('outdated_confirmSingle', { name: confirmAction.type === 'single' ? confirmAction.name : '' })
             }
             onConfirm={() => {
+              hasRefreshed.current = false;
               if (confirmAction.type === 'all') {
                 void stream.run(['upgrade']);
               } else if (confirmAction.name) {

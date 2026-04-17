@@ -11,7 +11,7 @@ export async function execBrew(args: string[]): Promise<string> {
       if (code === 0) {
         resolve(stdout);
       } else {
-        reject(new Error(stderr || `brew ${args.join(' ')} exited with code ${code}`));
+        reject(new Error(stderr.trim() || `brew ${args.join(' ')} exited with code ${code}`));
       }
     });
     proc.on('error', (err) => {
@@ -29,7 +29,7 @@ export async function* streamBrew(args: string[]): AsyncGenerator<string> {
   let buffer = '';
   const lines: string[] = [];
   let done = false;
-  let error: Error | null = null;
+  let exitError: string | null = null;
 
   const push = (chunk: Buffer) => {
     buffer += chunk.toString();
@@ -43,18 +43,17 @@ export async function* streamBrew(args: string[]): AsyncGenerator<string> {
   proc.stdout.on('data', push);
   proc.stderr.on('data', push);
 
-  const exitPromise = new Promise<void>((resolve, reject) => {
-    proc.on('close', (code) => {
-      if (buffer.trim()) lines.push(buffer.trim());
-      done = true;
-      if (code === 0) resolve();
-      else reject(new Error(`brew ${args.join(' ')} exited with code ${code}`));
-    });
-    proc.on('error', (err) => {
-      done = true;
-      error = err;
-      reject(err);
-    });
+  proc.on('close', (code) => {
+    if (buffer.trim()) lines.push(buffer.trim());
+    done = true;
+    if (code !== 0) {
+      exitError = `brew ${args.join(' ')} exited with code ${code}`;
+    }
+  });
+
+  proc.on('error', (err) => {
+    done = true;
+    exitError = err.message;
   });
 
   try {
@@ -66,13 +65,14 @@ export async function* streamBrew(args: string[]): AsyncGenerator<string> {
       }
     }
   } finally {
-    // Kill the child process if the consumer abandoned the generator early
-    // (e.g. via break or component unmount triggering generator.return()).
     if (!done) {
       proc.kill();
     }
   }
 
-  if (error) throw error;
-  await exitPromise.catch(() => {});
+  // Throw after all lines have been yielded so the consumer sees
+  // brew's stderr output in the stream before the error surfaces.
+  if (exitError) {
+    throw new Error(exitError);
+  }
 }

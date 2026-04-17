@@ -26,14 +26,21 @@ A visual terminal UI for [Homebrew](https://brew.sh) package management.
 ## Install
 
 ```bash
+# npm / pnpm / yarn / bun (all use the same npm registry)
 npm install -g brew-tui
-```
+pnpm add -g brew-tui
+yarn global add brew-tui
+bun add -g brew-tui
 
-Or via Homebrew (tap):
-
-```bash
+# Homebrew
 brew tap MoLinesGitHub/tap
 brew install brew-tui
+
+# GitHub Packages
+npm install -g @MoLinesGitHub/brew-tui --registry https://npm.pkg.github.com
+
+# npx (run without installing)
+npx brew-tui
 ```
 
 ## Usage

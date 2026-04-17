@@ -1,0 +1,90 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  # Build and publish to npm + GitHub Packages
+  publish-npm:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          registry-url: 'https://registry.npmjs.org'
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run build
+      - run: npm run lint
+      - run: npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+  # Also publish to GitHub Packages
+  publish-github-packages:
+    runs-on: ubuntu-latest
+    needs: publish-npm
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          registry-url: 'https://npm.pkg.github.com'
+          scope: '@MoLinesGitHub'
+      - run: npm ci
+      - run: npm run build
+      - run: npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # Build BrewBar.app and create GitHub Release
+  build-brewbar:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Tuist
+        run: brew install tuist
+      - name: Generate Xcode project
+        working-directory: menubar
+        run: tuist generate
+      - name: Build BrewBar
+        working-directory: menubar
+        run: |
+          xcodebuild -workspace BrewBar.xcworkspace \
+            -scheme BrewBar \
+            -configuration Release \
+            -derivedDataPath build \
+            build
+      - name: Package BrewBar.app
+        working-directory: menubar
+        run: |
+          APP_PATH=$(find build -name "BrewBar.app" -type d | head -1)
+          ditto -c -k --keepParent "$APP_PATH" BrewBar.app.zip
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: BrewBar
+          path: menubar/BrewBar.app.zip
+
+  # Create GitHub Release with BrewBar.app.zip
+  create-release:
+    runs-on: ubuntu-latest
+    needs: [publish-npm, build-brewbar]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download BrewBar artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: BrewBar
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: BrewBar.app.zip
+          generate_release_notes: true

@@ -1,0 +1,14 @@
+{
+  "name": "@molines/brew-tui",
+  "version": "0.1.0",
+  "exports": "./build/index.js",
+  "publish": {
+    "include": [
+      "build/",
+      "bin/",
+      "LICENSE",
+      "README.md",
+      "package.json"
+    ]
+  }
+}

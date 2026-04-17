@@ -2,6 +2,10 @@ import ProjectDescription
 
 let project = Project(
     name: "BrewBar",
+    options: .options(
+        defaultKnownRegions: ["en", "es"],
+        developmentRegion: "en"
+    ),
     settings: .settings(
         base: [
             "SWIFT_VERSION": "6.0",

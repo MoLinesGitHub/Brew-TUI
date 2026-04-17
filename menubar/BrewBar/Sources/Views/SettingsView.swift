@@ -68,3 +68,14 @@ struct SettingsView: View {
         }
     }
 }
+
+// MARK: - Previews
+
+#Preview("Settings") {
+    SettingsView(scheduler: SchedulerService())
+}
+
+#Preview("Spanish") {
+    SettingsView(scheduler: SchedulerService())
+        .environment(\.locale, Locale(identifier: "es"))
+}

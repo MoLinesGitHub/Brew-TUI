@@ -72,3 +72,30 @@ struct OutdatedListView: View {
         .contentShape(Rectangle())
     }
 }
+
+// MARK: - Previews
+
+#Preview("5 Packages") {
+    OutdatedListView(appState: PreviewData.makeAppState())
+        .frame(width: 340, height: 300)
+}
+
+#Preview("1 Package") {
+    OutdatedListView(
+        appState: PreviewData.makeAppState(packages: [PreviewData.outdatedPackages[0]])
+    )
+    .frame(width: 340, height: 200)
+}
+
+#Preview("Pinned Package") {
+    OutdatedListView(
+        appState: PreviewData.makeAppState(packages: [PreviewData.outdatedPackages[2]])
+    )
+    .frame(width: 340, height: 200)
+}
+
+#Preview("Spanish") {
+    OutdatedListView(appState: PreviewData.makeAppState())
+        .frame(width: 340, height: 300)
+        .environment(\.locale, Locale(identifier: "es"))
+}

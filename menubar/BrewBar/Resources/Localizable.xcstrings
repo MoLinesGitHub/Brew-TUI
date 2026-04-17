@@ -1,297 +1,8 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
-    "Homebrew Updates" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Actualizaciones de Homebrew"
-          }
-        }
-      }
-    },
-    "Checking for updates..." : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Buscando actualizaciones..."
-          }
-        }
-      }
-    },
-    "Retry" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Reintentar"
-          }
-        }
-      }
-    },
-    "All packages up to date" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Todos los paquetes al d\u00EDa"
-          }
-        }
-      }
-    },
-    "Last checked %@" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "\u00DAltima verificaci\u00F3n %@"
-          }
-        }
-      }
-    },
-    "Service Errors" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Errores de Servicios"
-          }
-        }
-      }
-    },
-    "exit %lld" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "salida %lld"
-          }
-        }
-      }
-    },
-    "Open Brew-TUI" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Abrir Brew-TUI"
-          }
-        }
-      }
-    },
-    "%lld updates available" : {
-      "localizations" : {
-        "en" : {
-          "variations" : {
-            "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%lld update available"
-                }
-              },
-              "other" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%lld updates available"
-                }
-              }
-            }
-          }
-        },
-        "es" : {
-          "variations" : {
-            "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%lld actualizaci\u00F3n disponible"
-                }
-              },
-              "other" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%lld actualizaciones disponibles"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "Upgrade All" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Actualizar Todo"
-          }
-        }
-      }
-    },
-    "BrewBar Settings" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ajustes de BrewBar"
-          }
-        }
-      }
-    },
-    "Check interval" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Intervalo de verificaci\u00F3n"
-          }
-        }
-      }
-    },
-    "Notifications" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Notificaciones"
-          }
-        }
-      }
-    },
-    "Launch at login" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Iniciar al acceder"
-          }
-        }
-      }
-    },
-    "Done" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Listo"
-          }
-        }
-      }
-    },
-    "Every hour" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Cada hora"
-          }
-        }
-      }
-    },
-    "Every 4 hours" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Cada 4 horas"
-          }
-        }
-      }
-    },
-    "Every 8 hours" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Cada 8 horas"
-          }
-        }
-      }
-    },
-    "Brew-TUI is required" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Brew-TUI es requerido"
-          }
-        }
-      }
-    },
-    "BrewBar requires Brew-TUI to be installed.\n\nInstall it with:\n  npm install -g brew-tui\n\nThen relaunch BrewBar." : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "BrewBar requiere que Brew-TUI est\u00E9 instalado.\n\nInst\u00E1lalo con:\n  npm install -g brew-tui\n\nLuego reinicia BrewBar."
-          }
-        }
-      }
-    },
-    "Copy Install Command" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Copiar Comando de Instalaci\u00F3n"
-          }
-        }
-      }
-    },
-    "Quit" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Salir"
-          }
-        }
-      }
-    },
-    "BrewBar" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "BrewBar"
-          }
-        }
-      }
-    },
-    "BrewBar — %lld updates" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "BrewBar \u2014 %lld actualizaciones"
-          }
-        }
-      }
-    },
-    "Upgrade failed: %@" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Actualizaci\u00F3n fallida: %@"
-          }
-        }
-      }
-    },
-    "Upgrade all failed: %@" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Actualizar todo fall\u00F3: %@"
-          }
-        }
-      }
-    },
     "%lld packages can be updated." : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "variations" : {
@@ -331,12 +42,271 @@
         }
       }
     },
-    "Homebrew is not installed. Install it from https://brew.sh" : {
+    "%lld updates available" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld update available"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld updates available"
+                }
+              }
+            }
+          }
+        },
+        "es" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld actualización disponible"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld actualizaciones disponibles"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "All packages up to date" : {
       "localizations" : {
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Homebrew no est\u00E1 instalado. Inst\u00E1lalo desde https://brew.sh"
+            "value" : "Todos los paquetes al día"
+          }
+        }
+      }
+    },
+    "brew command timed out" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El comando brew tardó demasiado"
+          }
+        }
+      }
+    },
+    "brew exited with code %lld" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "brew finalizó con código %lld"
+          }
+        }
+      }
+    },
+    "Brew-TUI is required" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Brew-TUI es requerido"
+          }
+        }
+      }
+    },
+    "BrewBar" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "BrewBar"
+          }
+        }
+      }
+    },
+    "BrewBar — %lld updates" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "BrewBar — %lld actualizaciones"
+          }
+        }
+      }
+    },
+    "BrewBar requires Brew-TUI to be installed.\n\nInstall it with:\n  npm install -g brew-tui\n\nThen relaunch BrewBar." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "BrewBar requiere que Brew-TUI esté instalado.\n\nInstálalo con:\n  npm install -g brew-tui\n\nLuego reinicia BrewBar."
+          }
+        }
+      }
+    },
+    "BrewBar Settings" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ajustes de BrewBar"
+          }
+        }
+      }
+    },
+    "Check interval" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Intervalo de verificación"
+          }
+        }
+      }
+    },
+    "Checking for updates..." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Buscando actualizaciones..."
+          }
+        }
+      }
+    },
+    "Copy Install Command" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copiar Comando de Instalación"
+          }
+        }
+      }
+    },
+    "Done" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Listo"
+          }
+        }
+      }
+    },
+    "Every 4 hours" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cada 4 horas"
+          }
+        }
+      }
+    },
+    "Every 8 hours" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cada 8 horas"
+          }
+        }
+      }
+    },
+    "Every hour" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cada hora"
+          }
+        }
+      }
+    },
+    "exit %lld" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "salida %lld"
+          }
+        }
+      }
+    },
+    "Homebrew is not installed. Install it from https://brew.sh" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Homebrew no está instalado. Instálalo desde https://brew.sh"
+          }
+        }
+      }
+    },
+    "Homebrew Updates" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Actualizaciones de Homebrew"
+          }
+        }
+      }
+    },
+    "Last checked %@" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Última verificación %@"
+          }
+        }
+      }
+    },
+    "Launch at login" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Iniciar al acceder"
+          }
+        }
+      }
+    },
+    "Notifications" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notificaciones"
           }
         }
       }
@@ -346,27 +316,84 @@
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Las notificaciones est\u00E1n desactivadas en Ajustes del Sistema. Act\u00EDvalas en Ajustes del Sistema > Notificaciones > BrewBar."
+            "value" : "Las notificaciones están desactivadas en Ajustes del Sistema. Actívalas en Ajustes del Sistema > Notificaciones > BrewBar."
           }
         }
       }
     },
-    "brew command timed out" : {
+    "Open Brew-TUI" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "El comando brew tard\u00F3 demasiado"
+            "value" : "Abrir Brew-TUI"
           }
         }
       }
     },
-    "brew exited with code %lld" : {
+    "Quit" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "brew finaliz\u00F3 con c\u00F3digo %lld"
+            "value" : "Salir"
+          }
+        }
+      }
+    },
+    "Retry" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reintentar"
+          }
+        }
+      }
+    },
+    "Service Errors" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Errores de Servicios"
+          }
+        }
+      }
+    },
+    "Upgrade All" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Actualizar Todo"
+          }
+        }
+      }
+    },
+    "Upgrade all failed: %@" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Actualizar todo falló: %@"
+          }
+        }
+      }
+    },
+    "Upgrade failed: %@" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Actualización fallida: %@"
           }
         }
       }

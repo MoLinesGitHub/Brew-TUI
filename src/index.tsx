@@ -65,6 +65,30 @@ async function runCli() {
     return;
   }
 
+  if (command === 'install-brewbar') {
+    const { installBrewBar } = await import('./lib/brewbar-installer.js');
+    try {
+      await installBrewBar(arg === '--force');
+      console.log(t('cli_brewbarInstalled'));
+    } catch (err) {
+      console.error(err instanceof Error ? err.message : String(err));
+      process.exit(1);
+    }
+    return;
+  }
+
+  if (command === 'uninstall-brewbar') {
+    const { uninstallBrewBar } = await import('./lib/brewbar-installer.js');
+    try {
+      await uninstallBrewBar();
+      console.log(t('cli_brewbarUninstalled'));
+    } catch (err) {
+      console.error(err instanceof Error ? err.message : String(err));
+      process.exit(1);
+    }
+    return;
+  }
+
   // Default: launch TUI
   render(<App />);
 }

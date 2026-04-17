@@ -159,6 +159,28 @@
         }
       }
     },
+    "BrewBar is a Pro feature. Activate your license with:\n\n  brew-tui activate <your-key>\n\nThen relaunch BrewBar." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "BrewBar es una funci\u00F3n Pro. Activa tu licencia con:\n\n  brew-tui activate <tu-clave>\n\nLuego reinicia BrewBar."
+          }
+        }
+      }
+    },
+    "BrewBar requires Pro" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "BrewBar requiere Pro"
+          }
+        }
+      }
+    },
     "BrewBar Settings" : {
       "localizations" : {
         "es" : {
@@ -332,6 +354,17 @@
         }
       }
     },
+    "Pro license expired" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Licencia Pro expirada"
+          }
+        }
+      }
+    },
     "Quit" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -391,6 +424,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Actualizaci\u00F3n fallida: %@"
+          }
+        }
+      }
+    },
+    "Your Pro license has expired or needs revalidation.\n\nRun brew-tui in the terminal to revalidate, or renew your subscription." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tu licencia Pro ha expirado o necesita revalidaci\u00F3n.\n\nEjecuta brew-tui en la terminal para revalidar, o renueva tu suscripci\u00F3n."
           }
         }
       }

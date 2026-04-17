@@ -26,6 +26,9 @@ CLI subcommands (run without launching TUI):
 brew-tui activate <key>   # Activate Pro license via LemonSqueezy
 brew-tui deactivate        # Deactivate license on this machine
 brew-tui status            # Show current license status
+brew-tui install-brewbar       # Download & install BrewBar menubar app (Pro only)
+brew-tui install-brewbar --force  # Reinstall BrewBar
+brew-tui uninstall-brewbar     # Remove BrewBar from /Applications
 ```
 
 ## Architecture

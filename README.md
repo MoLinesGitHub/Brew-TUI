@@ -45,6 +45,16 @@ brew-tui activate <key>   # Activate Pro license
 brew-tui deactivate   # Deactivate Pro license
 ```
 
+### Install BrewBar (Pro)
+
+BrewBar is a companion macOS menu bar app that shows outdated package counts, sends notifications, and lets you upgrade packages without opening a terminal. Pro users can install it directly from the CLI:
+
+```bash
+brew-tui install-brewbar          # Download & install to /Applications
+brew-tui install-brewbar --force  # Reinstall / update
+brew-tui uninstall-brewbar        # Remove from /Applications
+```
+
 ### Keyboard Navigation
 
 | Key | Action |

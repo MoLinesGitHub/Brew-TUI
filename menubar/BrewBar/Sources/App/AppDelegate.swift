@@ -18,6 +18,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 return
             }
 
+            // Check Pro license
+            let licenseStatus = LicenseChecker.checkLicense()
+            switch licenseStatus {
+            case .pro:
+                break // Continue normal startup
+            case .expired:
+                showLicenseExpired()
+                return
+            case .notFound:
+                showProRequired()
+                return
+            }
+
             setupStatusItem()
             setupPopover()
 
@@ -93,6 +106,26 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             NSPasteboard.general.setString("npm install -g brew-tui", forType: .string)
         }
 
+        NSApp.terminate(nil)
+    }
+
+    private func showProRequired() {
+        let alert = NSAlert()
+        alert.messageText = String(localized: "BrewBar requires Pro")
+        alert.informativeText = String(localized: "BrewBar is a Pro feature. Activate your license with:\n\n  brew-tui activate <your-key>\n\nThen relaunch BrewBar.")
+        alert.alertStyle = .informational
+        alert.addButton(withTitle: String(localized: "Quit"))
+        alert.runModal()
+        NSApp.terminate(nil)
+    }
+
+    private func showLicenseExpired() {
+        let alert = NSAlert()
+        alert.messageText = String(localized: "Pro license expired")
+        alert.informativeText = String(localized: "Your Pro license has expired or needs revalidation.\n\nRun brew-tui in the terminal to revalidate, or renew your subscription.")
+        alert.alertStyle = .warning
+        alert.addButton(withTitle: String(localized: "Quit"))
+        alert.runModal()
         NSApp.terminate(nil)
     }
 

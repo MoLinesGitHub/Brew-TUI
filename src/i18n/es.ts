@@ -239,7 +239,7 @@ const es: Translations = {
   account_expiresLabel: 'Expira:',
   account_activatedLabel: 'Activado:',
   account_upgradeTitle: 'Actualiza a Brew-TUI Pro',
-  account_unlockDesc: 'Desbloquea Perfiles, Limpieza Inteligente, Historial y Auditor\u00EDa de Seguridad.',
+  account_unlockDesc: 'Desbloquea Perfiles, Limpieza Inteligente, Historial, Auditor\u00EDa de Seguridad y BrewBar (barra de men\u00FA macOS).',
   account_pricing: '9\u20AC/mes o 49\u20AC/a\u00F1o',
   account_runActivate: 'Ejecuta:',
   account_activateCmd: 'brew-tui activate <clave>',
@@ -259,7 +259,7 @@ const es: Translations = {
   upgrade_pricing: '9\u20AC/mes o 49\u20AC/a\u00F1o',
   upgrade_activateWith: 'Activa con:',
   upgrade_activateCmd: 'brew-tui activate <tu-clave-de-licencia>',
-  upgrade_proLabel: 'Brew-TUI Pro \u2014 9\u20AC/mes o 49\u20AC/a\u00F1o',
+  upgrade_proLabel: 'Brew-TUI Pro \u2014 9\u20AC/mes o 49\u20AC/a\u00F1o \u2014 Incluye BrewBar para macOS',
 
   // ── Progress Log ──
   progress_noOutput: 'Sin salida a\u00FAn',
@@ -290,6 +290,14 @@ const es: Translations = {
   cli_status: 'Estado: {{status}}',
   cli_rateLimited: 'Demasiados intentos de activaci\u00F3n. Int\u00E9ntalo en {{minutes}} minutos.',
   cli_cooldown: 'Por favor espera antes de intentar de nuevo.',
+  cli_brewbarInstalling: 'Descargando BrewBar...',
+  cli_brewbarInstalled: '\u2714 BrewBar instalado en /Applications/BrewBar.app',
+  cli_brewbarAlreadyInstalled: 'BrewBar ya est\u00E1 instalado. Usa --force para reinstalar.',
+  cli_brewbarUninstalled: '\u2714 BrewBar eliminado de /Applications.',
+  cli_brewbarNotInstalled: 'BrewBar no est\u00E1 instalado.',
+  cli_brewbarProRequired: '\u2718 BrewBar requiere una licencia Pro.\n  Ejecuta: brew-tui activate <clave>',
+  cli_brewbarMacOnly: '\u2718 BrewBar solo est\u00E1 disponible en macOS.',
+  cli_brewbarDownloadFailed: '\u2718 Error al descargar BrewBar: {{error}}',
 
   // ── License degradation (Layer 15) ──
   license_offlineWarning: 'Tu licencia no se ha validado en {{days}} d\u00EDas. Por favor con\u00E9ctate a internet.',

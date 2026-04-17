@@ -237,7 +237,7 @@ const en = {
   account_expiresLabel: 'Expires:',
   account_activatedLabel: 'Activated:',
   account_upgradeTitle: 'Upgrade to Brew-TUI Pro',
-  account_unlockDesc: 'Unlock Profiles, Smart Cleanup, History, and Security Audit.',
+  account_unlockDesc: 'Unlock Profiles, Smart Cleanup, History, Security Audit, and BrewBar (macOS menu bar companion).',
   account_pricing: '9\u20AC/month or 49\u20AC/year',
   account_runActivate: 'Run:',
   account_activateCmd: 'brew-tui activate <key>',
@@ -257,7 +257,7 @@ const en = {
   upgrade_pricing: '9\u20AC/month or 49\u20AC/year',
   upgrade_activateWith: 'Activate with:',
   upgrade_activateCmd: 'brew-tui activate <your-license-key>',
-  upgrade_proLabel: 'Brew-TUI Pro \u2014 9\u20AC/month or 49\u20AC/year',
+  upgrade_proLabel: 'Brew-TUI Pro \u2014 9\u20AC/month or 49\u20AC/year \u2014 Includes BrewBar for macOS',
 
   // ── Progress Log ──
   progress_noOutput: 'No output yet',
@@ -288,6 +288,14 @@ const en = {
   cli_status: 'Status: {{status}}',
   cli_rateLimited: 'Too many activation attempts. Try again in {{minutes}} minutes.',
   cli_cooldown: 'Please wait before trying again.',
+  cli_brewbarInstalling: 'Downloading BrewBar...',
+  cli_brewbarInstalled: '\u2714 BrewBar installed to /Applications/BrewBar.app',
+  cli_brewbarAlreadyInstalled: 'BrewBar is already installed. Use --force to reinstall.',
+  cli_brewbarUninstalled: '\u2714 BrewBar removed from /Applications.',
+  cli_brewbarNotInstalled: 'BrewBar is not installed.',
+  cli_brewbarProRequired: '\u2718 BrewBar requires a Pro license.\n  Run: brew-tui activate <key>',
+  cli_brewbarMacOnly: '\u2718 BrewBar is only available on macOS.',
+  cli_brewbarDownloadFailed: '\u2718 Failed to download BrewBar: {{error}}',
 
   // ── License degradation (Layer 15) ──
   license_offlineWarning: 'Your license has not been validated for {{days}} days. Please connect to the internet.',

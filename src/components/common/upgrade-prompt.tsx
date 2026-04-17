@@ -25,23 +25,23 @@ export function UpgradePrompt({ viewId }: UpgradePromptProps) {
     <Box flexDirection="column" alignItems="center" paddingY={2}>
       <Box
         borderStyle="double"
-        borderColor="yellowBright"
+        borderColor="#FF6B2B"
         paddingX={4}
         paddingY={2}
         flexDirection="column"
         alignItems="center"
       >
-        <Text bold color="yellowBright">{'\u2B50'} {t('upgrade_proFeature', { title })}</Text>
+        <Text bold color="#FF6B2B">{'\u2B50'} {t('upgrade_proFeature', { title })}</Text>
         <Text> </Text>
-        <Text color="white">{t(keys.desc)}</Text>
+        <Text color="#F9FAFB">{t(keys.desc)}</Text>
         <Text> </Text>
         <Box flexDirection="column" alignItems="center">
-          <Text color="cyanBright" bold>{t('upgrade_pricing')}</Text>
+          <Text color="#06B6D4" bold>{t('upgrade_pricing')}</Text>
           <Text> </Text>
-          <Text color="gray">{t('upgrade_activateWith')}</Text>
-          <Text color="greenBright" bold>  {t('upgrade_activateCmd')}</Text>
+          <Text color="#9CA3AF">{t('upgrade_activateWith')}</Text>
+          <Text color="#22C55E" bold>  {t('upgrade_activateCmd')}</Text>
           <Text> </Text>
-          <Text color="magentaBright">{t('upgrade_proLabel')}</Text>
+          <Text color="#FF6B2B">{t('upgrade_proLabel')}</Text>
         </Box>
       </Box>
     </Box>

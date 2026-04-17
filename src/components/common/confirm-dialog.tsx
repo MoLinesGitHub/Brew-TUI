@@ -26,12 +26,12 @@ export function ConfirmDialog({ message, onConfirm, onCancel }: ConfirmDialogPro
   });
 
   return (
-    <Box borderStyle="double" borderColor="magentaBright" paddingX={2} paddingY={1} flexDirection="column">
-      <Text bold color="white">{message}</Text>
+    <Box borderStyle="double" borderColor="#A855F7" paddingX={2} paddingY={1} flexDirection="column">
+      <Text bold color="#F9FAFB">{message}</Text>
       <Box marginTop={1}>
-        <Text color="greenBright">{t('confirm_yes')}</Text>
+        <Text color="#22C55E">{t('confirm_yes')}</Text>
         <Text> / </Text>
-        <Text color="redBright">{t('confirm_no')}</Text>
+        <Text color="#EF4444">{t('confirm_no')}</Text>
       </Box>
     </Box>
   );

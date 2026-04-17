@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { Box, Text, useInput } from 'ink';
 import { useLicenseStore } from '../stores/license-store.js';
 import { ConfirmDialog } from '../components/common/confirm-dialog.js';
+import { SectionHeader } from '../components/common/section-header.js';
+import { GRADIENTS } from '../utils/gradient.js';
 import { t } from '../i18n/index.js';
 
 export function AccountView() {
@@ -24,7 +26,7 @@ export function AccountView() {
 
   return (
     <Box flexDirection="column">
-      <Text bold>{'\u{1F464}'} {t('account_title')}</Text>
+      <SectionHeader emoji={'\u{1F464}'} title={t('account_title')} gradient={GRADIENTS.gold} />
 
       {confirmDeactivate && (
         <Box marginY={1}>
@@ -43,66 +45,68 @@ export function AccountView() {
 
       <Box flexDirection="column" marginTop={1} paddingLeft={2}>
         <Box gap={1}>
-          <Text color="gray">{t('account_statusLabel')}</Text>
-          {status === 'pro' && <Text color="greenBright" bold>{t('account_pro')}</Text>}
-          {status === 'free' && <Text color="gray">{t('account_free')}</Text>}
-          {status === 'expired' && <Text color="redBright">{t('account_expired')}</Text>}
-          {status === 'validating' && <Text color="cyanBright">{t('account_validating')}</Text>}
+          <Text color="#9CA3AF">{t('account_statusLabel')}</Text>
+          {status === 'pro' && <Text color="#22C55E" bold>{t('account_pro')}</Text>}
+          {status === 'free' && <Text color="#9CA3AF">{t('account_free')}</Text>}
+          {status === 'expired' && <Text color="#EF4444">{t('account_expired')}</Text>}
+          {status === 'validating' && <Text color="#38BDF8">{t('account_validating')}</Text>}
         </Box>
 
         {license && (
           <>
             <Box gap={1}>
-              <Text color="gray">{t('account_emailLabel')}</Text>
+              <Text color="#9CA3AF">{t('account_emailLabel')}</Text>
               <Text>{license.customerEmail}</Text>
             </Box>
             <Box gap={1}>
-              <Text color="gray">{t('account_nameLabel')}</Text>
+              <Text color="#9CA3AF">{t('account_nameLabel')}</Text>
               <Text>{license.customerName}</Text>
             </Box>
             <Box gap={1}>
-              <Text color="gray">{t('account_planLabel')}</Text>
+              <Text color="#9CA3AF">{t('account_planLabel')}</Text>
               <Text>{license.plan === 'monthly' ? t('account_monthlyPrice') : t('account_yearlyPrice')}</Text>
             </Box>
             <Box gap={1}>
-              <Text color="gray">{t('account_keyLabel')}</Text>
+              <Text color="#9CA3AF">{t('account_keyLabel')}</Text>
               <Text>{maskKey(license.key)}</Text>
             </Box>
             {license.expiresAt && (
               <Box gap={1}>
-                <Text color="gray">{t('account_expiresLabel')}</Text>
+                <Text color="#9CA3AF">{t('account_expiresLabel')}</Text>
                 <Text>{new Date(license.expiresAt).toLocaleDateString()}</Text>
               </Box>
             )}
             <Box gap={1}>
-              <Text color="gray">{t('account_activatedLabel')}</Text>
+              <Text color="#9CA3AF">{t('account_activatedLabel')}</Text>
               <Text>{new Date(license.activatedAt).toLocaleDateString()}</Text>
             </Box>
           </>
         )}
 
         {status === 'free' && (
-          <Box flexDirection="column" marginTop={2} borderStyle="round" borderColor="yellowBright" paddingX={2} paddingY={1}>
-            <Text bold color="yellowBright">{'\u2B50'} {t('account_upgradeTitle')}</Text>
+          <Box flexDirection="column" marginTop={2} borderStyle="round" borderColor="#FF6B2B" paddingX={2} paddingY={1}>
+            <Text bold color="#FF6B2B">{'\u2B50'} {t('account_upgradeTitle')}</Text>
             <Text> </Text>
             <Text>{t('account_unlockDesc')}</Text>
-            <Text color="cyanBright" bold>{t('account_pricing')}</Text>
+            <Text color="#06B6D4" bold>{t('account_pricing')}</Text>
             <Text> </Text>
-            <Text color="gray">{t('account_runActivate')} <Text color="greenBright" bold>{t('account_activateCmd')}</Text></Text>
+            <Text color="#9CA3AF">{t('account_runActivate')} <Text color="#22C55E" bold>{t('account_activateCmd')}</Text></Text>
           </Box>
         )}
 
         {status === 'expired' && (
           <Box marginTop={1}>
-            <Text color="redBright">{t('account_licenseExpired')}</Text>
+            <Box borderStyle="round" borderColor="#EF4444" paddingX={2} paddingY={0}>
+              <Text color="#EF4444">{t('account_licenseExpired')}</Text>
+            </Box>
           </Box>
         )}
 
-        {deactivating && <Text color="cyanBright">{t('account_deactivating')}</Text>}
+        {deactivating && <Text color="#38BDF8">{t('account_deactivating')}</Text>}
       </Box>
 
       <Box marginTop={2}>
-        <Text color="gray">
+        <Text color="#6B7280">
           {status === 'pro' ? `d:${t('hint_deactivate')}` : ''}
           {' '}{t('app_version', { version: process.env.APP_VERSION ?? '0.0.0' })}
         </Text>

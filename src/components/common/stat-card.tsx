@@ -19,7 +19,7 @@ export function StatCard({ label, value, color = 'white' }: StatCardProps) {
       minWidth={16}
     >
       <Text bold color={color}>{value}</Text>
-      <Text color="gray">{label}</Text>
+      <Text color="#9CA3AF">{label}</Text>
     </Box>
   );
 }

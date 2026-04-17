@@ -6,6 +6,8 @@ import { Loading, ErrorMessage } from '../components/common/loading.js';
 import { StatusBadge } from '../components/common/status-badge.js';
 import { SearchInput } from '../components/common/search-input.js';
 import { ConfirmDialog } from '../components/common/confirm-dialog.js';
+import { SectionHeader } from '../components/common/section-header.js';
+import { GRADIENTS } from '../utils/gradient.js';
 import { formatRelativeTime } from '../utils/format.js';
 import { t } from '../i18n/index.js';
 import { useModalStore } from '../stores/modal-store.js';
@@ -13,10 +15,10 @@ import type { TranslationKey } from '../i18n/en.js';
 import type { HistoryAction } from '../lib/history/types.js';
 
 const ACTION_ICONS: Record<HistoryAction, { icon: string; color: string }> = {
-  install: { icon: '+', color: 'greenBright' },
-  uninstall: { icon: '-', color: 'redBright' },
-  upgrade: { icon: '\u2191', color: 'cyanBright' },
-  'upgrade-all': { icon: '\u21C8', color: 'cyanBright' },
+  install: { icon: '+', color: '#22C55E' },
+  uninstall: { icon: '-', color: '#EF4444' },
+  upgrade: { icon: '\u2191', color: '#06B6D4' },
+  'upgrade-all': { icon: '\u21C8', color: '#06B6D4' },
 };
 
 const ACTION_LABEL_KEYS: Record<HistoryAction, TranslationKey> = {
@@ -96,8 +98,8 @@ export function HistoryView() {
   return (
     <Box flexDirection="column">
       <Box gap={2} marginBottom={1}>
-        <Text bold>{'\u{1F4DC}'} {t('history_title', { count: filtered.length })}</Text>
-        <Text color={filter === 'all' ? 'white' : 'yellowBright'}>
+        <SectionHeader emoji={'\u{1F4DC}'} title={t('history_title', { count: filtered.length })} gradient={GRADIENTS.gold} />
+        <Text color={filter === 'all' ? '#F9FAFB' : '#FFD700'}>
           {t('history_filterLabel', { filter })}
         </Text>
       </Box>
@@ -117,7 +119,7 @@ export function HistoryView() {
       )}
 
       {filtered.length === 0 && !confirmClear && (
-        <Text color="gray" italic>
+        <Text color="#6B7280" italic>
           {filter !== 'all' ? t('history_noEntriesFor', { filter }) : t('history_noEntries')}
         </Text>
       )}
@@ -125,7 +127,7 @@ export function HistoryView() {
       {filtered.length > 0 && !confirmClear && (
         <Box flexDirection="column">
           {start > 0 && (
-            <Text color="gray" dimColor>  {t('scroll_moreAbove', { count: start })}</Text>
+            <Text color="#6B7280" dimColor>  {t('scroll_moreAbove', { count: start })}</Text>
           )}
           {visible.map((entry, i) => {
             const idx = start + i;
@@ -135,25 +137,25 @@ export function HistoryView() {
 
             return (
               <Box key={entry.id} gap={1}>
-                <Text color={isCurrent ? 'greenBright' : 'white'}>{isCurrent ? '\u25B6' : ' '}</Text>
+                <Text color={isCurrent ? '#22C55E' : '#9CA3AF'}>{isCurrent ? '\u25B6' : ' '}</Text>
                 <Text color={color} bold>{icon}</Text>
-                <Text bold={isCurrent} inverse={isCurrent} color={isCurrent ? 'white' : 'gray'}>
+                <Text bold={isCurrent} inverse={isCurrent} color={isCurrent ? '#F9FAFB' : '#9CA3AF'}>
                   {t(ACTION_LABEL_KEYS[entry.action]).padEnd(12)}
                 </Text>
-                <Text color="white">{entry.packageName ?? t('history_all')}</Text>
+                <Text color="#F9FAFB">{entry.packageName ?? t('history_all')}</Text>
                 {entry.success
                   ? <StatusBadge label={t('badge_ok')} variant="success" />
                   : <StatusBadge label={t('badge_fail')} variant="error" />}
-                <Text color="gray">{formatRelativeTime(ts)}</Text>
+                <Text color="#9CA3AF">{formatRelativeTime(ts)}</Text>
               </Box>
             );
           })}
           {start + MAX_VISIBLE_ROWS < filtered.length && (
-            <Text color="gray" dimColor>  {t('scroll_moreBelow', { count: filtered.length - start - MAX_VISIBLE_ROWS })}</Text>
+            <Text color="#6B7280" dimColor>  {t('scroll_moreBelow', { count: filtered.length - start - MAX_VISIBLE_ROWS })}</Text>
           )}
 
           <Box marginTop={1}>
-            <Text color="white" bold>
+            <Text color="#F9FAFB" bold>
               {cursor + 1}/{filtered.length}
             </Text>
           </Box>

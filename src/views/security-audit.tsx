@@ -4,15 +4,17 @@ import { useSecurityStore } from '../stores/security-store.js';
 import { Loading, ErrorMessage } from '../components/common/loading.js';
 import { StatCard } from '../components/common/stat-card.js';
 import { StatusBadge } from '../components/common/status-badge.js';
+import { SectionHeader } from '../components/common/section-header.js';
+import { GRADIENTS } from '../utils/gradient.js';
 import { t, tp } from '../i18n/index.js';
 import type { Severity } from '../lib/security/types.js';
 
 const SEVERITY_COLORS: Record<Severity, string> = {
-  CRITICAL: 'redBright',
-  HIGH: 'redBright',
-  MEDIUM: 'yellow',
-  LOW: 'gray',
-  UNKNOWN: 'gray',
+  CRITICAL: '#EF4444',
+  HIGH: '#EF4444',
+  MEDIUM: '#F59E0B',
+  LOW: '#6B7280',
+  UNKNOWN: '#6B7280',
 };
 
 const SEVERITY_BADGE: Record<Severity, 'error' | 'warning' | 'muted'> = {
@@ -47,25 +49,27 @@ export function SecurityAuditView() {
 
   return (
     <Box flexDirection="column">
-      <Text bold>{'\u{1F6E1}\uFE0F'}  {t('security_title')}</Text>
+      <SectionHeader emoji={'\u{1F6E1}\uFE0F'} title={t('security_title')} gradient={GRADIENTS.ocean} />
 
       {summary && (
         <Box gap={1} marginY={1}>
-          <StatCard label={t('security_scanned')} value={summary.totalPackages} color="cyanBright" />
+          <StatCard label={t('security_scanned')} value={summary.totalPackages} color="#06B6D4" />
           <StatCard
             label={t('security_vulnerable')}
             value={summary.vulnerablePackages}
-            color={summary.vulnerablePackages > 0 ? 'redBright' : 'greenBright'}
+            color={summary.vulnerablePackages > 0 ? '#EF4444' : '#22C55E'}
           />
-          {summary.criticalCount > 0 && <StatCard label={t('security_critical')} value={summary.criticalCount} color="redBright" />}
-          {summary.highCount > 0 && <StatCard label={t('security_high')} value={summary.highCount} color="redBright" />}
-          {summary.mediumCount > 0 && <StatCard label={t('security_medium')} value={summary.mediumCount} color="yellow" />}
+          {summary.criticalCount > 0 && <StatCard label={t('security_critical')} value={summary.criticalCount} color="#EF4444" />}
+          {summary.highCount > 0 && <StatCard label={t('security_high')} value={summary.highCount} color="#EF4444" />}
+          {summary.mediumCount > 0 && <StatCard label={t('security_medium')} value={summary.mediumCount} color="#F59E0B" />}
         </Box>
       )}
 
       {results.length === 0 && summary && (
         <Box marginTop={1}>
-          <Text color="greenBright" bold>{'\u2714'} {t('security_noVulns')}</Text>
+          <Box borderStyle="round" borderColor="#22C55E" paddingX={2} paddingY={0}>
+            <Text color="#22C55E" bold>{'\u2714'} {t('security_noVulns')}</Text>
+          </Box>
         </Box>
       )}
 
@@ -78,14 +82,14 @@ export function SecurityAuditView() {
             return (
               <Box key={pkg.packageName} flexDirection="column">
                 <Box gap={1}>
-                  <Text color={isCurrent ? 'greenBright' : 'white'}>{isCurrent ? '\u25B6' : ' '}</Text>
+                  <Text color={isCurrent ? '#22C55E' : '#9CA3AF'}>{isCurrent ? '\u25B6' : ' '}</Text>
                   <StatusBadge label={pkg.maxSeverity} variant={SEVERITY_BADGE[pkg.maxSeverity]} />
-                  <Text bold={isCurrent} inverse={isCurrent} color={isCurrent ? 'white' : 'gray'}>
+                  <Text bold={isCurrent} inverse={isCurrent} color={isCurrent ? '#F9FAFB' : '#9CA3AF'}>
                     {pkg.packageName}
                   </Text>
-                  <Text color="gray">{pkg.installedVersion}</Text>
-                  <Text color="gray">{tp('plural_vulns', pkg.vulnerabilities.length)}</Text>
-                  <Text color="gray">{isExpanded ? '\u25BC' : '\u25B6'}</Text>
+                  <Text color="#9CA3AF">{pkg.installedVersion}</Text>
+                  <Text color="#9CA3AF">{tp('plural_vulns', pkg.vulnerabilities.length)}</Text>
+                  <Text color="#9CA3AF">{isExpanded ? '\u25BC' : '\u25B6'}</Text>
                 </Box>
 
                 {isExpanded && (
@@ -94,11 +98,11 @@ export function SecurityAuditView() {
                       <Box key={vuln.id} flexDirection="column" marginBottom={1}>
                         <Box gap={1}>
                           <Text color={SEVERITY_COLORS[vuln.severity]} bold>{vuln.id}</Text>
-                          <Text color="gray">[{vuln.severity}]</Text>
+                          <Text color="#9CA3AF">[{vuln.severity}]</Text>
                         </Box>
-                        <Text color="gray" wrap="wrap">{vuln.summary}</Text>
+                        <Text color="#9CA3AF" wrap="wrap">{vuln.summary}</Text>
                         {vuln.fixedVersion && (
-                          <Text color="greenBright">{t('security_fixedIn', { version: vuln.fixedVersion })}</Text>
+                          <Text color="#22C55E">{t('security_fixedIn', { version: vuln.fixedVersion })}</Text>
                         )}
                       </Box>
                     ))}
@@ -109,7 +113,7 @@ export function SecurityAuditView() {
           })}
 
           <Box marginTop={1}>
-            <Text color="white" bold>
+            <Text color="#F9FAFB" bold>
               {cursor + 1}/{results.length}
             </Text>
           </Box>

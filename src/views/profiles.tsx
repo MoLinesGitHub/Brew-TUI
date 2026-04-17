@@ -5,6 +5,8 @@ import { useProfileStore } from '../stores/profile-store.js';
 import { Loading } from '../components/common/loading.js';
 import { ConfirmDialog } from '../components/common/confirm-dialog.js';
 import { ProgressLog } from '../components/common/progress-log.js';
+import { SectionHeader } from '../components/common/section-header.js';
+import { GRADIENTS } from '../utils/gradient.js';
 import { t } from '../i18n/index.js';
 import { useModalStore } from '../stores/modal-store.js';
 import * as manager from '../lib/profiles/profile-manager.js';
@@ -105,7 +107,9 @@ export function ProfilesView() {
         <ProgressLog lines={importLines} isRunning={importRunning} title={t('profiles_importTitle')} />
         {!importRunning && (
           <Box marginTop={1}>
-            <Text color="greenBright" bold>{'\u2714'} {t('profiles_importComplete')}</Text>
+            <Box borderStyle="round" borderColor="#22C55E" paddingX={2} paddingY={0}>
+              <Text color="#22C55E" bold>{'\u2714'} {t('profiles_importComplete')}</Text>
+            </Box>
           </Box>
         )}
       </Box>
@@ -128,7 +132,7 @@ export function ProfilesView() {
     return (
       <Box flexDirection="column">
         <Text bold>{t('profiles_createDesc', { name: newName })}</Text>
-        {loadError && <Text color="redBright">{t('error_prefix')}{loadError}</Text>}
+        {loadError && <Text color="#EF4444">{t('error_prefix')}{loadError}</Text>}
         <TextInput
           placeholder={t('profiles_descPlaceholder')}
           onSubmit={async (val) => {
@@ -147,28 +151,28 @@ export function ProfilesView() {
   if (mode === 'detail' && selectedProfile) {
     return (
       <Box flexDirection="column">
-        <Text bold color="yellowBright">{selectedProfile.name}</Text>
-        <Text color="gray">{selectedProfile.description}</Text>
-        <Text color="gray">{t('profiles_created', { date: new Date(selectedProfile.createdAt).toLocaleDateString() })}</Text>
+        <Text bold color="#FFD700">{selectedProfile.name}</Text>
+        <Text color="#9CA3AF">{selectedProfile.description}</Text>
+        <Text color="#9CA3AF">{t('profiles_created', { date: new Date(selectedProfile.createdAt).toLocaleDateString() })}</Text>
         <Box marginTop={1} flexDirection="column">
           <Text bold>{t('profiles_formulaeCount', { count: selectedProfile.formulae.length })}</Text>
           <Box paddingLeft={2} flexDirection="column">
             {selectedProfile.formulae.slice(0, 30).map((f) => (
-              <Text key={f} color="gray">{f}</Text>
+              <Text key={f} color="#9CA3AF">{f}</Text>
             ))}
             {selectedProfile.formulae.length > 30 && (
-              <Text color="gray" italic>{t('common_andMore', { count: selectedProfile.formulae.length - 30 })}</Text>
+              <Text color="#6B7280" italic>{t('common_andMore', { count: selectedProfile.formulae.length - 30 })}</Text>
             )}
           </Box>
           <Text bold>{t('profiles_casksCount', { count: selectedProfile.casks.length })}</Text>
           <Box paddingLeft={2} flexDirection="column">
             {selectedProfile.casks.map((c) => (
-              <Text key={c} color="gray">{c}</Text>
+              <Text key={c} color="#9CA3AF">{c}</Text>
             ))}
           </Box>
         </Box>
         <Box marginTop={1}>
-          <Text color="gray">esc:{t('hint_back')} i:{t('hint_importProfile')}</Text>
+          <Text color="#6B7280">esc:{t('hint_back')} i:{t('hint_importProfile')}</Text>
         </Box>
       </Box>
     );
@@ -176,7 +180,7 @@ export function ProfilesView() {
 
   return (
     <Box flexDirection="column">
-      <Text bold>{'\u{1F4C1}'} {t('profiles_title', { count: profileNames.length })}</Text>
+      <SectionHeader emoji={'\u{1F4C1}'} title={t('profiles_title', { count: profileNames.length })} gradient={GRADIENTS.gold} />
 
       {confirmDelete && profileNames[cursor] && (
         <Box marginY={1}>
@@ -189,9 +193,11 @@ export function ProfilesView() {
       )}
 
       {profileNames.length === 0 && !confirmDelete && (
-        <Box marginTop={1} flexDirection="column">
-          <Text color="gray" italic>{t('profiles_noProfiles')}</Text>
-          <Text color="gray">{t('profiles_press')} <Text color="yellowBright" bold>n</Text> {t('profiles_exportHint')}</Text>
+        <Box marginTop={1} borderStyle="round" borderColor="#6B7280" paddingX={2} paddingY={0}>
+          <Box flexDirection="column">
+            <Text color="#6B7280" italic>{t('profiles_noProfiles')}</Text>
+            <Text color="#9CA3AF">{t('profiles_press')} <Text color="#FFD700" bold>n</Text> {t('profiles_exportHint')}</Text>
+          </Box>
         </Box>
       )}
 
@@ -201,13 +207,13 @@ export function ProfilesView() {
             const isCurrent = i === cursor;
             return (
               <Box key={name} gap={1}>
-                <Text color={isCurrent ? 'greenBright' : 'white'}>{isCurrent ? '\u25B6' : ' '}</Text>
+                <Text color={isCurrent ? '#22C55E' : '#9CA3AF'}>{isCurrent ? '\u25B6' : ' '}</Text>
                 <Text bold={isCurrent} inverse={isCurrent}>{name}</Text>
               </Box>
             );
           })}
           <Box marginTop={1}>
-            <Text color="white" bold>{cursor + 1}/{profileNames.length}</Text>
+            <Text color="#F9FAFB" bold>{cursor + 1}/{profileNames.length}</Text>
           </Box>
         </Box>
       )}

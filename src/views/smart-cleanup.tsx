@@ -6,6 +6,8 @@ import { Loading, ErrorMessage } from '../components/common/loading.js';
 import { ConfirmDialog } from '../components/common/confirm-dialog.js';
 import { ProgressLog } from '../components/common/progress-log.js';
 import { StatCard } from '../components/common/stat-card.js';
+import { SectionHeader } from '../components/common/section-header.js';
+import { GRADIENTS } from '../utils/gradient.js';
 import { t } from '../i18n/index.js';
 
 export function SmartCleanupView() {
@@ -41,7 +43,9 @@ export function SmartCleanupView() {
       <Box flexDirection="column">
         <ProgressLog lines={stream.lines} isRunning={stream.isRunning} title={t('cleanup_cleaning')} />
         {!stream.isRunning && (
-          <Text color="greenBright" bold>{'\u2714'} {t('cleanup_complete')}</Text>
+          <Box borderStyle="round" borderColor="#22C55E" paddingX={2} paddingY={0}>
+            <Text color="#22C55E" bold>{'\u2714'} {t('cleanup_complete')}</Text>
+          </Box>
         )}
       </Box>
     );
@@ -49,13 +53,13 @@ export function SmartCleanupView() {
 
   return (
     <Box flexDirection="column">
-      <Text bold>{'\u{1F9F9}'} {t('cleanup_title')}</Text>
+      <SectionHeader emoji={'\u{1F9F9}'} title={t('cleanup_title')} gradient={GRADIENTS.emerald} />
 
       {summary && (
         <Box gap={1} marginY={1}>
-          <StatCard label={t('cleanup_orphans')} value={candidates.length} color={candidates.length > 0 ? 'yellow' : 'greenBright'} />
-          <StatCard label={t('cleanup_reclaimable')} value={summary.totalReclaimableFormatted} color="cyanBright" />
-          <StatCard label={t('cleanup_selected')} value={selected.size} color={selected.size > 0 ? 'greenBright' : 'gray'} />
+          <StatCard label={t('cleanup_orphans')} value={candidates.length} color={candidates.length > 0 ? '#F59E0B' : '#22C55E'} />
+          <StatCard label={t('cleanup_reclaimable')} value={summary.totalReclaimableFormatted} color="#38BDF8" />
+          <StatCard label={t('cleanup_selected')} value={selected.size} color={selected.size > 0 ? '#22C55E' : '#6B7280'} />
         </Box>
       )}
 
@@ -74,7 +78,9 @@ export function SmartCleanupView() {
       )}
 
       {candidates.length === 0 && !confirmClean && (
-        <Text color="greenBright" bold>{'\u2714'} {t('cleanup_systemClean')}</Text>
+        <Box borderStyle="round" borderColor="#22C55E" paddingX={2} paddingY={0}>
+          <Text color="#22C55E" bold>{'\u2714'} {t('cleanup_systemClean')}</Text>
+        </Box>
       )}
 
       {candidates.length > 0 && !confirmClean && (
@@ -84,16 +90,16 @@ export function SmartCleanupView() {
             const isSelected = selected.has(c.name);
             return (
               <Box key={c.name} gap={1}>
-                <Text color={isCurrent ? 'greenBright' : 'white'}>{isCurrent ? '\u25B6' : ' '}</Text>
-                <Text color={isSelected ? 'greenBright' : 'gray'}>{isSelected ? '\u2611' : '\u2610'}</Text>
-                <Text bold={isCurrent} inverse={isCurrent} color={isCurrent ? 'white' : 'gray'}>{c.name}</Text>
-                <Text color="yellow">{c.diskUsageFormatted}</Text>
-                <Text color="gray">[{c.reason}]</Text>
+                <Text color={isCurrent ? '#22C55E' : '#9CA3AF'}>{isCurrent ? '\u25B6' : ' '}</Text>
+                <Text color={isSelected ? '#22C55E' : '#9CA3AF'}>{isSelected ? '\u2611' : '\u2610'}</Text>
+                <Text bold={isCurrent} inverse={isCurrent} color={isCurrent ? '#F9FAFB' : '#9CA3AF'}>{c.name}</Text>
+                <Text color="#F59E0B">{c.diskUsageFormatted}</Text>
+                <Text color="#6B7280">[{c.reason}]</Text>
               </Box>
             );
           })}
           <Box marginTop={1}>
-            <Text color="white" bold>
+            <Text color="#F9FAFB" bold>
               {cursor + 1}/{candidates.length}
             </Text>
           </Box>

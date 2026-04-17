@@ -14,18 +14,18 @@ export function ProgressLog({ lines, isRunning, title, maxVisible = 15 }: Progre
   const visible = lines.slice(-maxVisible);
 
   return (
-    <Box flexDirection="column" borderStyle="round" borderColor="cyanBright" paddingX={1}>
+    <Box flexDirection="column" borderStyle="round" borderColor="#38BDF8" paddingX={1}>
       {title && (
         <Box marginBottom={1}>
           {isRunning && <Spinner label="" />}
-          <Text bold color="cyanBright"> {title}</Text>
+          <Text bold color="#38BDF8"> {title}</Text>
         </Box>
       )}
       {visible.map((line, i) => (
-        <Text key={i} color="gray" wrap="wrap">{line}</Text>
+        <Text key={i} color="#9CA3AF" wrap="wrap">{line}</Text>
       ))}
       {lines.length === 0 && !isRunning && (
-        <Text color="gray" italic>{t('progress_noOutput')}</Text>
+        <Text color="#6B7280" italic>{t('progress_noOutput')}</Text>
       )}
     </Box>
   );

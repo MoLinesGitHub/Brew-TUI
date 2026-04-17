@@ -6,6 +6,9 @@ import { Loading, ErrorMessage } from '../components/common/loading.js';
 import { StatusBadge } from '../components/common/status-badge.js';
 import { ProgressLog } from '../components/common/progress-log.js';
 import { ConfirmDialog } from '../components/common/confirm-dialog.js';
+import { SectionHeader } from '../components/common/section-header.js';
+import { VersionArrow } from '../components/common/version-arrow.js';
+import { GRADIENTS } from '../utils/gradient.js';
 import { t } from '../i18n/index.js';
 
 export function OutdatedView() {
@@ -51,10 +54,12 @@ export function OutdatedView() {
         />
         {!stream.isRunning && (
           <Box marginTop={1}>
-            <Text color={stream.error ? 'redBright' : 'greenBright'} bold>
-              {stream.error ? `\u2718 ${stream.error}` : `\u2714 ${t('outdated_upgradeComplete')}`}
-            </Text>
-            <Text color="gray"> {t('outdated_pressRefresh')}</Text>
+            <Box borderStyle="round" borderColor={stream.error ? '#EF4444' : '#22C55E'} paddingX={2} paddingY={0}>
+              <Text color={stream.error ? '#EF4444' : '#22C55E'} bold>
+                {stream.error ? `\u2718 ${stream.error}` : `\u2714 ${t('outdated_upgradeComplete')}`}
+              </Text>
+              <Text color="#9CA3AF"> {t('outdated_pressRefresh')}</Text>
+            </Box>
           </Box>
         )}
       </Box>
@@ -63,7 +68,7 @@ export function OutdatedView() {
 
   return (
     <Box flexDirection="column">
-      <Text bold color="yellow">{'\u{1F4E6}'} {t('outdated_title', { count: allOutdated.length })}</Text>
+      <SectionHeader emoji={'\u{1F4E6}'} title={t('outdated_title', { count: allOutdated.length })} gradient={GRADIENTS.fire} />
 
       {confirmAction && (
         <Box marginY={1}>
@@ -88,7 +93,9 @@ export function OutdatedView() {
 
       {allOutdated.length === 0 && !confirmAction && (
         <Box marginTop={1}>
-          <Text color="greenBright" bold>{'\u2714'} {t('outdated_upToDate')}</Text>
+          <Box borderStyle="round" borderColor="#22C55E" paddingX={2} paddingY={0}>
+            <Text color="#22C55E" bold>{'\u2714'} {t('outdated_upToDate')}</Text>
+          </Box>
         </Box>
       )}
 
@@ -98,20 +105,18 @@ export function OutdatedView() {
             const isCurrent = i === cursor;
             return (
               <Box key={pkg.name} gap={1}>
-                <Text color={isCurrent ? 'greenBright' : 'white'}>{isCurrent ? '\u25B6' : ' '}</Text>
-                <Text bold={isCurrent} inverse={isCurrent} color={isCurrent ? 'white' : 'gray'}>
+                <Text color={isCurrent ? '#22C55E' : '#9CA3AF'}>{isCurrent ? '\u25B6' : ' '}</Text>
+                <Text bold={isCurrent} inverse={isCurrent} color={isCurrent ? '#F9FAFB' : '#9CA3AF'}>
                   {pkg.name}
                 </Text>
-                <Text color="redBright">{pkg.installed_versions[0] ?? ''}</Text>
-                <Text color="gray">{'\u2192'}</Text>
-                <Text color="cyanBright">{pkg.current_version}</Text>
+                <VersionArrow current={pkg.installed_versions[0] ?? ''} latest={pkg.current_version} />
                 {pkg.pinned && <StatusBadge label={t('outdated_pinned')} variant="info" />}
               </Box>
             );
           })}
 
           <Box marginTop={1}>
-            <Text color="white" bold>
+            <Text color="#F9FAFB" bold>
               {cursor + 1}/{allOutdated.length}
             </Text>
           </Box>

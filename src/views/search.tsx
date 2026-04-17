@@ -80,9 +80,11 @@ export function SearchView() {
         />
         {!stream.isRunning && (
           <Box marginTop={1}>
-            <Text color={stream.error ? 'redBright' : 'greenBright'} bold>
-              {stream.error ? `\u2718 ${stream.error}` : `\u2714 ${t('search_installComplete')}`}
-            </Text>
+            <Box borderStyle="round" borderColor={stream.error ? '#EF4444' : '#22C55E'} paddingX={2} paddingY={0}>
+              <Text color={stream.error ? '#EF4444' : '#22C55E'} bold>
+                {stream.error ? `\u2718 ${stream.error}` : `\u2714 ${t('search_installComplete')}`}
+              </Text>
+            </Box>
           </Box>
         )}
       </Box>
@@ -92,7 +94,7 @@ export function SearchView() {
   return (
     <Box flexDirection="column">
       <Box marginBottom={1}>
-        <Text color="yellowBright">{'\u{1F50D}'} </Text>
+        <Text color="#FFD700">{'\u{1F50D}'} </Text>
         {!results ? (
           <TextInput
             placeholder={t('search_placeholder')}
@@ -101,7 +103,7 @@ export function SearchView() {
             onSubmit={() => void doSearch(query)}
           />
         ) : (
-          <Text>{t('search_resultsFor')} "<Text bold color="white">{query}</Text>" <Text color="gray">{t('search_escToClear')}</Text></Text>
+          <Text>{t('search_resultsFor')} "<Text bold color="#F9FAFB">{query}</Text>" <Text color="#6B7280">{t('search_escToClear')}</Text></Text>
         )}
       </Box>
 
@@ -123,47 +125,49 @@ export function SearchView() {
         <Box flexDirection="column">
           {results.formulae.length > 0 && (
             <Box flexDirection="column" marginBottom={1}>
-              <Text bold color="cyanBright">{t('search_formulaeHeader', { count: results.formulae.length })}</Text>
+              <Text bold color="#06B6D4">{t('search_formulaeHeader', { count: results.formulae.length })}</Text>
               {results.formulae.slice(0, 20).map((name, i) => {
                 const isCurrent = i === cursor;
                 return (
                   <Box key={name} gap={1}>
-                    <Text color={isCurrent ? 'greenBright' : 'white'}>{isCurrent ? '\u25B6' : ' '}</Text>
+                    <Text color={isCurrent ? '#22C55E' : '#9CA3AF'}>{isCurrent ? '\u25B6' : ' '}</Text>
                     <Text bold={isCurrent} inverse={isCurrent}>{name}</Text>
                   </Box>
                 );
               })}
               {results.formulae.length > 20 && (
-                <Text color="gray" dimColor>  {t('scroll_moreBelow', { count: results.formulae.length - 20 })}</Text>
+                <Text color="#6B7280" dimColor>  {t('scroll_moreBelow', { count: results.formulae.length - 20 })}</Text>
               )}
             </Box>
           )}
 
           {results.casks.length > 0 && (
             <Box flexDirection="column">
-              <Text bold color="magentaBright">{t('search_casksHeader', { count: results.casks.length })}</Text>
+              <Text bold color="#A855F7">{t('search_casksHeader', { count: results.casks.length })}</Text>
               {results.casks.slice(0, 20).map((name, i) => {
                 const idx = results.formulae.length + i;
                 const isCurrent = idx === cursor;
                 return (
                   <Box key={name} gap={1}>
-                    <Text color={isCurrent ? 'greenBright' : 'white'}>{isCurrent ? '\u25B6' : ' '}</Text>
+                    <Text color={isCurrent ? '#22C55E' : '#9CA3AF'}>{isCurrent ? '\u25B6' : ' '}</Text>
                     <Text bold={isCurrent} inverse={isCurrent}>{name}</Text>
                   </Box>
                 );
               })}
               {results.casks.length > 20 && (
-                <Text color="gray" dimColor>  {t('scroll_moreBelow', { count: results.casks.length - 20 })}</Text>
+                <Text color="#6B7280" dimColor>  {t('scroll_moreBelow', { count: results.casks.length - 20 })}</Text>
               )}
             </Box>
           )}
 
           {allResults.length === 0 && (
-            <Text color="gray" italic>{t('search_noResults')}</Text>
+            <Box borderStyle="round" borderColor="#6B7280" paddingX={2}>
+              <Text color="#6B7280" italic>{t('search_noResults')}</Text>
+            </Box>
           )}
 
           <Box marginTop={1}>
-            <Text color="white" bold>
+            <Text color="#F9FAFB" bold>
               {allResults.length > 0 ? `${cursor + 1}/${allResults.length}` : ''}
             </Text>
           </Box>

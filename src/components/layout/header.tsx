@@ -3,6 +3,7 @@ import { Box, Text } from 'ink';
 import { useNavigationStore } from '../../stores/navigation-store.js';
 import { isProView } from '../../lib/license/feature-gate.js';
 import { t, useLocaleStore } from '../../i18n/index.js';
+import { GradientText, GRADIENTS } from '../../utils/gradient.js';
 import type { ViewId } from '../../lib/types.js';
 import type { TranslationKey } from '../../i18n/en.js';
 
@@ -60,12 +61,12 @@ export function Header() {
       <Box flexDirection="column" paddingX={1}>
         {LOGO_BREW.map((brew, i) => (
           <Box key={i}>
-            <Text color="yellowBright" wrap="truncate">{brew}</Text>
-            <Text color="yellow" wrap="truncate">{LOGO_TUI[i]}</Text>
+            <GradientText colors={GRADIENTS.gold}>{brew}</GradientText>
+            <GradientText colors={['#B8860B', '#8B6914', '#6B4F10']}>{LOGO_TUI[i]}</GradientText>
           </Box>
         ))}
       </Box>
-      <Box borderStyle="bold" borderBottom borderLeft={false} borderRight={false} borderTop={false} paddingX={1} flexWrap="wrap">
+      <Box borderStyle="single" borderBottom borderLeft={false} borderRight={false} borderTop={false} borderColor="#FFD700" paddingX={1} flexWrap="wrap">
         {TAB_VIEWS.map((view, i) => {
           const key = VIEW_KEYS[view];
           const viewLabel = t(VIEW_LABEL_KEYS[view]);
@@ -74,15 +75,15 @@ export function Header() {
 
           return (
             <React.Fragment key={view}>
-              {i > 0 && <Text color="gray"> {'\u2502'} </Text>}
+              {i > 0 && <Text color="#4B5563"> {'\u2502'} </Text>}
               <Text
                 bold={view === currentView}
-                color={view === currentView ? 'greenBright' : 'gray'}
+                color={view === currentView ? '#22C55E' : '#6B7280'}
                 underline={view === currentView}
               >
-                {label}
+                {view === currentView ? `\u25CF ${label}` : label}
               </Text>
-              {isPro && <Text color="#FF8800" bold> {t('pro_badge')}</Text>}
+              {isPro && <Text color="#FF6B2B" bold> {t('pro_badge')}</Text>}
             </React.Fragment>
           );
         })}

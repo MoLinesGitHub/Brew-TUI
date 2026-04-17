@@ -6,6 +6,8 @@ import { Loading, ErrorMessage } from '../components/common/loading.js';
 import { StatusBadge } from '../components/common/status-badge.js';
 import { ProgressLog } from '../components/common/progress-log.js';
 import { ConfirmDialog } from '../components/common/confirm-dialog.js';
+import { SectionHeader } from '../components/common/section-header.js';
+import { GradientText, GRADIENTS } from '../utils/gradient.js';
 import { formatRelativeTime } from '../utils/format.js';
 import { t } from '../i18n/index.js';
 import type { TranslationKey } from '../i18n/en.js';
@@ -63,7 +65,7 @@ export function PackageInfoView() {
   });
 
   if (!packageName) {
-    return <Text color="gray" italic>{t('pkgInfo_noPackage')}</Text>;
+    return <Text color="#6B7280" italic>{t('pkgInfo_noPackage')}</Text>;
   }
 
   if (loading) return <Loading message={t('loading_package', { name: packageName })} />;
@@ -75,7 +77,7 @@ export function PackageInfoView() {
       <Box flexDirection="column">
         <ProgressLog lines={stream.lines} isRunning={stream.isRunning} title={t(ACTION_PROGRESS_KEYS[activeActionRef.current] ?? ACTION_PROGRESS_KEYS['install']!, { name: formula.name })} />
         {!stream.isRunning && (
-          <Text color={stream.error ? 'redBright' : 'greenBright'} bold>
+          <Text color={stream.error ? '#EF4444' : '#22C55E'} bold>
             {stream.error ? `\u2718 ${stream.error}` : `\u2714 ${t('pkgInfo_done')}`}
           </Text>
         )}
@@ -104,8 +106,8 @@ export function PackageInfoView() {
       )}
 
       <Box gap={2} marginBottom={1}>
-        <Text bold color="yellowBright">{formula.name}</Text>
-        <Text color="cyanBright">{installed?.version ?? formula.versions.stable}</Text>
+        <GradientText colors={GRADIENTS.gold} bold>{formula.name}</GradientText>
+        <Text color="#2DD4BF">{installed?.version ?? formula.versions.stable}</Text>
         {isInstalled && <StatusBadge label={t('badge_installed')} variant="success" />}
         {formula.outdated && <StatusBadge label={t('badge_outdated')} variant="warning" />}
         {formula.pinned && <StatusBadge label={t('badge_pinned')} variant="info" />}
@@ -117,17 +119,17 @@ export function PackageInfoView() {
         <Text>{formula.desc}</Text>
 
         <Box flexDirection="column">
-          <Text bold color="white">{t('pkgInfo_details')}</Text>
-          <Box paddingLeft={2} flexDirection="column">
-            <Text><Text color="gray">{t('pkgInfo_homepage')}</Text> {formula.homepage}</Text>
-            <Text><Text color="gray">{t('pkgInfo_license')}</Text>  {formula.license}</Text>
-            <Text><Text color="gray">{t('pkgInfo_tap')}</Text>      {formula.tap}</Text>
-            <Text><Text color="gray">{t('pkgInfo_stable')}</Text>   {formula.versions.stable}</Text>
+          <SectionHeader emoji={'\u{1F4CB}'} title={t('pkgInfo_details')} gradient={['#F9FAFB', '#9CA3AF']} />
+          <Box borderStyle="round" borderColor="#4B5563" paddingX={2} flexDirection="column">
+            <Text><Text color="#9CA3AF">{t('pkgInfo_homepage')}</Text> {formula.homepage}</Text>
+            <Text><Text color="#9CA3AF">{t('pkgInfo_license')}</Text>  {formula.license}</Text>
+            <Text><Text color="#9CA3AF">{t('pkgInfo_tap')}</Text>      {formula.tap}</Text>
+            <Text><Text color="#9CA3AF">{t('pkgInfo_stable')}</Text>   {formula.versions.stable}</Text>
             {installed && (
               <>
-                <Text><Text color="gray">{t('pkgInfo_installed')}</Text> {installed.version} ({formatRelativeTime(installed.time)})</Text>
-                <Text><Text color="gray">{t('pkgInfo_bottle')}</Text>    {installed.poured_from_bottle ? t('common_yes') : t('common_no')}</Text>
-                <Text><Text color="gray">{t('pkgInfo_onRequest')}</Text> {installed.installed_on_request ? t('common_yes') : t('pkgInfo_noDependency')}</Text>
+                <Text><Text color="#9CA3AF">{t('pkgInfo_installed')}</Text> {installed.version} ({formatRelativeTime(installed.time)})</Text>
+                <Text><Text color="#9CA3AF">{t('pkgInfo_bottle')}</Text>    {installed.poured_from_bottle ? t('common_yes') : t('common_no')}</Text>
+                <Text><Text color="#9CA3AF">{t('pkgInfo_onRequest')}</Text> {installed.installed_on_request ? t('common_yes') : t('pkgInfo_noDependency')}</Text>
               </>
             )}
           </Box>
@@ -135,10 +137,10 @@ export function PackageInfoView() {
 
         {formula.dependencies.length > 0 && (
           <Box flexDirection="column">
-            <Text bold color="white">{t('pkgInfo_dependencies', { count: formula.dependencies.length })}</Text>
+            <SectionHeader emoji={'\u{1F517}'} title={t('pkgInfo_dependencies', { count: formula.dependencies.length })} gradient={GRADIENTS.ocean} />
             <Box paddingLeft={2} flexWrap="wrap" columnGap={2}>
               {formula.dependencies.map((dep) => (
-                <Text key={dep} color="gray">{dep}</Text>
+                <Text key={dep} color="#9CA3AF">{dep}</Text>
               ))}
             </Box>
           </Box>
@@ -146,16 +148,16 @@ export function PackageInfoView() {
 
         {formula.caveats && (
           <Box flexDirection="column">
-            <Text bold color="yellow">{t('pkgInfo_caveats')}</Text>
-            <Box paddingLeft={2}>
-              <Text color="yellow">{formula.caveats}</Text>
+            <SectionHeader emoji={'\u26A0\uFE0F'} title={t('pkgInfo_caveats')} color="#F59E0B" />
+            <Box borderStyle="round" borderColor="#F59E0B" paddingX={2}>
+              <Text color="#F59E0B">{formula.caveats}</Text>
             </Box>
           </Box>
         )}
       </Box>
 
       <Box marginTop={1}>
-        <Text color="gray">
+        <Text color="#6B7280">
           {isInstalled ? `u:${t('hint_uninstall')}` : `i:${t('hint_install')}`}
           {isInstalled && formula.outdated ? ` U:${t('hint_upgrade')}` : ''}
           {` esc:${t('hint_back')}`}

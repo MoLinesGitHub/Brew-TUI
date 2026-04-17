@@ -22,9 +22,15 @@ const VIEW_HINT_DEFS: Record<ViewId, HintDef[]> = {
   account: [['d', 'hint_deactivate'], ['q', 'hint_quit']],
 };
 
-function renderHint(def: HintDef): string {
-  if (def.length === 1) return t(def[0]);
-  return `${def[0]}:${t(def[1])}`;
+function HintItem({ def }: { def: HintDef }) {
+  if (def.length === 1) return <Text color="#FFD700" dimColor>{t(def[0])}</Text>;
+  return (
+    <>
+      <Text color="#F9FAFB" bold>{def[0]}</Text>
+      <Text color="#6B7280">:</Text>
+      <Text color="#FFD700" dimColor>{t(def[1])}</Text>
+    </>
+  );
 }
 
 export function Footer() {
@@ -33,18 +39,20 @@ export function Footer() {
   const defs = VIEW_HINT_DEFS[currentView] ?? [];
 
   return (
-    <Box borderStyle="single" borderTop borderBottom={false} borderLeft={false} borderRight={false} borderColor="gray" paddingX={1} flexWrap="wrap">
+    <Box borderStyle="single" borderTop borderBottom={false} borderLeft={false} borderRight={false} borderColor="#FFD700" paddingX={1} flexWrap="wrap">
       {defs.map((def, i) => {
-        const text = renderHint(def);
+        const key = def.length === 1 ? def[0] : `${def[0]}:${def[1]}`;
         return (
-          <React.Fragment key={text}>
-            {i > 0 && <Text color="gray"> {'\u2502'} </Text>}
-            <Text color="yellowBright" dimColor>{text}</Text>
+          <React.Fragment key={key}>
+            {i > 0 && <Text color="#4B5563"> {'\u2502'} </Text>}
+            <HintItem def={def} />
           </React.Fragment>
         );
       })}
-      <Text color="gray"> {'\u2502'} </Text>
-      <Text color="yellowBright" dimColor>L:{t('hint_lang')}({locale})</Text>
+      <Text color="#4B5563"> {'\u2502'} </Text>
+      <Text color="#F9FAFB" bold>L</Text>
+      <Text color="#6B7280">:</Text>
+      <Text color="#FFD700" dimColor>{t('hint_lang')}({locale})</Text>
     </Box>
   );
 }

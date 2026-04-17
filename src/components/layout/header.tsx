@@ -70,7 +70,7 @@ export function Header() {
               >
                 {label}
               </Text>
-              {isPro && <Text color="cyanBright" bold> {t('pro_badge')}</Text>}
+              {isPro && <Text color="magentaBright" bold> {t('pro_badge')}</Text>}
             </React.Fragment>
           );
         })}

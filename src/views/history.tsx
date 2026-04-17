@@ -13,10 +13,10 @@ import type { TranslationKey } from '../i18n/en.js';
 import type { HistoryAction } from '../lib/history/types.js';
 
 const ACTION_ICONS: Record<HistoryAction, { icon: string; color: string }> = {
-  install: { icon: '+', color: 'cyanBright' },
-  uninstall: { icon: '-', color: 'red' },
-  upgrade: { icon: '\u2191', color: 'cyan' },
-  'upgrade-all': { icon: '\u21C8', color: 'cyan' },
+  install: { icon: '+', color: 'greenBright' },
+  uninstall: { icon: '-', color: 'redBright' },
+  upgrade: { icon: '\u2191', color: 'cyanBright' },
+  'upgrade-all': { icon: '\u21C8', color: 'cyanBright' },
 };
 
 const ACTION_LABEL_KEYS: Record<HistoryAction, TranslationKey> = {
@@ -97,7 +97,7 @@ export function HistoryView() {
     <Box flexDirection="column">
       <Box gap={2} marginBottom={1}>
         <Text bold>{'\u{1F4DC}'} {t('history_title', { count: filtered.length })}</Text>
-        <Text color={filter === 'all' ? 'white' : 'cyan'}>
+        <Text color={filter === 'all' ? 'white' : 'yellowBright'}>
           {t('history_filterLabel', { filter })}
         </Text>
       </Box>
@@ -135,7 +135,7 @@ export function HistoryView() {
 
             return (
               <Box key={entry.id} gap={1}>
-                <Text color={isCurrent ? 'cyan' : 'white'}>{isCurrent ? '\u25B6' : ' '}</Text>
+                <Text color={isCurrent ? 'greenBright' : 'white'}>{isCurrent ? '\u25B6' : ' '}</Text>
                 <Text color={color} bold>{icon}</Text>
                 <Text bold={isCurrent} inverse={isCurrent} color={isCurrent ? 'white' : 'gray'}>
                   {t(ACTION_LABEL_KEYS[entry.action]).padEnd(12)}

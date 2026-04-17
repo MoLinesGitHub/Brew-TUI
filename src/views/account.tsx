@@ -44,10 +44,10 @@ export function AccountView() {
       <Box flexDirection="column" marginTop={1} paddingLeft={2}>
         <Box gap={1}>
           <Text color="gray">{t('account_statusLabel')}</Text>
-          {status === 'pro' && <Text color="cyanBright" bold>{t('account_pro')}</Text>}
+          {status === 'pro' && <Text color="greenBright" bold>{t('account_pro')}</Text>}
           {status === 'free' && <Text color="gray">{t('account_free')}</Text>}
-          {status === 'expired' && <Text color="red">{t('account_expired')}</Text>}
-          {status === 'validating' && <Text color="cyan">{t('account_validating')}</Text>}
+          {status === 'expired' && <Text color="redBright">{t('account_expired')}</Text>}
+          {status === 'validating' && <Text color="cyanBright">{t('account_validating')}</Text>}
         </Box>
 
         {license && (
@@ -82,23 +82,23 @@ export function AccountView() {
         )}
 
         {status === 'free' && (
-          <Box flexDirection="column" marginTop={2} borderStyle="round" borderColor="cyan" paddingX={2} paddingY={1}>
-            <Text bold color="cyanBright">{'\u2B50'} {t('account_upgradeTitle')}</Text>
+          <Box flexDirection="column" marginTop={2} borderStyle="round" borderColor="yellowBright" paddingX={2} paddingY={1}>
+            <Text bold color="yellowBright">{'\u2B50'} {t('account_upgradeTitle')}</Text>
             <Text> </Text>
             <Text>{t('account_unlockDesc')}</Text>
-            <Text color="cyan" bold>{t('account_pricing')}</Text>
+            <Text color="cyanBright" bold>{t('account_pricing')}</Text>
             <Text> </Text>
-            <Text color="gray">{t('account_runActivate')} <Text color="cyanBright" bold>{t('account_activateCmd')}</Text></Text>
+            <Text color="gray">{t('account_runActivate')} <Text color="greenBright" bold>{t('account_activateCmd')}</Text></Text>
           </Box>
         )}
 
         {status === 'expired' && (
           <Box marginTop={1}>
-            <Text color="red">{t('account_licenseExpired')}</Text>
+            <Text color="redBright">{t('account_licenseExpired')}</Text>
           </Box>
         )}
 
-        {deactivating && <Text color="cyan">{t('account_deactivating')}</Text>}
+        {deactivating && <Text color="cyanBright">{t('account_deactivating')}</Text>}
       </Box>
 
       <Box marginTop={2}>

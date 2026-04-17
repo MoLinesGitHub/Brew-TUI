@@ -14,7 +14,7 @@ export function SearchInput({ defaultValue, onChange, placeholder, isActive = tr
   const resolvedPlaceholder = placeholder ?? t('searchInput_placeholder');
   return (
     <Box>
-      <Text color="cyan">{'\u{1F50D}'} </Text>
+      <Text color="yellowBright">{'\u{1F50D}'} </Text>
       {isActive ? (
         <TextInput
           placeholder={resolvedPlaceholder}

@@ -23,7 +23,7 @@ export function DoctorView() {
       <Box flexDirection="column" marginTop={1}>
         {doctorClean && (
           <Box>
-            <Text color="cyanBright" bold>{'\u2714'} {t('doctor_clean')}</Text>
+            <Text color="greenBright" bold>{'\u2714'} {t('doctor_clean')}</Text>
           </Box>
         )}
 

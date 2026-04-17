@@ -14,11 +14,11 @@ export function ProgressLog({ lines, isRunning, title, maxVisible = 15 }: Progre
   const visible = lines.slice(-maxVisible);
 
   return (
-    <Box flexDirection="column" borderStyle="round" borderColor="cyan" paddingX={1}>
+    <Box flexDirection="column" borderStyle="round" borderColor="cyanBright" paddingX={1}>
       {title && (
         <Box marginBottom={1}>
           {isRunning && <Spinner label="" />}
-          <Text bold color="cyan"> {title}</Text>
+          <Text bold color="cyanBright"> {title}</Text>
         </Box>
       )}
       {visible.map((line, i) => (

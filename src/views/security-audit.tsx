@@ -8,8 +8,8 @@ import { t, tp } from '../i18n/index.js';
 import type { Severity } from '../lib/security/types.js';
 
 const SEVERITY_COLORS: Record<Severity, string> = {
-  CRITICAL: 'red',
-  HIGH: 'red',
+  CRITICAL: 'redBright',
+  HIGH: 'redBright',
   MEDIUM: 'yellow',
   LOW: 'gray',
   UNKNOWN: 'gray',
@@ -51,21 +51,21 @@ export function SecurityAuditView() {
 
       {summary && (
         <Box gap={1} marginY={1}>
-          <StatCard label={t('security_scanned')} value={summary.totalPackages} color="cyan" />
+          <StatCard label={t('security_scanned')} value={summary.totalPackages} color="cyanBright" />
           <StatCard
             label={t('security_vulnerable')}
             value={summary.vulnerablePackages}
-            color={summary.vulnerablePackages > 0 ? 'red' : 'cyanBright'}
+            color={summary.vulnerablePackages > 0 ? 'redBright' : 'greenBright'}
           />
-          {summary.criticalCount > 0 && <StatCard label={t('security_critical')} value={summary.criticalCount} color="red" />}
-          {summary.highCount > 0 && <StatCard label={t('security_high')} value={summary.highCount} color="red" />}
+          {summary.criticalCount > 0 && <StatCard label={t('security_critical')} value={summary.criticalCount} color="redBright" />}
+          {summary.highCount > 0 && <StatCard label={t('security_high')} value={summary.highCount} color="redBright" />}
           {summary.mediumCount > 0 && <StatCard label={t('security_medium')} value={summary.mediumCount} color="yellow" />}
         </Box>
       )}
 
       {results.length === 0 && summary && (
         <Box marginTop={1}>
-          <Text color="cyanBright" bold>{'\u2714'} {t('security_noVulns')}</Text>
+          <Text color="greenBright" bold>{'\u2714'} {t('security_noVulns')}</Text>
         </Box>
       )}
 
@@ -78,7 +78,7 @@ export function SecurityAuditView() {
             return (
               <Box key={pkg.packageName} flexDirection="column">
                 <Box gap={1}>
-                  <Text color={isCurrent ? 'cyan' : 'white'}>{isCurrent ? '\u25B6' : ' '}</Text>
+                  <Text color={isCurrent ? 'greenBright' : 'white'}>{isCurrent ? '\u25B6' : ' '}</Text>
                   <StatusBadge label={pkg.maxSeverity} variant={SEVERITY_BADGE[pkg.maxSeverity]} />
                   <Text bold={isCurrent} inverse={isCurrent} color={isCurrent ? 'white' : 'gray'}>
                     {pkg.packageName}
@@ -98,7 +98,7 @@ export function SecurityAuditView() {
                         </Box>
                         <Text color="gray" wrap="wrap">{vuln.summary}</Text>
                         {vuln.fixedVersion && (
-                          <Text color="cyanBright">{t('security_fixedIn', { version: vuln.fixedVersion })}</Text>
+                          <Text color="greenBright">{t('security_fixedIn', { version: vuln.fixedVersion })}</Text>
                         )}
                       </Box>
                     ))}

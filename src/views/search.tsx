@@ -80,7 +80,7 @@ export function SearchView() {
         />
         {!stream.isRunning && (
           <Box marginTop={1}>
-            <Text color={stream.error ? 'red' : 'cyanBright'} bold>
+            <Text color={stream.error ? 'redBright' : 'greenBright'} bold>
               {stream.error ? `\u2718 ${stream.error}` : `\u2714 ${t('search_installComplete')}`}
             </Text>
           </Box>
@@ -92,7 +92,7 @@ export function SearchView() {
   return (
     <Box flexDirection="column">
       <Box marginBottom={1}>
-        <Text color="cyan">{'\u{1F50D}'} </Text>
+        <Text color="yellowBright">{'\u{1F50D}'} </Text>
         {!results ? (
           <TextInput
             placeholder={t('search_placeholder')}
@@ -123,12 +123,12 @@ export function SearchView() {
         <Box flexDirection="column">
           {results.formulae.length > 0 && (
             <Box flexDirection="column" marginBottom={1}>
-              <Text bold color="cyan">{t('search_formulaeHeader', { count: results.formulae.length })}</Text>
+              <Text bold color="cyanBright">{t('search_formulaeHeader', { count: results.formulae.length })}</Text>
               {results.formulae.slice(0, 20).map((name, i) => {
                 const isCurrent = i === cursor;
                 return (
                   <Box key={name} gap={1}>
-                    <Text color={isCurrent ? 'cyan' : 'white'}>{isCurrent ? '\u25B6' : ' '}</Text>
+                    <Text color={isCurrent ? 'greenBright' : 'white'}>{isCurrent ? '\u25B6' : ' '}</Text>
                     <Text bold={isCurrent} inverse={isCurrent}>{name}</Text>
                   </Box>
                 );
@@ -147,7 +147,7 @@ export function SearchView() {
                 const isCurrent = idx === cursor;
                 return (
                   <Box key={name} gap={1}>
-                    <Text color={isCurrent ? 'cyan' : 'white'}>{isCurrent ? '\u25B6' : ' '}</Text>
+                    <Text color={isCurrent ? 'greenBright' : 'white'}>{isCurrent ? '\u25B6' : ' '}</Text>
                     <Text bold={isCurrent} inverse={isCurrent}>{name}</Text>
                   </Box>
                 );

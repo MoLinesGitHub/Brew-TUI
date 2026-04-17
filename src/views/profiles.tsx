@@ -105,7 +105,7 @@ export function ProfilesView() {
         <ProgressLog lines={importLines} isRunning={importRunning} title={t('profiles_importTitle')} />
         {!importRunning && (
           <Box marginTop={1}>
-            <Text color="cyanBright" bold>{'\u2714'} {t('profiles_importComplete')}</Text>
+            <Text color="greenBright" bold>{'\u2714'} {t('profiles_importComplete')}</Text>
           </Box>
         )}
       </Box>
@@ -128,7 +128,7 @@ export function ProfilesView() {
     return (
       <Box flexDirection="column">
         <Text bold>{t('profiles_createDesc', { name: newName })}</Text>
-        {loadError && <Text color="red">{t('error_prefix')}{loadError}</Text>}
+        {loadError && <Text color="redBright">{t('error_prefix')}{loadError}</Text>}
         <TextInput
           placeholder={t('profiles_descPlaceholder')}
           onSubmit={async (val) => {
@@ -147,7 +147,7 @@ export function ProfilesView() {
   if (mode === 'detail' && selectedProfile) {
     return (
       <Box flexDirection="column">
-        <Text bold color="cyan">{selectedProfile.name}</Text>
+        <Text bold color="yellowBright">{selectedProfile.name}</Text>
         <Text color="gray">{selectedProfile.description}</Text>
         <Text color="gray">{t('profiles_created', { date: new Date(selectedProfile.createdAt).toLocaleDateString() })}</Text>
         <Box marginTop={1} flexDirection="column">
@@ -191,7 +191,7 @@ export function ProfilesView() {
       {profileNames.length === 0 && !confirmDelete && (
         <Box marginTop={1} flexDirection="column">
           <Text color="gray" italic>{t('profiles_noProfiles')}</Text>
-          <Text color="gray">{t('profiles_press')} <Text color="cyan" bold>n</Text> {t('profiles_exportHint')}</Text>
+          <Text color="gray">{t('profiles_press')} <Text color="yellowBright" bold>n</Text> {t('profiles_exportHint')}</Text>
         </Box>
       )}
 
@@ -201,7 +201,7 @@ export function ProfilesView() {
             const isCurrent = i === cursor;
             return (
               <Box key={name} gap={1}>
-                <Text color={isCurrent ? 'cyan' : 'white'}>{isCurrent ? '\u25B6' : ' '}</Text>
+                <Text color={isCurrent ? 'greenBright' : 'white'}>{isCurrent ? '\u25B6' : ' '}</Text>
                 <Text bold={isCurrent} inverse={isCurrent}>{name}</Text>
               </Box>
             );

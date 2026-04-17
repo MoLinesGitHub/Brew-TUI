@@ -24,8 +24,8 @@ export function ErrorMessage({ message }: ErrorMessageProps) {
   useLocaleStore((s) => s.locale); // re-render on locale change
   return (
     <Box paddingY={1}>
-      <Text color="red" bold>{'\u2718'} {t('error_prefix')}</Text>
-      <Text color="red">{message}</Text>
+      <Text color="redBright" bold>{'\u2718'} {t('error_prefix')}</Text>
+      <Text color="redBright">{message}</Text>
     </Box>
   );
 }

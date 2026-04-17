@@ -71,21 +71,21 @@ export function ServicesView() {
           const isCurrent = i === cursor;
           return (
             <Box key={svc.name} gap={1}>
-              <Text color={isCurrent ? 'cyan' : 'white'}>{isCurrent ? '\u25B6' : ' '}</Text>
+              <Text color={isCurrent ? 'greenBright' : 'white'}>{isCurrent ? '\u25B6' : ' '}</Text>
               <Text bold={isCurrent} inverse={isCurrent} color={isCurrent ? 'white' : 'gray'}>
                 {svc.name.padEnd(20)}
               </Text>
               <StatusBadge label={svc.status} variant={STATUS_VARIANTS[svc.status]} />
               <Text color="gray">{svc.user ?? '-'}</Text>
               {svc.exit_code != null && svc.exit_code !== 0 && (
-                <Text color="red">{t('common_exit', { code: svc.exit_code })}</Text>
+                <Text color="redBright">{t('common_exit', { code: svc.exit_code })}</Text>
               )}
             </Box>
           );
         })}
       </Box>
 
-      {actionInProgress && <Text color="cyan">{t('services_processing')}</Text>}
+      {actionInProgress && <Text color="cyanBright">{t('services_processing')}</Text>}
 
       <Box marginTop={1}>
         <Text color="white" bold>

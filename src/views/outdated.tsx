@@ -51,7 +51,7 @@ export function OutdatedView() {
         />
         {!stream.isRunning && (
           <Box marginTop={1}>
-            <Text color={stream.error ? 'red' : 'cyanBright'} bold>
+            <Text color={stream.error ? 'redBright' : 'greenBright'} bold>
               {stream.error ? `\u2718 ${stream.error}` : `\u2714 ${t('outdated_upgradeComplete')}`}
             </Text>
             <Text color="gray"> {t('outdated_pressRefresh')}</Text>
@@ -88,7 +88,7 @@ export function OutdatedView() {
 
       {allOutdated.length === 0 && !confirmAction && (
         <Box marginTop={1}>
-          <Text color="cyanBright" bold>{'\u2714'} {t('outdated_upToDate')}</Text>
+          <Text color="greenBright" bold>{'\u2714'} {t('outdated_upToDate')}</Text>
         </Box>
       )}
 
@@ -98,11 +98,11 @@ export function OutdatedView() {
             const isCurrent = i === cursor;
             return (
               <Box key={pkg.name} gap={1}>
-                <Text color={isCurrent ? 'cyan' : 'white'}>{isCurrent ? '\u25B6' : ' '}</Text>
+                <Text color={isCurrent ? 'greenBright' : 'white'}>{isCurrent ? '\u25B6' : ' '}</Text>
                 <Text bold={isCurrent} inverse={isCurrent} color={isCurrent ? 'white' : 'gray'}>
                   {pkg.name}
                 </Text>
-                <Text color="red">{pkg.installed_versions[0] ?? ''}</Text>
+                <Text color="redBright">{pkg.installed_versions[0] ?? ''}</Text>
                 <Text color="gray">{'\u2192'}</Text>
                 <Text color="cyanBright">{pkg.current_version}</Text>
                 {pkg.pinned && <StatusBadge label={t('outdated_pinned')} variant="info" />}

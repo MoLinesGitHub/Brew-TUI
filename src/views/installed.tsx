@@ -92,10 +92,10 @@ export function InstalledView() {
       <Box marginBottom={1} gap={1}>
         <Box
           borderStyle="round"
-          borderColor={tab === 'formulae' ? 'cyan' : 'gray'}
+          borderColor={tab === 'formulae' ? 'cyanBright' : 'gray'}
           paddingX={1}
         >
-          <Text bold={tab === 'formulae'} color={tab === 'formulae' ? 'cyan' : 'gray'}>
+          <Text bold={tab === 'formulae'} color={tab === 'formulae' ? 'cyanBright' : 'gray'}>
             {'\u{1F4E6}'} {t('installed_formulaeCount', { count: formulae.length })}
           </Text>
         </Box>
@@ -112,7 +112,7 @@ export function InstalledView() {
 
       {/* Search bar */}
       {isSearching && (
-        <Box marginBottom={1} borderStyle="round" borderColor="cyan" paddingX={1}>
+        <Box marginBottom={1} borderStyle="round" borderColor="yellowBright" paddingX={1}>
           <SearchInput defaultValue={filter} onChange={setFilter} isActive={isSearching} />
         </Box>
       )}
@@ -141,7 +141,7 @@ export function InstalledView() {
           const isCurrent = idx === cursor;
           return (
             <Box key={item.name} gap={1}>
-              <Text color={isCurrent ? 'cyan' : 'white'}>{isCurrent ? '\u25B6' : ' '}</Text>
+              <Text color={isCurrent ? 'greenBright' : 'white'}>{isCurrent ? '\u25B6' : ' '}</Text>
               <Text bold={isCurrent} inverse={isCurrent} color={isCurrent ? 'white' : 'gray'}>
                 {truncate(item.name, 27).padEnd(27)}
               </Text>

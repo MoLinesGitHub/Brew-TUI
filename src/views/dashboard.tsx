@@ -26,27 +26,27 @@ export function DashboardView() {
 
   return (
     <Box flexDirection="column" gap={2}>
-      <Text bold color="cyanBright">{'\u{1F4CA}'} {t('dashboard_overview')}</Text>
+      <Text bold color="yellowBright">{'\u{1F4CA}'} {t('dashboard_overview')}</Text>
 
       <Box gap={1} flexWrap="wrap">
-        <StatCard label={t('dashboard_formulae')} value={formulae.length} color="cyan" />
+        <StatCard label={t('dashboard_formulae')} value={formulae.length} color="cyanBright" />
         <StatCard label={t('dashboard_casks')} value={casks.length} color="magentaBright" />
         <StatCard
           label={t('dashboard_outdated')}
           value={outdated.formulae.length + outdated.casks.length}
-          color={outdated.formulae.length + outdated.casks.length > 0 ? 'yellow' : 'cyanBright'}
+          color={outdated.formulae.length + outdated.casks.length > 0 ? 'yellow' : 'greenBright'}
         />
         <StatCard
           label={t('dashboard_services')}
           value={`${runningServices}/${services.length}`}
-          color={errorServices > 0 ? 'red' : 'cyanBright'}
+          color={errorServices > 0 ? 'redBright' : 'greenBright'}
         />
       </Box>
 
       {config && (
         <Box flexDirection="column">
           <Text bold color="white">{'\u2139\uFE0F'}  {t('dashboard_systemInfo')}</Text>
-          <Box borderStyle="round" borderColor="magentaBright" paddingX={2} paddingY={0} flexDirection="column" marginTop={1}>
+          <Box borderStyle="round" borderColor="blueBright" paddingX={2} paddingY={0} flexDirection="column" marginTop={1}>
             <Text><Text color="gray">{t('dashboard_homebrew')}</Text> {config.HOMEBREW_VERSION}</Text>
             <Text><Text color="gray">{t('dashboard_prefix')}</Text>   {config.HOMEBREW_PREFIX}</Text>
             <Text><Text color="gray">{t('dashboard_updated')}</Text>  {config.coreUpdated}</Text>
@@ -61,7 +61,7 @@ export function DashboardView() {
             {outdated.formulae.slice(0, 10).map((pkg) => (
               <Box key={pkg.name} gap={1}>
                 <Text color="white">{pkg.name}</Text>
-                <Text color="red">{pkg.installed_versions[0] ?? ''}</Text>
+                <Text color="redBright">{pkg.installed_versions[0] ?? ''}</Text>
                 <Text color="gray">{'\u2192'}</Text>
                 <Text color="cyanBright">{pkg.current_version}</Text>
               </Box>
@@ -75,7 +75,7 @@ export function DashboardView() {
 
       {errorServices > 0 && (
         <Box flexDirection="column" marginTop={1}>
-          <Text bold color="red">{'\u26A0\uFE0F'}  {t('dashboard_serviceErrors')}</Text>
+          <Text bold color="redBright">{'\u26A0\uFE0F'}  {t('dashboard_serviceErrors')}</Text>
           <Box paddingLeft={2} flexDirection="column">
             {errorServiceList.map((s) => (
               <Box key={s.name} gap={1}>

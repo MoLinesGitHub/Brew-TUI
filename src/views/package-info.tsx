@@ -75,7 +75,7 @@ export function PackageInfoView() {
       <Box flexDirection="column">
         <ProgressLog lines={stream.lines} isRunning={stream.isRunning} title={t(ACTION_PROGRESS_KEYS[activeActionRef.current] ?? ACTION_PROGRESS_KEYS['install']!, { name: formula.name })} />
         {!stream.isRunning && (
-          <Text color={stream.error ? 'red' : 'cyanBright'} bold>
+          <Text color={stream.error ? 'redBright' : 'greenBright'} bold>
             {stream.error ? `\u2718 ${stream.error}` : `\u2714 ${t('pkgInfo_done')}`}
           </Text>
         )}
@@ -104,7 +104,7 @@ export function PackageInfoView() {
       )}
 
       <Box gap={2} marginBottom={1}>
-        <Text bold color="cyan">{formula.name}</Text>
+        <Text bold color="yellowBright">{formula.name}</Text>
         <Text color="cyanBright">{installed?.version ?? formula.versions.stable}</Text>
         {isInstalled && <StatusBadge label={t('badge_installed')} variant="success" />}
         {formula.outdated && <StatusBadge label={t('badge_outdated')} variant="warning" />}

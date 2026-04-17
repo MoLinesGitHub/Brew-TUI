@@ -69,7 +69,7 @@
               "one" : {
                 "stringUnit" : {
                   "state" : "translated",
-                  "value" : "%lld actualizaci\u00F3n disponible"
+                  "value" : "%lld actualización disponible"
                 }
               },
               "other" : {
@@ -88,7 +88,7 @@
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Todos los paquetes al d\u00EDa"
+            "value" : "Todos los paquetes al día"
           }
         }
       }
@@ -99,7 +99,7 @@
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "El comando brew tard\u00F3 demasiado"
+            "value" : "El comando brew tardó demasiado"
           }
         }
       }
@@ -110,7 +110,7 @@
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "brew finaliz\u00F3 con c\u00F3digo %lld"
+            "value" : "brew finalizó con código %lld"
           }
         }
       }
@@ -137,24 +137,13 @@
         }
       }
     },
-    "BrewBar \u2014 %lld updates" : {
+    "BrewBar — %lld updates" : {
       "extractionState" : "manual",
       "localizations" : {
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "BrewBar \u2014 %lld actualizaciones"
-          }
-        }
-      }
-    },
-    "BrewBar requires Brew-TUI to be installed.\n\nInstall it with:\n  npm install -g brew-tui\n\nThen relaunch BrewBar." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "BrewBar requiere que Brew-TUI est\u00E9 instalado.\n\nInst\u00E1lalo con:\n  npm install -g brew-tui\n\nLuego reinicia BrewBar."
+            "value" : "BrewBar — %lld actualizaciones"
           }
         }
       }
@@ -165,7 +154,18 @@
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "BrewBar es una funci\u00F3n Pro. Activa tu licencia con:\n\n  brew-tui activate <tu-clave>\n\nLuego reinicia BrewBar."
+            "value" : "BrewBar es una función Pro. Activa tu licencia con:\n\n  brew-tui activate <tu-clave>\n\nLuego reinicia BrewBar."
+          }
+        }
+      }
+    },
+    "BrewBar requires Brew-TUI to be installed.\n\nInstall it with:\n  npm install -g brew-tui\n\nThen relaunch BrewBar." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "BrewBar requiere que Brew-TUI esté instalado.\n\nInstálalo con:\n  npm install -g brew-tui\n\nLuego reinicia BrewBar."
           }
         }
       }
@@ -197,7 +197,7 @@
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Intervalo de verificaci\u00F3n"
+            "value" : "Intervalo de verificación"
           }
         }
       }
@@ -219,7 +219,7 @@
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Copiar Comando de Instalaci\u00F3n"
+            "value" : "Copiar Comando de Instalación"
           }
         }
       }
@@ -285,7 +285,7 @@
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Homebrew no est\u00E1 instalado. Inst\u00E1lalo desde https://brew.sh"
+            "value" : "Homebrew no está instalado. Instálalo desde https://brew.sh"
           }
         }
       }
@@ -306,7 +306,7 @@
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "\u00DAltima verificaci\u00F3n %@"
+            "value" : "Última verificación %@"
           }
         }
       }
@@ -339,12 +339,13 @@
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Las notificaciones est\u00E1n desactivadas en Ajustes del Sistema. Act\u00EDvalas en Ajustes del Sistema > Notificaciones > BrewBar."
+            "value" : "Las notificaciones están desactivadas en Ajustes del Sistema. Actívalas en Ajustes del Sistema > Notificaciones > BrewBar."
           }
         }
       }
     },
     "Open Brew-TUI" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -377,6 +378,7 @@
       }
     },
     "Retry" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -387,6 +389,7 @@
       }
     },
     "Service Errors" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -397,6 +400,7 @@
       }
     },
     "Upgrade All" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -412,7 +416,7 @@
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Actualizar todo fall\u00F3: %@"
+            "value" : "Actualizar todo falló: %@"
           }
         }
       }
@@ -423,7 +427,7 @@
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Actualizaci\u00F3n fallida: %@"
+            "value" : "Actualización fallida: %@"
           }
         }
       }
@@ -434,7 +438,7 @@
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tu licencia Pro ha expirado o necesita revalidaci\u00F3n.\n\nEjecuta brew-tui en la terminal para revalidar, o renueva tu suscripci\u00F3n."
+            "value" : "Tu licencia Pro ha expirado o necesita revalidación.\n\nEjecuta brew-tui en la terminal para revalidar, o renueva tu suscripción."
           }
         }
       }

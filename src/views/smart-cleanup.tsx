@@ -43,8 +43,10 @@ export function SmartCleanupView() {
       <Box flexDirection="column">
         <ProgressLog lines={stream.lines} isRunning={stream.isRunning} title={t('cleanup_cleaning')} />
         {!stream.isRunning && (
-          <Box borderStyle="round" borderColor="#22C55E" paddingX={2} paddingY={0}>
-            <Text color="#22C55E" bold>{'\u2714'} {t('cleanup_complete')}</Text>
+          <Box borderStyle="round" borderColor={stream.error ? '#EF4444' : '#22C55E'} paddingX={2} paddingY={0}>
+            <Text color={stream.error ? '#EF4444' : '#22C55E'} bold>
+              {stream.error ? `\u2718 ${stream.error}` : `\u2714 ${t('cleanup_complete')}`}
+            </Text>
           </Box>
         )}
       </Box>

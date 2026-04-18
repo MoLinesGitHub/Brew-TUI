@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Brew-TUI UI Theme Explorer</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0a0a0a; color: #e0e0e0; display: flex; height: 100vh; }
+
+/* Controls panel */
+.controls { width: 260px; padding: 20px; border-right: 1px solid #222; overflow-y: auto; flex-shrink: 0; }
+.controls h2 { font-size: 14px; color: #888; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 16px; }
+.theme-btn { display: block; width: 100%; padding: 12px 16px; margin-bottom: 8px; border: 2px solid #333; border-radius: 8px; background: #111; color: #ccc; font-size: 14px; cursor: pointer; text-align: left; transition: all 0.2s; }
+.theme-btn:hover { border-color: #555; background: #1a1a1a; }
+.theme-btn.active { border-color: var(--accent); color: #fff; background: #1a1a1a; }
+.theme-btn small { display: block; font-size: 11px; color: #666; margin-top: 4px; }
+.theme-btn.active small { color: #999; }
+
+.color-strip { display: flex; gap: 3px; margin-top: 8px; }
+.color-dot { width: 12px; height: 12px; border-radius: 50%; }
+
+/* Preview area */
+.preview-area { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+.preview-header { padding: 12px 20px; border-bottom: 1px solid #222; display: flex; align-items: center; justify-content: space-between; }
+.preview-header h1 { font-size: 16px; color: #aaa; }
+.preview-header span { font-size: 12px; color: #555; }
+
+/* Terminal frame */
+.terminal-frame { flex: 1; margin: 16px; border-radius: 12px; overflow: hidden; display: flex; flex-direction: column; border: 1px solid #333; }
+.terminal-bar { height: 32px; display: flex; align-items: center; padding: 0 12px; gap: 6px; }
+.terminal-dot { width: 10px; height: 10px; border-radius: 50%; }
+.terminal-title { font-size: 11px; color: #888; margin-left: 8px; font-family: monospace; }
+.terminal-body { flex: 1; padding: 12px 16px; font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', Menlo, monospace; font-size: 12px; line-height: 1.6; overflow-y: auto; white-space: pre; }
+
+/* Prompt output */
+.prompt-area { padding: 16px 20px; border-top: 1px solid #222; }
+.prompt-area h3 { font-size: 12px; color: #666; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+.prompt-text { font-family: monospace; font-size: 12px; color: #aaa; background: #111; padding: 12px; border-radius: 6px; white-space: pre-wrap; max-height: 80px; overflow-y: auto; }
+.copy-btn { margin-top: 8px; padding: 6px 16px; background: #222; border: 1px solid #444; color: #ccc; border-radius: 4px; cursor: pointer; font-size: 12px; }
+.copy-btn:hover { background: #333; }
+.copy-btn.copied { color: #4ade80; border-color: #4ade80; }
+</style>
+</head>
+<body>
+
+<div class="controls">
+  <h2>Theme</h2>
+  <div id="theme-buttons"></div>
+</div>
+
+<div class="preview-area">
+  <div class="preview-header">
+    <h1>Brew-TUI Theme Preview</h1>
+    <span id="theme-name"></span>
+  </div>
+
+  <div class="terminal-frame" id="terminal-frame">
+    <div class="terminal-bar" id="terminal-bar">
+      <div class="terminal-dot" id="dot1"></div>
+      <div class="terminal-dot" id="dot2"></div>
+      <div class="terminal-dot" id="dot3"></div>
+      <span class="terminal-title" id="terminal-title">brew-tui</span>
+    </div>
+    <div class="terminal-body" id="terminal-body"></div>
+  </div>
+
+  <div class="prompt-area">
+    <h3>Generated Prompt</h3>
+    <div class="prompt-text" id="prompt-text"></div>
+    <button class="copy-btn" id="copy-btn" onclick="copyPrompt()">Copy Prompt</button>
+  </div>
+</div>
+
+<script>
+const LOGO = [
+  '\u256D\u2501\u2501\u256E\u2571\u256D\u2501\u2501\u2501\u256E\u256D\u2501\u2501\u2501\u256E\u256D\u256E\u256D\u256E\u256D\u256E\u2571\u2571\u2571\u2571\u2571\u2571\u2571\u256D\u2501\u2501\u2501\u2501\u256E\u256D\u256E\u2571\u256D\u256E\u256D\u2501\u2501\u256E',
+  '\u2503\u256D\u256E\u2503\u2571\u2503\u256D\u2501\u256E\u2503\u2503\u256D\u2501\u2501\u256F\u2503\u2503\u2503\u2503\u2503\u2503\u2571\u2571\u2571\u2571\u2571\u2571\u2571\u2503\u256D\u256E\u256D\u256E\u2503\u2503\u2503\u2571\u2503\u2503\u2570\u252B\u2523\u256F',
+  '\u2503\u2570\u256F\u2570\u256E\u2503\u2570\u2501\u256F\u2503\u2503\u2570\u2501\u2501\u256E\u2503\u2503\u2503\u2503\u2503\u2503\u2571\u2571\u2571\u2571\u2571\u2571\u2571\u2570\u256F\u2503\u2503\u2570\u256F\u2503\u2503\u2571\u2503\u2503\u2571\u2503\u2503',
+  '\u2503\u256D\u2501\u256E\u2503\u2503\u256D\u256E\u256D\u256F\u2503\u256D\u2501\u2501\u256F\u2503\u2570\u256F\u2570\u256F\u2503\u256D\u2501\u2501\u2533\u2501\u2501\u256E\u2571\u2571\u2503\u2503\u2571\u2571\u2503\u2503\u2571\u2503\u2503\u2571\u2503\u2503',
+  '\u2503\u2570\u2501\u256F\u2503\u2503\u2503\u2503\u2570\u256E\u2503\u2570\u2501\u2501\u256E\u2570\u256E\u256D\u256E\u256D\u256F\u2570\u2501\u2501\u253B\u2501\u2501\u256F\u2571\u2571\u2503\u2503\u2571\u2571\u2503\u2570\u2501\u256F\u2503\u256D\u252B\u2523\u256E',
+  '\u2570\u2501\u2501\u2501\u256F\u2570\u256F\u2570\u2501\u256F\u2570\u2501\u2501\u2501\u256F\u2571\u2570\u256F\u2570\u256F\u2571\u2571\u2571\u2571\u2571\u2571\u2571\u2571\u2571\u2571\u2570\u256F\u2571\u2571\u2570\u2501\u2501\u2501\u256F\u2570\u2501\u2501\u256F',
+];
+
+const TABS = ['1:Dashboard','2:Installed','3:Search','4:Outdated','5:Services','6:Doctor','7:Profiles PRO','8:Cleanup PRO','9:History PRO','0:Security PRO','Account'];
+
+const PACKAGES = [
+  { name: 'git', old: '2.43.0', new: '2.45.1' },
+  { name: 'node', old: '20.11.0', new: '22.2.0' },
+  { name: 'python@3.12', old: '3.12.2', new: '3.12.4' },
+  { name: 'wget', old: '1.21.4', new: '1.24.5' },
+  { name: 'ffmpeg', old: '6.1.1', new: '7.0' },
+];
+
+const themes = {
+  neon: {
+    name: 'Neon Cyberpunk',
+    desc: 'Bright neon on black, double borders, retro gaming',
+    bg: '#000000',
+    barBg: '#0a0a0a',
+    dotColors: ['#ff0055', '#39ff14', '#00ffff'],
+    logo: { brew: '#ff0055', tui: '#39ff14' },
+    tabActive: '#00ffff',
+    tabInactive: '#444',
+    tabPro: '#ff0055',
+    separator: '#333',
+    border: { style: '\u2554\u2557\u255A\u255D\u2550\u2551', color: '#ff0055' },
+    cardBorders: ['#00ffff','#ff0055','#39ff14','#ffff00'],
+    cardValues: ['#00ffff','#ff0055','#39ff14','#ffff00'],
+    cardLabels: '#666',
+    sectionTitle: '#39ff14',
+    pkgName: '#ffffff',
+    oldVer: '#ff0055',
+    arrow: '#ffff00',
+    newVer: '#39ff14',
+    footerBorder: '#ff0055',
+    hintKey: '#ffffff',
+    hintAction: '#00ffff',
+    hintSep: '#333',
+    cursor: '#39ff14',
+    overview: '\u{1F4CA}',
+    statBorder: 'double',
+    accent: '#ff0055',
+    colors: ['#ff0055','#39ff14','#00ffff','#ffff00','#ff00ff'],
+  },
+  minimal: {
+    name: 'Minimal',
+    desc: 'Clean whites, single blue accent, lots of space',
+    bg: '#1a1a2e',
+    barBg: '#16162a',
+    dotColors: ['#444','#444','#444'],
+    logo: { brew: '#e0e0e0', tui: '#666' },
+    tabActive: '#5b8def',
+    tabInactive: '#555',
+    tabPro: '#5b8def',
+    separator: '#2a2a44',
+    border: { style: 'none', color: 'transparent' },
+    cardBorders: ['#2a2a44','#2a2a44','#2a2a44','#2a2a44'],
+    cardValues: ['#5b8def','#5b8def','#e0e0e0','#e0e0e0'],
+    cardLabels: '#555',
+    sectionTitle: '#e0e0e0',
+    pkgName: '#cccccc',
+    oldVer: '#888',
+    arrow: '#444',
+    newVer: '#5b8def',
+    footerBorder: '#2a2a44',
+    hintKey: '#e0e0e0',
+    hintAction: '#5b8def',
+    hintSep: '#2a2a44',
+    cursor: '#5b8def',
+    overview: '',
+    statBorder: 'none',
+    accent: '#5b8def',
+    colors: ['#5b8def','#e0e0e0','#555','#2a2a44'],
+  },
+  warm: {
+    name: 'Warm Brewery',
+    desc: 'Oranges, reds, golden yellows, cozy craft beer feel',
+    bg: '#1a1008',
+    barBg: '#251a0e',
+    dotColors: ['#e74c3c','#f39c12','#27ae60'],
+    logo: { brew: '#f39c12', tui: '#e67e22' },
+    tabActive: '#f39c12',
+    tabInactive: '#5a4a32',
+    tabPro: '#e74c3c',
+    separator: '#3a2a18',
+    border: { style: '\u256D\u256E\u2570\u256F\u2500\u2502', color: '#e67e22' },
+    cardBorders: ['#f39c12','#e74c3c','#e67e22','#27ae60'],
+    cardValues: ['#f39c12','#e74c3c','#e67e22','#27ae60'],
+    cardLabels: '#7a6a52',
+    sectionTitle: '#f39c12',
+    pkgName: '#e8d5b5',
+    oldVer: '#e74c3c',
+    arrow: '#7a6a52',
+    newVer: '#27ae60',
+    footerBorder: '#3a2a18',
+    hintKey: '#e8d5b5',
+    hintAction: '#f39c12',
+    hintSep: '#3a2a18',
+    cursor: '#f39c12',
+    overview: '\u{1F37A}',
+    statBorder: 'round',
+    accent: '#f39c12',
+    colors: ['#f39c12','#e74c3c','#e67e22','#27ae60','#e8d5b5'],
+  },
+  ocean: {
+    name: 'Ocean Premium',
+    desc: 'Deep blue to turquoise gradients, subtle glows',
+    bg: '#0a192f',
+    barBg: '#0d1f3c',
+    dotColors: ['#ff6b6b','#ffd93d','#6bff6b'],
+    logo: { brew: '#64ffda', tui: '#0ea5e9' },
+    tabActive: '#64ffda',
+    tabInactive: '#2a4a6b',
+    tabPro: '#ff6b9d',
+    separator: '#1a3050',
+    border: { style: '\u256D\u256E\u2570\u256F\u2500\u2502', color: '#0ea5e9' },
+    cardBorders: ['#64ffda','#a78bfa','#fbbf24','#34d399'],
+    cardValues: ['#64ffda','#a78bfa','#fbbf24','#34d399'],
+    cardLabels: '#4a6a8b',
+    sectionTitle: '#64ffda',
+    pkgName: '#ccd6f6',
+    oldVer: '#ff6b6b',
+    arrow: '#4a6a8b',
+    newVer: '#64ffda',
+    footerBorder: '#1a3050',
+    hintKey: '#ccd6f6',
+    hintAction: '#64ffda',
+    hintSep: '#1a3050',
+    cursor: '#64ffda',
+    overview: '\u{1F30A}',
+    statBorder: 'round',
+    accent: '#64ffda',
+    colors: ['#64ffda','#0ea5e9','#a78bfa','#ff6b9d','#fbbf24'],
+  },
+};
+
+let currentTheme = 'neon';
+
+function c(color, text) { return `<span style="color:${color}">${text}</span>`; }
+function b(color, text) { return `<span style="color:${color};font-weight:bold">${text}</span>`; }
+
+function makeCard(t, label, value, borderColor, valueColor, index) {
+  const w = 14;
+  const vPad = Math.floor((w - String(value).length) / 2);
+  const lPad = Math.floor((w - label.length) / 2);
+  const vStr = ' '.repeat(Math.max(0,vPad)) + value + ' '.repeat(Math.max(0, w - String(value).length - vPad));
+  const lStr = ' '.repeat(Math.max(0,lPad)) + label + ' '.repeat(Math.max(0, w - label.length - lPad));
+
+  if (t.statBorder === 'none') {
+    return [
+      ' '.repeat(w + 2),
+      ' ' + c(valueColor, b(valueColor, vStr)) + ' ',
+      ' ' + c(t.cardLabels, lStr) + ' ',
+      ' '.repeat(w + 2),
+    ];
+  }
+
+  const tl = t.statBorder === 'double' ? '\u2554' : '\u256D';
+  const tr = t.statBorder === 'double' ? '\u2557' : '\u256E';
+  const bl = t.statBorder === 'double' ? '\u255A' : '\u2570';
+  const br = t.statBorder === 'double' ? '\u255D' : '\u256F';
+  const h = t.statBorder === 'double' ? '\u2550' : '\u2501';
+  const v = t.statBorder === 'double' ? '\u2551' : '\u2503';
+
+  return [
+    c(borderColor, tl + h.repeat(w) + tr),
+    c(borderColor, v) + c(valueColor, b(valueColor, vStr)) + c(borderColor, v),
+    c(borderColor, v) + c(t.cardLabels, lStr) + c(borderColor, v),
+    c(borderColor, bl + h.repeat(w) + br),
+  ];
+}
+
+function render() {
+  const t = themes[currentTheme];
+  document.documentElement.style.setProperty('--accent', t.accent);
+
+  // Terminal frame
+  const frame = document.getElementById('terminal-frame');
+  frame.style.background = t.bg;
+  frame.style.borderColor = t.separator;
+
+  const bar = document.getElementById('terminal-bar');
+  bar.style.background = t.barBg;
+  document.getElementById('dot1').style.background = t.dotColors[0];
+  document.getElementById('dot2').style.background = t.dotColors[1];
+  document.getElementById('dot3').style.background = t.dotColors[2];
+  document.getElementById('terminal-title').style.color = t.tabInactive;
+  document.getElementById('theme-name').textContent = t.name;
+
+  let lines = [];
+
+  // Logo
+  for (let i = 0; i < LOGO.length; i++) {
+    const mid = 28;
+    const brewPart = LOGO[i].slice(0, mid);
+    const tuiPart = LOGO[i].slice(mid);
+    lines.push(' ' + c(t.logo.brew, brewPart) + c(t.logo.tui, tuiPart));
+  }
+
+  // Tab bar
+  const tabSep = ' ' + c(t.separator, '\u2502') + ' ';
+  let tabLine = ' ';
+  TABS.forEach((tab, i) => {
+    if (i > 0) tabLine += tabSep;
+    const isPro = tab.includes('PRO');
+    const label = tab.replace(' PRO', '');
+    const isActive = label.startsWith('1:');
+    if (isActive) {
+      tabLine += c(t.cursor, '\u25CF ') + b(t.tabActive, label);
+    } else {
+      tabLine += c(t.tabInactive, label);
+    }
+    if (isPro) tabLine += ' ' + b(t.tabPro, 'PRO');
+  });
+  lines.push(c(t.footerBorder, '\u2500'.repeat(90)));
+  lines.push(tabLine);
+  lines.push(c(t.footerBorder, '\u2500'.repeat(90)));
+  lines.push('');
+
+  // Section title
+  const emoji = t.overview ? t.overview + ' ' : '';
+  lines.push(' ' + b(t.sectionTitle, emoji + 'Overview'));
+  lines.push('');
+
+  // Stat cards
+  const cards = [
+    makeCard(t, 'Formulae', '142', t.cardBorders[0], t.cardValues[0], 0),
+    makeCard(t, 'Casks', '38', t.cardBorders[1], t.cardValues[1], 1),
+    makeCard(t, 'Outdated', '5', t.cardBorders[2], t.cardValues[2], 2),
+    makeCard(t, 'Services', '3/7', t.cardBorders[3], t.cardValues[3], 3),
+  ];
+
+  for (let row = 0; row < 4; row++) {
+    let line = ' ';
+    cards.forEach((card, i) => {
+      if (i > 0) line += '  ';
+      line += card[row];
+    });
+    lines.push(line);
+  }
+  lines.push('');
+
+  // Outdated packages
+  lines.push(' ' + b(t.sectionTitle, '\u{1F4E6} Outdated Packages'));
+  lines.push('');
+  PACKAGES.forEach((pkg, i) => {
+    const cur = i === 0 ? c(t.cursor, '\u25B6') : ' ';
+    const name = i === 0 ? b('#fff', pkg.name.padEnd(16)) : c(t.pkgName, pkg.name.padEnd(16));
+    lines.push('  ' + cur + ' ' + name + c(t.oldVer, pkg.old.padEnd(10)) + c(t.arrow, ' \u2500\u2500 \u25B6 ') + c(t.newVer, pkg.new));
+  });
+  lines.push('');
+
+  // Footer
+  lines.push(c(t.footerBorder, '\u2500'.repeat(90)));
+  const hints = [
+    ['enter','upgrade'], ['A','upgrade all'], ['p','pin/unpin'],
+    ['r','refresh'], ['q','quit'], ['L','lang(en)']
+  ];
+  let footer = ' ';
+  hints.forEach((h, i) => {
+    if (i > 0) footer += ' ' + c(t.hintSep, '\u2502') + ' ';
+    footer += b(t.hintKey, h[0]) + c(t.hintSep, ':') + c(t.hintAction, h[1]);
+  });
+  lines.push(footer);
+
+  document.getElementById('terminal-body').innerHTML = lines.join('\n');
+  updatePrompt();
+}
+
+function updatePrompt() {
+  const t = themes[currentTheme];
+  const parts = [`Apply the "${t.name}" theme to Brew-TUI with these characteristics:`];
+
+  if (currentTheme === 'neon') {
+    parts.push(`- Background: pure black (#000000)`);
+    parts.push(`- Primary colors: neon pink (#ff0055), lime green (#39ff14), electric cyan (#00ffff), yellow (#ffff00)`);
+    parts.push(`- Borders: double-line box drawing characters in neon pink`);
+    parts.push(`- Stat cards with double borders, each a different neon color`);
+    parts.push(`- Logo in pink (BREW) and lime green (TUI)`);
+    parts.push(`- Cyberpunk/retro gaming aesthetic`);
+  } else if (currentTheme === 'minimal') {
+    parts.push(`- Background: dark navy (#1a1a2e)`);
+    parts.push(`- Single accent color: muted blue (#5b8def)`);
+    parts.push(`- No borders on stat cards (borderless, floating values)`);
+    parts.push(`- Maximum whitespace, clean typography`);
+    parts.push(`- Logo in light gray (BREW) and dark gray (TUI)`);
+    parts.push(`- Understated, editorial aesthetic`);
+  } else if (currentTheme === 'warm') {
+    parts.push(`- Background: dark warm brown (#1a1008)`);
+    parts.push(`- Colors: golden yellow (#f39c12), orange (#e67e22), warm red (#e74c3c), forest green (#27ae60)`);
+    parts.push(`- Rounded borders on stat cards`);
+    parts.push(`- Logo in golden yellow (BREW) and orange (TUI)`);
+    parts.push(`- Beer/brewery emoji, craft beer cozy aesthetic`);
+  } else if (currentTheme === 'ocean') {
+    parts.push(`- Background: deep navy (#0a192f)`);
+    parts.push(`- Colors: teal/mint (#64ffda), sky blue (#0ea5e9), purple (#a78bfa), pink (#ff6b9d)`);
+    parts.push(`- Rounded borders with ocean-colored accents`);
+    parts.push(`- Logo in mint green (BREW) and sky blue (TUI)`);
+    parts.push(`- Premium underwater aesthetic with cool tones`);
+  }
+
+  document.getElementById('prompt-text').textContent = parts.join('\n');
+}
+
+function copyPrompt() {
+  const text = document.getElementById('prompt-text').textContent;
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.getElementById('copy-btn');
+    btn.textContent = 'Copied!';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = 'Copy Prompt'; btn.classList.remove('copied'); }, 2000);
+  });
+}
+
+// Build theme buttons
+const btnContainer = document.getElementById('theme-buttons');
+Object.entries(themes).forEach(([key, t]) => {
+  const btn = document.createElement('button');
+  btn.className = 'theme-btn' + (key === currentTheme ? ' active' : '');
+  btn.innerHTML = `<strong>${t.name}</strong><small>${t.desc}</small>`;
+  const strip = document.createElement('div');
+  strip.className = 'color-strip';
+  t.colors.forEach(col => {
+    const dot = document.createElement('div');
+    dot.className = 'color-dot';
+    dot.style.background = col;
+    strip.appendChild(dot);
+  });
+  btn.appendChild(strip);
+  btn.onclick = () => {
+    currentTheme = key;
+    document.querySelectorAll('.theme-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    render();
+  };
+  btnContainer.appendChild(btn);
+});
+
+render();
+</script>
+</body>
+</html>

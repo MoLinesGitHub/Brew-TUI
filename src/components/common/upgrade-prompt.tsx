@@ -39,6 +39,9 @@ export function UpgradePrompt({ viewId }: UpgradePromptProps) {
         <Box flexDirection="column" alignItems="center">
           <Text color="#06B6D4" bold>{t('upgrade_pricing')}</Text>
           <Text> </Text>
+          <Text color="#9CA3AF">{t('upgrade_buyAt')}</Text>
+          <Text color="#38BDF8" bold>  {t('upgrade_buyUrl')}</Text>
+          <Text> </Text>
           <Text color="#9CA3AF">{t('upgrade_activateWith')}</Text>
           <Text color="#22C55E" bold>  {t('upgrade_activateCmd')}</Text>
           <Text> </Text>

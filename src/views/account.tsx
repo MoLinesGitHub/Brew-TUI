@@ -100,6 +100,7 @@ export function AccountView() {
             <Text>{t('account_unlockDesc')}</Text>
             <Text color="#06B6D4" bold>{t('account_pricing')}</Text>
             <Text> </Text>
+            <Text color="#9CA3AF">{t('upgrade_buyAt')} <Text color="#38BDF8" bold>{t('upgrade_buyUrl')}</Text></Text>
             <Text color="#9CA3AF">{t('account_runActivate')} <Text color="#22C55E" bold>{t('account_activateCmd')}</Text></Text>
           </Box>
         )}

@@ -1,7 +1,7 @@
 import { readFile, writeFile, rm } from 'node:fs/promises';
 import { createCipheriv, createDecipheriv, randomBytes, scryptSync } from 'node:crypto';
 import { LICENSE_PATH, ensureDataDirs } from '../data-dir.js';
-import { activateLicense as apiActivate, validateLicense as apiValidate, deactivateLicense as apiDeactivate } from './lemonsqueezy-api.js';
+import { activateLicense as apiActivate, validateLicense as apiValidate, deactivateLicense as apiDeactivate } from './polar-api.js';
 import { t } from '../../i18n/index.js';
 import type { LicenseData, LicenseFile } from './types.js';
 

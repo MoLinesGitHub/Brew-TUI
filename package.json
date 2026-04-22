@@ -4,7 +4,7 @@
   "description": "Brew-TUI — Visual TUI for Homebrew package management",
   "type": "module",
   "bin": {
-    "brew-tui": "./bin/brew-tui.js"
+    "brew-tui": "bin/brew-tui.js"
   },
   "main": "./build/index.js",
   "files": [

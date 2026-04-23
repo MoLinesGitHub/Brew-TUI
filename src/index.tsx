@@ -44,8 +44,11 @@ async function runCli() {
       console.log(t('cli_deactivateCancelled'));
       return;
     }
-    await deactivate(license);
+    const { remoteSuccess } = await deactivate(license);
     console.log(t('cli_deactivated'));
+    if (!remoteSuccess) {
+      console.warn(t('cli_deactivateRemoteFailed'));
+    }
     return;
   }
 

@@ -3,6 +3,7 @@ import { promisify } from 'node:util';
 import { execBrew } from '../brew-cli.js';
 import { formatBytes } from '../../utils/format.js';
 import { requirePro } from '../license/pro-guard.js';
+import { useLicenseStore } from '../../stores/license-store.js';
 import type { Formula } from '../types.js';
 import type { CleanupCandidate, CleanupSummary } from './types.js';
 
@@ -31,7 +32,8 @@ export async function analyzeCleanup(
   formulae: Formula[],
   leaves: string[],
 ): Promise<CleanupSummary> {
-  requirePro();
+  const { license, status } = useLicenseStore.getState();
+  requirePro(license, status);
 
   const leavesSet = new Set(leaves);
 

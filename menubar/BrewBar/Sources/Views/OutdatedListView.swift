@@ -2,6 +2,7 @@ import SwiftUI
 
 struct OutdatedListView: View {
     let appState: AppState
+    @State private var showUpgradeAllConfirm = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -11,11 +12,21 @@ struct OutdatedListView: View {
                     .foregroundStyle(.secondary)
                 Spacer()
                 Button("Upgrade All") {
-                    Task { await appState.upgradeAll() }
+                    showUpgradeAllConfirm = true
                 }
                 .buttonStyle(.borderedProminent)
                 .controlSize(.small)
                 .disabled(appState.isLoading)
+                .confirmationDialog(
+                    String(localized: "Upgrade all packages?"),
+                    isPresented: $showUpgradeAllConfirm,
+                    titleVisibility: .visible
+                ) {
+                    Button(String(localized: "Upgrade All"), role: .destructive) {
+                        Task { await appState.upgradeAll() }
+                    }
+                    Button(String(localized: "Cancel"), role: .cancel) {}
+                }
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
@@ -59,6 +70,7 @@ struct OutdatedListView: View {
                     .foregroundStyle(.orange)
             }
 
+            // Note: Task in button action — .task modifier not applicable here
             Button {
                 Task { await appState.upgrade(package: pkg.name) }
             } label: {

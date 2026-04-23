@@ -61,7 +61,8 @@ export async function* streamBrew(args: string[]): AsyncGenerator<string> {
       if (lines.length > 0) {
         yield lines.shift()!;
       } else if (!done) {
-        await new Promise((r) => setTimeout(r, 50));
+        // TODO: replace polling with event-driven approach using stdout.on('data')
+        await new Promise((r) => setTimeout(r, 100));
       }
     }
   } finally {

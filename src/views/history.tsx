@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { Box, Text, useInput } from 'ink';
+import { Box, Text, useInput, useStdout } from 'ink';
 import { useHistoryStore } from '../stores/history-store.js';
 import { useBrewStream } from '../hooks/use-brew-stream.js';
 import { useDebounce } from '../hooks/use-debounce.js';
@@ -99,7 +99,8 @@ export function HistoryView() {
   if (loading) return <Loading message={t('loading_history')} />;
   if (error) return <ErrorMessage message={error} />;
 
-  const MAX_VISIBLE_ROWS = 20;
+  const { stdout } = useStdout();
+  const MAX_VISIBLE_ROWS = Math.max(5, (stdout?.rows ?? 24) - 8);
   const start = Math.max(0, cursor - Math.floor(MAX_VISIBLE_ROWS / 2));
   const visible = filtered.slice(start, start + MAX_VISIBLE_ROWS);
 

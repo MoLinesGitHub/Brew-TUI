@@ -21,8 +21,12 @@ final class AppState {
         isLoading = true
         error = nil
 
+        // Run both checks in parallel using async let
+        async let outdatedResult = checker.checkOutdated()
+        async let servicesResult = checker.checkServices()
+
         do {
-            let result = try await checker.checkOutdated()
+            let result = try await outdatedResult
             outdatedPackages = result.formulae + result.casks
             lastChecked = Date()
         } catch {
@@ -30,7 +34,7 @@ final class AppState {
         }
 
         do {
-            services = try await checker.checkServices()
+            services = try await servicesResult
             servicesError = nil
         } catch {
             servicesError = error.localizedDescription

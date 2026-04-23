@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Box, Text, useInput } from 'ink';
+import { Box, Text, useInput, useStdout } from 'ink';
 import { useBrewStore } from '../stores/brew-store.js';
 import { useNavigationStore } from '../stores/navigation-store.js';
 import { useDebounce } from '../hooks/use-debounce.js';
@@ -28,6 +28,10 @@ export function InstalledView() {
   const debouncedFilter = useDebounce(filter, 200);
   const stream = useBrewStream();
   const { openModal, closeModal } = useModalStore();
+  const { stdout } = useStdout();
+  const cols = stdout?.columns ?? 80;
+  const nameWidth = Math.floor(cols * 0.35);
+  const versionWidth = Math.floor(cols * 0.15);
 
   useEffect(() => { fetchInstalled(); }, []);
 
@@ -53,6 +57,15 @@ export function InstalledView() {
 
   useInput((input, key) => {
     if (confirmUninstall || stream.isRunning) return;
+
+    // Stream finished but still showing — Esc dismisses and refreshes
+    if (!stream.isRunning && stream.lines.length > 0) {
+      if (key.escape) {
+        stream.clear();
+        void fetchInstalled();
+      }
+      return;
+    }
 
     if (isSearching) {
       if (key.escape) {
@@ -100,20 +113,24 @@ export function InstalledView() {
           isRunning={stream.isRunning}
           title={t('pkgInfo_uninstalling', { name: '...' })}
         />
+        {stream.isRunning && (
+          <Text color="#6B7280">esc:{t('hint_cancel')}</Text>
+        )}
         {!stream.isRunning && (
-          <Box marginTop={1}>
+          <Box flexDirection="column" marginTop={1}>
             <Box borderStyle="round" borderColor={stream.error ? '#EF4444' : '#22C55E'} paddingX={2} paddingY={0}>
               <Text color={stream.error ? '#EF4444' : '#22C55E'} bold>
                 {stream.error ? `\u2718 ${stream.error}` : `\u2714 ${t('pkgInfo_done')}`}
               </Text>
             </Box>
+            <Text color="#6B7280">esc:{t('hint_back')}</Text>
           </Box>
         )}
       </Box>
     );
   }
 
-  const MAX_VISIBLE_ROWS = 20;
+  const MAX_VISIBLE_ROWS = Math.max(5, (stdout?.rows ?? 24) - 8);
   const start = Math.max(0, cursor - Math.floor(MAX_VISIBLE_ROWS / 2));
   const visible = allItems.slice(start, start + MAX_VISIBLE_ROWS);
 
@@ -167,8 +184,8 @@ export function InstalledView() {
           rows; gap={1} is shared by both header and data rows via the parent Box,
           so widths must match: ' ' + gap(1) + padEnd(27) aligns with data rows. */}
       <Box gap={1} borderStyle="single" borderBottom borderTop={false} borderLeft={false} borderRight={false} borderColor="#4B5563">
-        <Text color="#F9FAFB" bold>{' '}{'Package'.padEnd(27)}</Text>
-        <Text color="#F9FAFB" bold>{'Version'.padEnd(12)}</Text>
+        <Text color="#F9FAFB" bold>{' '}{'Package'.padEnd(nameWidth)}</Text>
+        <Text color="#F9FAFB" bold>{'Version'.padEnd(versionWidth)}</Text>
         <Text color="#F9FAFB" bold>{'Status'}</Text>
       </Box>
 
@@ -189,9 +206,9 @@ export function InstalledView() {
             <Box key={item.name} gap={1}>
               <Text color={isCurrent ? '#22C55E' : '#9CA3AF'}>{isCurrent ? '\u25B6' : ' '}</Text>
               <Text bold={isCurrent} inverse={isCurrent} color={isCurrent ? '#F9FAFB' : '#9CA3AF'}>
-                {truncate(item.name, 27).padEnd(27)}
+                {truncate(item.name, nameWidth).padEnd(nameWidth)}
               </Text>
-              <Text color="#2DD4BF">{item.version.padEnd(12)}</Text>
+              <Text color="#2DD4BF">{item.version.padEnd(versionWidth)}</Text>
               {item.outdated && <StatusBadge label={t('badge_outdated')} variant="warning" />}
               {item.pinned && <StatusBadge label={t('badge_pinned')} variant="info" />}
               {item.kegOnly && <StatusBadge label={t('badge_kegOnly')} variant="muted" />}

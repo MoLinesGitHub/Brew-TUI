@@ -4,11 +4,13 @@ import * as manager from '../lib/license/license-manager.js';
 import { getDegradationLevel } from '../lib/license/license-manager.js';
 import type { DegradationLevel } from '../lib/license/license-manager.js';
 import { ensureDataDirs } from '../lib/data-dir.js';
+import { initStoreIntegrity } from '../lib/license/anti-tamper.js';
 
 const REVALIDATION_CHECK_MS = 60 * 60 * 1000; // Check every hour
 
 // Module-level flag: prevents concurrent revalidation calls (initial + interval overlap)
 let _revalidating = false;
+let _revalidationInterval: ReturnType<typeof setInterval> | null = null;
 
 interface LicenseState {
   status: LicenseStatus;
@@ -23,12 +25,13 @@ interface LicenseState {
 }
 
 export const useLicenseStore = create<LicenseState>((set, get) => ({
-  status: 'free',
+  status: 'validating',
   license: null,
   error: null,
   degradation: 'none',
 
   initialize: async () => {
+    initStoreIntegrity(useLicenseStore);
     await ensureDataDirs();
     const license = await manager.loadLicense();
 
@@ -68,7 +71,8 @@ export const useLicenseStore = create<LicenseState>((set, get) => ({
     }
 
     // Periodically re-check license validity during the session
-    setInterval(async () => {
+    if (_revalidationInterval) clearInterval(_revalidationInterval);
+    _revalidationInterval = setInterval(async () => {
       const current = get().license;
       if (!current || get().status !== 'pro') return;
       if (!manager.needsRevalidation(current)) return;
@@ -85,7 +89,8 @@ export const useLicenseStore = create<LicenseState>((set, get) => ({
       } finally {
         _revalidating = false;
       }
-    }, REVALIDATION_CHECK_MS).unref();
+    }, REVALIDATION_CHECK_MS);
+    _revalidationInterval.unref();
   },
 
   activate: async (key) => {
@@ -104,7 +109,11 @@ export const useLicenseStore = create<LicenseState>((set, get) => ({
   deactivate: async () => {
     const { license } = get();
     if (license) {
-      await manager.deactivate(license);
+      const { remoteSuccess } = await manager.deactivate(license);
+      if (!remoteSuccess) {
+        set({ status: 'free', license: null, error: 'License removed locally but server deactivation failed. It may remain active remotely.' });
+        return;
+      }
     }
     set({ status: 'free', license: null, error: null });
   },

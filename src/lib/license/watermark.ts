@@ -1,11 +1,16 @@
-import { useLicenseStore } from '../../stores/license-store.js';
+import type { LicenseData } from './types.js';
 
 /**
  * Get a watermark string containing the license holder's email.
  * Used subtly in Pro feature output for traceability.
+ *
+ * NOTE: This embeds the user's email in exported profiles without explicit
+ * consent at export time. The email is obtained from the license data the
+ * user provided during activation. A future improvement should inform the
+ * user that exported profiles contain their identity, or add a consent
+ * prompt before embedding.
  */
-export function getWatermark(): string {
-  const license = useLicenseStore.getState().license;
+export function getWatermark(license: LicenseData | null): string {
   if (!license?.customerEmail) return '';
   // Create a subtle, non-obvious watermark
   // Embed as zero-width characters or as a comment in exported data

@@ -20,7 +20,7 @@ export const useNavigationStore = create<NavigationState>((set, get) => ({
   currentView: 'dashboard',
   previousView: null,
   selectedPackage: null,
-  viewHistory: ['dashboard'],
+  viewHistory: [],
 
   navigate: (view) => {
     const { currentView, viewHistory } = get();
@@ -28,18 +28,19 @@ export const useNavigationStore = create<NavigationState>((set, get) => ({
     set({
       currentView: view,
       previousView: currentView,
-      viewHistory: [...viewHistory.slice(-19), view],
+      viewHistory: [...viewHistory.slice(-19), currentView],
     });
   },
 
   goBack: () => {
-    const { previousView } = get();
-    if (previousView) {
-      set((state) => ({
-        currentView: previousView,
-        previousView: state.currentView,
-      }));
-    }
+    const { viewHistory } = get();
+    if (viewHistory.length === 0) return;
+    const prev = viewHistory[viewHistory.length - 1];
+    set({
+      currentView: prev,
+      previousView: get().currentView,
+      viewHistory: viewHistory.slice(0, -1),
+    });
   },
 
   selectPackage: (name) => set({ selectedPackage: name }),

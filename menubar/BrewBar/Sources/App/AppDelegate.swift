@@ -10,6 +10,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var badgeTimer: Timer?
     private var launchTask: Task<Void, Never>?
     private var lastBadgeCount = -1
+    private var hostingController: NSHostingController<PopoverView>?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         launchTask = Task {
@@ -25,7 +26,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 break // Continue normal startup
             case .expired:
                 showLicenseExpired()
-                return
+                // Continue in degraded mode — app stays open without Pro badge
             case .notFound:
                 showProRequired()
                 return
@@ -37,7 +38,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             scheduler.start(state: appState)
             await appState.refresh()
 
-            badgeTimer = Timer.scheduledTimer(withTimeInterval: 2, repeats: true) { [weak self] _ in
+            badgeTimer = Timer.scheduledTimer(withTimeInterval: 30, repeats: true) { [weak self] _ in
                 Task { @MainActor in self?.updateBadge() }
             }
         }
@@ -122,11 +123,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func showLicenseExpired() {
         let alert = NSAlert()
         alert.messageText = String(localized: "Pro license expired")
-        alert.informativeText = String(localized: "Your Pro license has expired or needs revalidation.\n\nRun brew-tui in the terminal to revalidate, or renew your subscription.")
+        alert.informativeText = String(localized: "Your Pro license has expired or needs revalidation.\n\nRun `brew-tui activate <key>` in the terminal to revalidate, or renew your subscription.\n\nThe app will continue in basic mode.")
         alert.alertStyle = .warning
-        alert.addButton(withTitle: String(localized: "Quit"))
+        alert.addButton(withTitle: String(localized: "Continue"))
         alert.runModal()
-        NSApp.terminate(nil)
     }
 
     // MARK: - Status item
@@ -148,8 +148,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         popover = NSPopover()
         popover.contentSize = NSSize(width: 340, height: 420)
         popover.behavior = .transient
-        // contentViewController is set fresh on each open in togglePopover()
-        // to ensure SwiftUI @State is initialised correctly each time.
+        // Create the hosting controller once and reuse on each popover open
+        hostingController = NSHostingController(
+            rootView: PopoverView(appState: appState, scheduler: scheduler)
+        )
+        popover.contentViewController = hostingController
     }
 
     private func updateBadge() {
@@ -172,9 +175,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if popover.isShown {
             popover.performClose(nil)
         } else {
-            popover.contentViewController = NSHostingController(
-                rootView: PopoverView(appState: appState, scheduler: scheduler)
-            )
             popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
             popover.contentViewController?.view.window?.makeKey()
         }

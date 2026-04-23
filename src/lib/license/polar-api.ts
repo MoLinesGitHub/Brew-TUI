@@ -1,5 +1,6 @@
 import { hostname } from 'node:os';
 import type { LemonSqueezyActivateResponse, LemonSqueezyValidateResponse } from './types.js';
+import { fetchWithTimeout } from '../fetch-timeout.js';
 
 const BASE_URL = 'https://api.polar.sh/v1/customer-portal/license-keys';
 
@@ -42,11 +43,11 @@ async function post<T>(endpoint: string, body: Record<string, unknown>, expectEm
   const url = `${BASE_URL}/${endpoint}`;
   validateApiUrl(url);
 
-  const res = await fetch(url, {
+  const res = await fetchWithTimeout(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
-  });
+  }, 15_000);
 
   if (!res.ok) {
     let message = `Request failed with status ${res.status}`;

@@ -14,6 +14,7 @@ interface BrewState {
 
   loading: Record<string, boolean>;
   errors: Record<string, string | null>;
+  lastFetchedAt: Record<string, number>;
 
   fetchInstalled: () => Promise<void>;
   fetchOutdated: () => Promise<void>;
@@ -35,6 +36,10 @@ function setError(set: (fn: (s: BrewState) => Partial<BrewState>) => void, key: 
   set((s) => ({ errors: { ...s.errors, [key]: error } }));
 }
 
+function recordFetchTime(set: (fn: (s: BrewState) => Partial<BrewState>) => void, key: string) {
+  set((s) => ({ lastFetchedAt: { ...s.lastFetchedAt, [key]: Date.now() } }));
+}
+
 export const useBrewStore = create<BrewState>((set) => ({
   formulae: [],
   casks: [],
@@ -49,6 +54,7 @@ export const useBrewStore = create<BrewState>((set) => ({
   // flashing empty/zeroed content for one frame before the fetch starts.
   loading: { installed: true, outdated: true, services: true, config: true, doctor: false },
   errors: {},
+  lastFetchedAt: {},
 
   fetchInstalled: async () => {
     setLoading(set, 'installed', true);
@@ -60,6 +66,7 @@ export const useBrewStore = create<BrewState>((set) => ({
       setError(set, 'installed', err instanceof Error ? err.message : String(err));
     } finally {
       setLoading(set, 'installed', false);
+      recordFetchTime(set, 'installed');
     }
   },
 
@@ -73,6 +80,7 @@ export const useBrewStore = create<BrewState>((set) => ({
       setError(set, 'outdated', err instanceof Error ? err.message : String(err));
     } finally {
       setLoading(set, 'outdated', false);
+      recordFetchTime(set, 'outdated');
     }
   },
 
@@ -86,6 +94,7 @@ export const useBrewStore = create<BrewState>((set) => ({
       setError(set, 'services', err instanceof Error ? err.message : String(err));
     } finally {
       setLoading(set, 'services', false);
+      recordFetchTime(set, 'services');
     }
   },
 
@@ -98,6 +107,7 @@ export const useBrewStore = create<BrewState>((set) => ({
       setError(set, 'config', err instanceof Error ? err.message : String(err));
     } finally {
       setLoading(set, 'config', false);
+      recordFetchTime(set, 'config');
     }
   },
 
@@ -111,6 +121,8 @@ export const useBrewStore = create<BrewState>((set) => ({
       if (process.env.NODE_ENV !== 'production') {
         console.error('[brew-store] fetchLeaves failed:', err instanceof Error ? err.message : String(err));
       }
+    } finally {
+      recordFetchTime(set, 'leaves');
     }
   },
 
@@ -124,19 +136,17 @@ export const useBrewStore = create<BrewState>((set) => ({
       setError(set, 'doctor', err instanceof Error ? err.message : String(err));
     } finally {
       setLoading(set, 'doctor', false);
+      recordFetchTime(set, 'doctor');
     }
   },
 
   fetchAll: async () => {
-    // Update Homebrew indices first so outdated/installed data is fresh.
+    // Don't block on brew update — run in background.
     // This is equivalent to the auto-update that `brew` does by default,
     // which we disable per-command with HOMEBREW_NO_AUTO_UPDATE=1.
-    try {
-      await api.brewUpdate();
-    } catch {
-      // Non-critical: if update fails (offline, etc.), continue with stale data
-    }
+    api.brewUpdate().catch(() => {});
 
+    // Start data fetches immediately
     const store = useBrewStore.getState();
     await Promise.all([
       store.fetchInstalled(),

@@ -9,10 +9,12 @@ export default defineConfig({
   target: 'node18',
   outDir: 'build',
   clean: true,
-  sourcemap: true,
+  sourcemap: false,
   external: ['react', 'react-devtools-core'],
   define: {
     'process.env.APP_VERSION': JSON.stringify(pkg.version),
+    'process.env.NODE_ENV': '"production"',
+    '__TEST_MODE__': 'false',
   },
   esbuildOptions(options) {
     options.jsx = 'automatic';

@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import type { Profile } from '../lib/profiles/types.js';
 import * as manager from '../lib/profiles/profile-manager.js';
+import { useLicenseStore } from './license-store.js';
 
 interface ProfileState {
   profileNames: string[];
@@ -40,7 +41,8 @@ export const useProfileStore = create<ProfileState>((set) => ({
   exportCurrent: async (name, description) => {
     set({ loading: true, loadError: null });
     try {
-      await manager.exportCurrentSetup(name, description);
+      const license = useLicenseStore.getState().license;
+      await manager.exportCurrentSetup(name, description, license);
       const names = await manager.listProfiles();
       set({ profileNames: names, loading: false });
     } catch (err) {

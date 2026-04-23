@@ -1,4 +1,4 @@
-import { readFile, writeFile, rm } from 'node:fs/promises';
+import { readFile, writeFile, rename, rm } from 'node:fs/promises';
 import { createCipheriv, createDecipheriv, randomBytes, scryptSync } from 'node:crypto';
 import { LICENSE_PATH, ensureDataDirs } from '../data-dir.js';
 import { activateLicense as apiActivate, validateLicense as apiValidate, deactivateLicense as apiDeactivate } from './polar-api.js';
@@ -19,6 +19,7 @@ interface ActivationTracker {
   lockedUntil: number;
 }
 
+// Note: rate limit state is in-memory only; resets on process restart
 const tracker: ActivationTracker = {
   attempts: 0,
   lastAttempt: 0,
@@ -60,11 +61,12 @@ function recordAttempt(success: boolean): void {
 const ENCRYPTION_SECRET = 'brew-tui-license-aes256gcm-v1';
 const SCRYPT_SALT = 'brew-tui-salt-v1';
 
-// Derived once at module load — inputs are constants so repeated derivation
-// just blocks the event loop unnecessarily (scryptSync default N=16384).
-const _derivedKey: Buffer = scryptSync(ENCRYPTION_SECRET, SCRYPT_SALT, 32);
+// Lazy derivation — scryptSync is CPU-intensive (default N=16384) and should
+// not block the event loop at module import time.
+let _derivedKey: Buffer | null = null;
 
 function deriveEncryptionKey(): Buffer {
+  if (!_derivedKey) _derivedKey = scryptSync(ENCRYPTION_SECRET, SCRYPT_SALT, 32);
   return _derivedKey;
 }
 
@@ -106,6 +108,11 @@ export async function loadLicense(): Promise<LicenseData | null> {
     const raw = await readFile(LICENSE_PATH, 'utf-8');
     const file = JSON.parse(raw) as LicenseFile;
 
+    if (file.version !== 1) {
+      // Future: add migration logic here
+      throw new Error('Unsupported data version');
+    }
+
     // New encrypted format
     if (file.encrypted && file.iv && file.tag) {
       const data = decryptLicenseData(file.encrypted, file.iv, file.tag);
@@ -130,7 +137,9 @@ export async function saveLicense(data: LicenseData): Promise<void> {
   await ensureDataDirs();
   const { encrypted, iv, tag } = encryptLicenseData(data);
   const file: LicenseFile = { version: 1, encrypted, iv, tag };
-  await writeFile(LICENSE_PATH, JSON.stringify(file, null, 2), { encoding: 'utf-8', mode: 0o600 });
+  const tmpPath = LICENSE_PATH + '.tmp';
+  await writeFile(tmpPath, JSON.stringify(file, null, 2), { encoding: 'utf-8', mode: 0o600 });
+  await rename(tmpPath, LICENSE_PATH);
 }
 
 export async function clearLicense(): Promise<void> {
@@ -254,9 +263,17 @@ export async function revalidate(license: LicenseData): Promise<boolean> {
   }
 }
 
-export async function deactivate(license: LicenseData): Promise<void> {
-  try {
-    await apiDeactivate(license.key, license.instanceId);
-  } catch { /* best effort */ }
+export async function deactivate(license: LicenseData): Promise<{ remoteSuccess: boolean }> {
+  let remoteSuccess = false;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      await apiDeactivate(license.key, license.instanceId);
+      remoteSuccess = true;
+      break;
+    } catch {
+      if (attempt < 2) await new Promise(r => setTimeout(r, 1000));
+    }
+  }
   await clearLicense();
+  return { remoteSuccess };
 }

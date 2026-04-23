@@ -1,4 +1,5 @@
 import type { Vulnerability, Severity } from './types.js';
+import { fetchWithTimeout } from '../fetch-timeout.js';
 
 const OSV_BATCH_URL = 'https://api.osv.dev/v1/querybatch';
 
@@ -61,11 +62,11 @@ async function queryBatch(
   packages: Array<{ name: string; version: string }>,
   queries: OsvQuery[],
 ): Promise<Map<string, Vulnerability[]>> {
-  const res = await fetch(OSV_BATCH_URL, {
+  const res = await fetchWithTimeout(OSV_BATCH_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ queries }),
-  });
+  }, 15_000);
 
   if (!res.ok) {
     // On 400, try individual queries to isolate bad packages

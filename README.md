@@ -100,6 +100,8 @@ xcodebuild -workspace BrewBar.xcworkspace -scheme BrewBar build
 - **Homebrew** installed on your system
 - **macOS** 14+ (for BrewBar)
 
+> **Note:** Brew-TUI is designed for dark terminal backgrounds. Light terminal themes may have reduced visibility.
+
 ## License
 
 [MIT](LICENSE) -- MoLines Designs

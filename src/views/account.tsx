@@ -35,8 +35,11 @@ export function AccountView() {
             onConfirm={async () => {
               setConfirmDeactivate(false);
               setDeactivating(true);
-              await deactivate();
-              setDeactivating(false);
+              try {
+                await deactivate();
+              } finally {
+                setDeactivating(false);
+              }
             }}
             onCancel={() => setConfirmDeactivate(false)}
           />

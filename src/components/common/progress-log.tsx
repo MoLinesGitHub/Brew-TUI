@@ -22,7 +22,7 @@ export function ProgressLog({ lines, isRunning, title, maxVisible = 15 }: Progre
         </Box>
       )}
       {visible.map((line, i) => (
-        <Text key={i} color="#9CA3AF" wrap="wrap">{line}</Text>
+        <Text key={line.slice(0, 30) + (lines.length - visible.length + i)} color="#9CA3AF" wrap="wrap">{line}</Text>
       ))}
       {lines.length === 0 && !isRunning && (
         <Text color="#6B7280" italic>{t('progress_noOutput')}</Text>

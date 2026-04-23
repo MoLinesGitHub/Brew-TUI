@@ -83,6 +83,11 @@ export function ProfilesView() {
     }
   }, { isActive: mode === 'detail' });
 
+  // Allow dismissing the import-complete screen with any key
+  useInput(() => {
+    setMode('list');
+  }, { isActive: mode === 'importing' && !importRunning });
+
   const startImport = async (name: string) => {
     setMode('importing');
     setImportLines([]);

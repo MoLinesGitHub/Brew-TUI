@@ -6,6 +6,7 @@ import { SectionHeader } from '../components/common/section-header.js';
 import { GRADIENTS } from '../utils/gradient.js';
 import { t, tp } from '../i18n/index.js';
 
+// TODO: extract useViewState(key) hook for loading/error pattern
 export function DoctorView() {
   const { doctorWarnings, doctorClean, loading, errors, fetchDoctor } = useBrewStore();
 
@@ -34,7 +35,7 @@ export function DoctorView() {
         )}
 
         {doctorWarnings.map((warning, i) => (
-          <Box key={i} flexDirection="column" marginBottom={1} borderStyle="single" borderColor="#F59E0B" paddingX={1}>
+          <Box key={warning.slice(0, 50) + i} flexDirection="column" marginBottom={1} borderStyle="single" borderColor="#F59E0B" paddingX={1}>
             {warning.split('\n').map((line, j) => (
               <Text key={j} color={j === 0 ? '#F59E0B' : '#9CA3AF'}>{line}</Text>
             ))}

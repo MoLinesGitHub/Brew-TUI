@@ -13,3 +13,10 @@ build/
 *.xcodeproj
 menubar/Derived/
 menubar/DerivedData/
+
+# Signing certificates
+*.p12
+*.cer
+*.mobileprovision
+ExportOptions.plist
+AuthKey_*.p8

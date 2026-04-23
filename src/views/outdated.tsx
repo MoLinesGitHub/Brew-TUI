@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Box, Text, useInput } from 'ink';
+import { Box, Text, useInput, useStdout } from 'ink';
 import { useBrewStore } from '../stores/brew-store.js';
 import { useBrewStream } from '../hooks/use-brew-stream.js';
 import { execBrew } from '../lib/brew-cli.js';
@@ -57,6 +57,11 @@ export function OutdatedView() {
       void fetchOutdated();
     }
   });
+
+  const { stdout } = useStdout();
+  const MAX_VISIBLE_ROWS = Math.max(5, (stdout?.rows ?? 24) - 8);
+  const start = Math.max(0, cursor - Math.floor(MAX_VISIBLE_ROWS / 2));
+  const visible = allOutdated.slice(start, start + MAX_VISIBLE_ROWS);
 
   if (loading.outdated) return <Loading message={t('loading_outdated')} />;
   if (errors.outdated) return <ErrorMessage message={errors.outdated} />;
@@ -123,8 +128,12 @@ export function OutdatedView() {
 
       {allOutdated.length > 0 && !confirmAction && (
         <Box flexDirection="column" marginTop={1}>
-          {allOutdated.map((pkg, i) => {
-            const isCurrent = i === cursor;
+          {start > 0 && (
+            <Text color="#6B7280" dimColor>  {t('scroll_moreAbove', { count: start })}</Text>
+          )}
+          {visible.map((pkg, i) => {
+            const idx = start + i;
+            const isCurrent = idx === cursor;
             return (
               <Box key={pkg.name} gap={1}>
                 <Text color={isCurrent ? '#22C55E' : '#9CA3AF'}>{isCurrent ? '\u25B6' : ' '}</Text>
@@ -136,6 +145,9 @@ export function OutdatedView() {
               </Box>
             );
           })}
+          {start + MAX_VISIBLE_ROWS < allOutdated.length && (
+            <Text color="#6B7280" dimColor>  {t('scroll_moreBelow', { count: allOutdated.length - start - MAX_VISIBLE_ROWS })}</Text>
+          )}
 
           <Box marginTop={1}>
             <Text color="#F9FAFB" bold>

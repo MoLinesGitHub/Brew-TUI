@@ -1,25 +1,8 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { streamBrew } from '../lib/brew-cli.js';
-import type { HistoryAction } from '../lib/history/types.js';
+import { detectAction } from '../lib/history/history-logger.js';
 
 const MAX_LINES = 100;
-
-/** Map brew subcommand to a history action type */
-function detectAction(args: string[]): { action: HistoryAction; packageName: string | null } | null {
-  const cmd = args[0];
-  if (cmd === 'install') return { action: 'install', packageName: args[1] ?? null };
-  if (cmd === 'uninstall') {
-    const name = args.find((a) => !a.startsWith('-')) === 'uninstall'
-      ? args.find((a, i) => i > 0 && !a.startsWith('-')) ?? null
-      : args[1] ?? null;
-    return { action: 'uninstall', packageName: name };
-  }
-  if (cmd === 'upgrade') {
-    if (args.length === 1) return { action: 'upgrade-all', packageName: null };
-    return { action: 'upgrade', packageName: args[1] ?? null };
-  }
-  return null;
-}
 
 async function logToHistory(args: string[], success: boolean, error: string | null): Promise<void> {
   const detected = detectAction(args);

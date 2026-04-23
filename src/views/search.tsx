@@ -15,6 +15,7 @@ export function SearchView() {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<{ formulae: string[]; casks: string[] } | null>(null);
   const [searching, setSearching] = useState(false);
+  const [searchError, setSearchError] = useState<string | null>(null);
   const [cursor, setCursor] = useState(0);
   const [confirmInstall, setConfirmInstall] = useState<string | null>(null);
   const stream = useBrewStream();
@@ -37,15 +38,14 @@ export function SearchView() {
   const doSearch = useCallback(async (term: string) => {
     if (term.length < 2) return;
     setSearching(true);
+    setSearchError(null);
     try {
       const r = await api.search(term);
       setResults(r);
       setCursor(0);
     } catch (err) {
       setResults({ formulae: [], casks: [] });
-      // Search failed (network error, brew not found, etc.)
-      // Results are cleared so the UI shows "no results" rather than stale data
-      void err;
+      setSearchError(err instanceof Error ? err.message : 'Search failed');
     } finally {
       setSearching(false);
     }
@@ -58,7 +58,10 @@ export function SearchView() {
     }
   }, [stream.isRunning, stream.error]);
 
-  const allResults = results ? [...results.formulae, ...results.casks] : [];
+  const MAX_VISIBLE = 20;
+  const visibleFormulae = results ? results.formulae.slice(0, MAX_VISIBLE) : [];
+  const visibleCasks = results ? results.casks.slice(0, MAX_VISIBLE) : [];
+  const allVisible = [...visibleFormulae, ...visibleCasks];
 
   useInput((input, key) => {
     if (stream.isRunning) {
@@ -73,20 +76,20 @@ export function SearchView() {
     }
 
     // Enter → navigate to package-info view (preview details, deps, caveats)
-    if (key.return && allResults[cursor]) {
-      selectPackage(allResults[cursor]);
+    if (key.return && allVisible[cursor]) {
+      selectPackage(allVisible[cursor]);
       navigate('package-info');
       return;
     }
 
     // 'i' → install directly (with confirmation)
-    if (input === 'i' && allResults[cursor]) {
-      setConfirmInstall(allResults[cursor]);
+    if (input === 'i' && allVisible[cursor]) {
+      setConfirmInstall(allVisible[cursor]);
       return;
     }
 
     if (input === 'j' || key.downArrow) {
-      setCursor((c) => Math.min(c + 1, Math.max(0, allResults.length - 1)));
+      setCursor((c) => Math.min(c + 1, Math.max(0, allVisible.length - 1)));
     } else if (input === 'k' || key.upArrow) {
       setCursor((c) => Math.max(c - 1, 0));
     } else if (key.escape) {
@@ -138,6 +141,12 @@ export function SearchView() {
 
       {searching && <Loading message={t('loading_searching')} />}
 
+      {searchError && (
+        <Box marginBottom={1}>
+          <Text color="#EF4444">{searchError}</Text>
+        </Box>
+      )}
+
       {confirmInstall && (
         <ConfirmDialog
           message={t('search_confirmInstall', { name: confirmInstall })}
@@ -153,10 +162,10 @@ export function SearchView() {
 
       {results && !searching && !confirmInstall && (
         <Box flexDirection="column">
-          {results.formulae.length > 0 && (
+          {visibleFormulae.length > 0 && (
             <Box flexDirection="column" marginBottom={1}>
               <Text bold color="#06B6D4">{t('search_formulaeHeader', { count: results.formulae.length })}</Text>
-              {results.formulae.slice(0, 20).map((name, i) => {
+              {visibleFormulae.map((name, i) => {
                 const isCurrent = i === cursor;
                 return (
                   <Box key={name} gap={1}>
@@ -165,17 +174,17 @@ export function SearchView() {
                   </Box>
                 );
               })}
-              {results.formulae.length > 20 && (
-                <Text color="#6B7280" dimColor>  {t('scroll_moreBelow', { count: results.formulae.length - 20 })}</Text>
+              {results.formulae.length > MAX_VISIBLE && (
+                <Text color="#6B7280" dimColor>  {t('scroll_moreBelow', { count: results.formulae.length - MAX_VISIBLE })}</Text>
               )}
             </Box>
           )}
 
-          {results.casks.length > 0 && (
+          {visibleCasks.length > 0 && (
             <Box flexDirection="column">
               <Text bold color="#A855F7">{t('search_casksHeader', { count: results.casks.length })}</Text>
-              {results.casks.slice(0, 20).map((name, i) => {
-                const idx = results.formulae.length + i;
+              {visibleCasks.map((name, i) => {
+                const idx = visibleFormulae.length + i;
                 const isCurrent = idx === cursor;
                 return (
                   <Box key={name} gap={1}>
@@ -184,13 +193,13 @@ export function SearchView() {
                   </Box>
                 );
               })}
-              {results.casks.length > 20 && (
-                <Text color="#6B7280" dimColor>  {t('scroll_moreBelow', { count: results.casks.length - 20 })}</Text>
+              {results.casks.length > MAX_VISIBLE && (
+                <Text color="#6B7280" dimColor>  {t('scroll_moreBelow', { count: results.casks.length - MAX_VISIBLE })}</Text>
               )}
             </Box>
           )}
 
-          {allResults.length === 0 && (
+          {allVisible.length === 0 && (
             <Box borderStyle="round" borderColor="#6B7280" paddingX={2}>
               <Text color="#6B7280" italic>{t('search_noResults')}</Text>
             </Box>
@@ -198,7 +207,7 @@ export function SearchView() {
 
           <Box marginTop={1}>
             <Text color="#F9FAFB" bold>
-              {allResults.length > 0 ? `${cursor + 1}/${allResults.length}` : ''}
+              {allVisible.length > 0 ? `${cursor + 1}/${allVisible.length}` : ''}
             </Text>
           </Box>
         </Box>

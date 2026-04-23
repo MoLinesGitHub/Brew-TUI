@@ -8,6 +8,6 @@ export const LICENSE_PATH = join(DATA_DIR, 'license.json');
 export const HISTORY_PATH = join(DATA_DIR, 'history.json');
 
 export async function ensureDataDirs(): Promise<void> {
-  await mkdir(DATA_DIR, { recursive: true });
-  await mkdir(PROFILES_DIR, { recursive: true });
+  await mkdir(DATA_DIR, { recursive: true, mode: 0o700 });
+  await mkdir(PROFILES_DIR, { recursive: true, mode: 0o700 });
 }

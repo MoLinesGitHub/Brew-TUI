@@ -8,6 +8,7 @@ on:
 permissions:
   contents: write
   packages: write
+  id-token: write
 
 jobs:
   # Build and publish to npm + GitHub Packages
@@ -21,9 +22,10 @@ jobs:
           registry-url: 'https://registry.npmjs.org'
       - run: npm ci
       - run: npm run typecheck
+      - run: npm run test
       - run: npm run build
       - run: npm run lint
-      - run: npm publish --access public
+      - run: npm publish --access public --provenance
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 

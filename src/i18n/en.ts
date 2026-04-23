@@ -313,6 +313,7 @@ const en = {
   cli_brewbarProRequired: '\u2718 BrewBar requires a Pro license.\n  Run: brew-tui activate <key>',
   cli_brewbarMacOnly: '\u2718 BrewBar is only available on macOS.',
   cli_brewbarDownloadFailed: '\u2718 Failed to download BrewBar: {{error}}',
+  cli_deactivateRemoteFailed: '\u26A0 Warning: Could not reach the server to deactivate remotely. The license was removed locally but may still count as active.',
 
   // ── License degradation (Layer 15) ──
   license_offlineWarning: 'Your license has not been validated for {{days}} days. Please connect to the internet.',

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Box, Text, useInput } from 'ink';
+import { Box, Text, useInput, useStdout } from 'ink';
 import { useBrewStore } from '../stores/brew-store.js';
 import { Loading, ErrorMessage } from '../components/common/loading.js';
 import { StatusBadge } from '../components/common/status-badge.js';
@@ -19,6 +19,10 @@ export function ServicesView() {
   const [cursor, setCursor] = useState(0);
   const [actionInProgress, setActionInProgress] = useState(false);
   const [confirmAction, setConfirmAction] = useState<{ type: 'stop' | 'restart'; name: string } | null>(null);
+  const { stdout } = useStdout();
+  const cols = stdout?.columns ?? 80;
+  const svcNameWidth = Math.floor(cols * 0.35);
+  const svcStatusWidth = Math.floor(cols * 0.15);
 
   useEffect(() => { fetchServices(); }, []);
 
@@ -48,6 +52,8 @@ export function ServicesView() {
     else if (input === 'S') setConfirmAction({ type: 'stop', name: svc.name });
     else if (input === 'R') setConfirmAction({ type: 'restart', name: svc.name });
   });
+
+  const serviceActionError = useBrewStore(s => s.errors['service-action']);
 
   if (loading.services) return <Loading message={t('loading_services')} />;
   if (errors.services) return <ErrorMessage message={errors.services} />;
@@ -88,8 +94,8 @@ export function ServicesView() {
 
       <Box flexDirection="column" marginTop={1}>
         <Box gap={1} borderStyle="single" borderBottom borderTop={false} borderLeft={false} borderRight={false} borderColor="#4B5563" paddingBottom={0}>
-          <Text bold color="#F9FAFB">{'  '}{t('services_name').padEnd(22)}</Text>
-          <Text bold color="#F9FAFB">{t('services_status').padEnd(12)}</Text>
+          <Text bold color="#F9FAFB">{'  '}{t('services_name').padEnd(svcNameWidth)}</Text>
+          <Text bold color="#F9FAFB">{t('services_status').padEnd(svcStatusWidth)}</Text>
           <Text bold color="#F9FAFB">{t('services_user')}</Text>
         </Box>
 
@@ -99,7 +105,7 @@ export function ServicesView() {
             <Box key={svc.name} gap={1}>
               <Text color={isCurrent ? '#22C55E' : '#9CA3AF'}>{isCurrent ? '\u25B6' : ' '}</Text>
               <Text bold={isCurrent} inverse={isCurrent} color={isCurrent ? '#F9FAFB' : '#9CA3AF'}>
-                {svc.name.padEnd(20)}
+                {svc.name.padEnd(svcNameWidth - 2)}
               </Text>
               <StatusBadge label={svc.status} variant={STATUS_VARIANTS[svc.status]} />
               <Text color="#9CA3AF">{svc.user ?? '-'}</Text>
@@ -112,6 +118,12 @@ export function ServicesView() {
       </Box>
 
       {actionInProgress && <Text color="#38BDF8">{t('services_processing')}</Text>}
+
+      {serviceActionError && (
+        <Box marginTop={1}>
+          <Text color="#EF4444">{serviceActionError}</Text>
+        </Box>
+      )}
 
       <Box marginTop={1}>
         <Text color="#F9FAFB" bold>

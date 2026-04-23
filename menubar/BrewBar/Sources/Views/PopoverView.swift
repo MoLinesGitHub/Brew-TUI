@@ -50,6 +50,9 @@ struct PopoverView: View {
                     .frame(width: 16, height: 16)
             }
 
+            // Note: Task in button action cannot be replaced with .task modifier
+            // (.task fires on appear, not on tap). Consider storing Task handle
+            // for cancellation if the view can disappear mid-refresh.
             Button {
                 Task { await appState.refresh() }
             } label: {
@@ -173,13 +176,10 @@ struct PopoverView: View {
     }
 
     private func openBrewTUI() {
-        let script = "tell application \"Terminal\" to do script \"brew-tui\""
-        guard let appleScript = NSAppleScript(source: script) else { return }
-        var errorInfo: NSDictionary?
-        appleScript.executeAndReturnError(&errorInfo)
-        if let errorInfo {
-            NSLog("[BrewBar] Failed to open Brew-TUI: %@", errorInfo.description)
-        }
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/open")
+        process.arguments = ["-a", "Terminal", "--args", "-e", "brew-tui"]
+        try? process.run()
     }
 }
 

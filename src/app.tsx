@@ -19,6 +19,7 @@ import { HistoryView } from './views/history.js';
 import { SecurityAuditView } from './views/security-audit.js';
 import { AccountView } from './views/account.js';
 
+// TODO: extract ViewRouter and LicenseInitializer to separate components
 export function App() {
   const { exit } = useApp();
   const currentView = useNavigationStore((s) => s.currentView);

@@ -6,7 +6,14 @@ import { getInstalled, getLeaves } from '../brew-api.js';
 import { t } from '../../i18n/index.js';
 import { requirePro } from '../license/pro-guard.js';
 import { getWatermark } from '../license/watermark.js';
+import { useLicenseStore } from '../../stores/license-store.js';
+import type { LicenseData } from '../license/types.js';
 import type { Profile, ProfileFile } from './types.js';
+
+function proCheck(): void {
+  const { license, status } = useLicenseStore.getState();
+  requirePro(license, status);
+}
 
 /**
  * Validate a profile name to prevent path traversal.
@@ -35,7 +42,7 @@ function profilePath(name: string): string {
 }
 
 export async function listProfiles(): Promise<string[]> {
-  requirePro();
+  proCheck();
   await ensureDataDirs();
   try {
     const files = await readdir(PROFILES_DIR);
@@ -46,13 +53,17 @@ export async function listProfiles(): Promise<string[]> {
 }
 
 export async function loadProfile(name: string): Promise<Profile> {
-  requirePro();
+  proCheck();
   const raw = await readFile(profilePath(name), 'utf-8');
   let file: ProfileFile;
   try {
     file = JSON.parse(raw) as ProfileFile;
   } catch (err) {
     throw new Error(`Profile "${name}" is corrupted: ${err instanceof Error ? err.message : String(err)}`);
+  }
+  if (file.version !== 1) {
+    // Future: add migration logic here
+    throw new Error('Unsupported data version');
   }
   if (!file.profile) {
     throw new Error(`Profile "${name}" is missing required data`);
@@ -61,21 +72,21 @@ export async function loadProfile(name: string): Promise<Profile> {
 }
 
 export async function saveProfile(profile: Profile): Promise<void> {
-  requirePro();
+  proCheck();
   await ensureDataDirs();
   const file: ProfileFile = { version: 1, profile };
-  await writeFile(profilePath(profile.name), JSON.stringify(file, null, 2), 'utf-8');
+  await writeFile(profilePath(profile.name), JSON.stringify(file, null, 2), { encoding: 'utf-8', mode: 0o600 });
 }
 
 export async function deleteProfile(name: string): Promise<void> {
-  requirePro();
+  proCheck();
   try {
     await rm(profilePath(name));
   } catch { /* may not exist */ }
 }
 
-export async function exportCurrentSetup(name: string, description: string): Promise<Profile> {
-  requirePro();
+export async function exportCurrentSetup(name: string, description: string, license: LicenseData | null = null): Promise<Profile> {
+  proCheck();
 
   const [installed, leaves, tapsRaw] = await Promise.all([
     getInstalled(),
@@ -97,7 +108,7 @@ export async function exportCurrentSetup(name: string, description: string): Pro
     formulae: leaves,
     casks,
     taps,
-    exportedBy: getWatermark(), // Layer 16: Watermark — who exported this profile
+    exportedBy: getWatermark(license), // Layer 16: Watermark — who exported this profile
   };
 
   await saveProfile(profile);
@@ -105,7 +116,7 @@ export async function exportCurrentSetup(name: string, description: string): Pro
 }
 
 export async function updateProfile(oldName: string, newName: string, newDescription: string): Promise<void> {
-  requirePro();
+  proCheck();
   const profile = await loadProfile(oldName);
   if (oldName !== newName) {
     await deleteProfile(oldName);
@@ -119,33 +130,49 @@ export async function updateProfile(oldName: string, newName: string, newDescrip
   await saveProfile(updated);
 }
 
+// Validation patterns for brew package/tap names to prevent command injection
+const TAP_PATTERN = /^[a-z0-9][-a-z0-9]*\/[a-z0-9][-a-z0-9]*$/;
+const PKG_PATTERN = /^[a-z0-9][-a-z0-9_.@+]*$/;
+
 export async function* importProfile(profile: Profile): AsyncGenerator<string> {
-  requirePro();
+  proCheck();
 
   const installed = await getInstalled();
   const installedFormulae = new Set(installed.formulae.map((f) => f.name));
   const installedCasks = new Set(installed.casks.filter((c) => c.installed).map((c) => c.token));
 
-  // Add missing taps
+  // Add missing taps (validated)
   for (const tap of profile.taps) {
+    if (!TAP_PATTERN.test(tap)) {
+      yield `Skipping invalid tap name: ${tap}`;
+      continue;
+    }
     yield t('profileMgr_tapping', { name: tap });
     try {
       await execBrew(['tap', tap]);
     } catch { /* may already be tapped */ }
   }
 
-  // Install missing formulae
+  // Install missing formulae (validated)
   const missingFormulae = profile.formulae.filter((f) => !installedFormulae.has(f));
   for (const name of missingFormulae) {
+    if (!PKG_PATTERN.test(name)) {
+      yield `Skipping invalid formula name: ${name}`;
+      continue;
+    }
     yield t('profileMgr_installing', { name });
     for await (const line of streamBrew(['install', name])) {
       yield line;
     }
   }
 
-  // Install missing casks
+  // Install missing casks (validated)
   const missingCasks = profile.casks.filter((c) => !installedCasks.has(c));
   for (const name of missingCasks) {
+    if (!PKG_PATTERN.test(name)) {
+      yield `Skipping invalid cask name: ${name}`;
+      continue;
+    }
     yield t('profileMgr_installingCask', { name });
     for await (const line of streamBrew(['install', '--cask', name])) {
       yield line;

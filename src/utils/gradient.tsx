@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Text } from 'ink';
 
 function hexToRgb(hex: string): [number, number, number] {
@@ -26,28 +26,34 @@ interface GradientTextProps {
   bold?: boolean;
 }
 
-export function GradientText({ children, colors, bold }: GradientTextProps) {
+export const GradientText = React.memo(function GradientText({ children, colors, bold }: GradientTextProps) {
   if (colors.length < 2) {
     return <Text color={colors[0]} bold={bold}>{children}</Text>;
   }
 
-  const chars = [...children];
-  const maxIdx = Math.max(chars.length - 1, 1);
+  const coloredChars = useMemo(() => {
+    const chars = [...children];
+    const maxIdx = Math.max(chars.length - 1, 1);
+
+    return chars.map((char, i) => {
+      const t = i / maxIdx;
+      const segment = t * (colors.length - 1);
+      const lower = Math.floor(segment);
+      const upper = Math.min(lower + 1, colors.length - 1);
+      const frac = segment - lower;
+      const color = interpolateColor(colors[lower]!, colors[upper]!, frac);
+      return { char, color, key: `${i}-${color}` };
+    });
+  }, [children, colors]);
 
   return (
     <>
-      {chars.map((char, i) => {
-        const t = i / maxIdx;
-        const segment = t * (colors.length - 1);
-        const lower = Math.floor(segment);
-        const upper = Math.min(lower + 1, colors.length - 1);
-        const frac = segment - lower;
-        const color = interpolateColor(colors[lower]!, colors[upper]!, frac);
-        return <Text key={i} color={color} bold={bold}>{char}</Text>;
-      })}
+      {coloredChars.map(({ char, color, key }) => (
+        <Text key={key} color={color} bold={bold}>{char}</Text>
+      ))}
     </>
   );
-}
+});
 
 // Pre-defined gradient palettes
 export const GRADIENTS = {

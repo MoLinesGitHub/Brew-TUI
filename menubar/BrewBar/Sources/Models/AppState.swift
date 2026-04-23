@@ -10,6 +10,7 @@ final class AppState {
     var isLoading = false
     var error: String?
     var servicesError: String?
+    var canUpgrade = true
     var onRefreshComplete: (() -> Void)?
 
     private let checker = BrewChecker()
@@ -48,6 +49,10 @@ final class AppState {
 
     func upgrade(package name: String) async {
         guard !isLoading else { return }
+        guard canUpgrade else {
+            error = String(localized: "Pro license expired")
+            return
+        }
         isLoading = true
         error = nil
         do {
@@ -63,6 +68,10 @@ final class AppState {
 
     func upgradeAll() async {
         guard !isLoading else { return }
+        guard canUpgrade else {
+            error = String(localized: "Pro license expired")
+            return
+        }
         isLoading = true
         error = nil
         do {

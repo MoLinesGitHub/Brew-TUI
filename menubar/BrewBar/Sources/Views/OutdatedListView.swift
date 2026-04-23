@@ -11,21 +11,23 @@ struct OutdatedListView: View {
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                 Spacer()
-                Button("Upgrade All") {
-                    showUpgradeAllConfirm = true
-                }
-                .buttonStyle(.borderedProminent)
-                .controlSize(.small)
-                .disabled(appState.isLoading)
-                .confirmationDialog(
-                    String(localized: "Upgrade all packages?"),
-                    isPresented: $showUpgradeAllConfirm,
-                    titleVisibility: .visible
-                ) {
-                    Button(String(localized: "Upgrade All"), role: .destructive) {
-                        Task { await appState.upgradeAll() }
+                if appState.canUpgrade {
+                    Button("Upgrade All") {
+                        showUpgradeAllConfirm = true
                     }
-                    Button(String(localized: "Cancel"), role: .cancel) {}
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.small)
+                    .disabled(appState.isLoading)
+                    .confirmationDialog(
+                        String(localized: "Upgrade all packages?"),
+                        isPresented: $showUpgradeAllConfirm,
+                        titleVisibility: .visible
+                    ) {
+                        Button(String(localized: "Upgrade All"), role: .destructive) {
+                            Task { await appState.upgradeAll() }
+                        }
+                        Button(String(localized: "Cancel"), role: .cancel) {}
+                    }
                 }
             }
             .padding(.horizontal, 12)
@@ -71,13 +73,19 @@ struct OutdatedListView: View {
             }
 
             // Note: Task in button action — .task modifier not applicable here
-            Button {
-                Task { await appState.upgrade(package: pkg.name) }
-            } label: {
-                Image(systemName: "arrow.up.circle")
+            if appState.canUpgrade {
+                Button {
+                    Task { await appState.upgrade(package: pkg.name) }
+                } label: {
+                    Image(systemName: "arrow.up.circle")
+                }
+                .buttonStyle(.borderless)
+                .disabled(appState.isLoading || pkg.pinned)
+            } else {
+                Image(systemName: "lock.fill")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
-            .buttonStyle(.borderless)
-            .disabled(appState.isLoading || pkg.pinned)
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 6)

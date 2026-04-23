@@ -112,6 +112,8 @@ const en = {
   dashboard_updated: 'Updated:',
   dashboard_outdatedPackages: 'Outdated Packages',
   dashboard_serviceErrors: 'Service Errors',
+  dashboard_partialData: 'Some Homebrew sections failed to load:',
+  dashboard_statError: 'ERR',
 
   // ── Installed ──
   installed_formulaeCount: 'Formulae ({{count}})',

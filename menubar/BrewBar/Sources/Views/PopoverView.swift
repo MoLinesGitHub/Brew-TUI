@@ -26,6 +26,11 @@ struct PopoverView: View {
                 servicesErrorView
             }
 
+            if !appState.canUpgrade {
+                Divider()
+                basicModeView
+            }
+
             Divider()
             footerView
         }
@@ -173,6 +178,19 @@ struct PopoverView: View {
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
+    }
+
+    private var basicModeView: some View {
+        HStack(spacing: 6) {
+            Image(systemName: "lock.fill")
+                .foregroundStyle(.orange)
+            Text(String(localized: "Pro license expired"))
+                .font(.caption)
+                .foregroundStyle(.orange)
+            Spacer()
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 6)
     }
 
     private func openBrewTUI() {

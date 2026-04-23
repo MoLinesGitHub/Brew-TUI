@@ -23,8 +23,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             let licenseStatus = LicenseChecker.checkLicense()
             switch licenseStatus {
             case .pro:
+                appState.canUpgrade = true
                 break // Continue normal startup
             case .expired:
+                appState.canUpgrade = false
                 showLicenseExpired()
                 // Continue in degraded mode — app stays open without Pro badge
             case .notFound:

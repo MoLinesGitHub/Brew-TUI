@@ -23,6 +23,21 @@ export function DashboardView() {
     [services]
   );
   const errorServices = errorServiceList.length;
+  const partialErrors = [
+    errors.outdated ? { label: t('dashboard_outdated'), message: errors.outdated } : null,
+    errors.services ? { label: t('dashboard_services'), message: errors.services } : null,
+    errors.config ? { label: t('dashboard_systemInfo'), message: errors.config } : null,
+  ].filter((item): item is { label: string; message: string } => item !== null);
+  const outdatedValue = loading.outdated
+    ? '...'
+    : errors.outdated
+      ? t('dashboard_statError')
+      : outdated.formulae.length + outdated.casks.length;
+  const servicesValue = loading.services
+    ? '...'
+    : errors.services
+      ? t('dashboard_statError')
+      : `${runningServices}/${services.length}`;
 
   if (loading.installed) return <Loading message={t('loading_fetchingBrew')} />;
   if (errors.installed) return <ErrorMessage message={errors.installed} />;
@@ -36,17 +51,28 @@ export function DashboardView() {
         <StatCard label={t('dashboard_casks')} value={casks.length} color="#A855F7" />
         <StatCard
           label={t('dashboard_outdated')}
-          value={outdated.formulae.length + outdated.casks.length}
-          color={outdated.formulae.length + outdated.casks.length > 0 ? '#F59E0B' : '#22C55E'}
+          value={outdatedValue}
+          color={typeof outdatedValue === 'number' && outdatedValue > 0 ? '#F59E0B' : (errors.outdated ? '#EF4444' : '#22C55E')}
         />
         <StatCard
           label={t('dashboard_services')}
-          value={`${runningServices}/${services.length}`}
-          color={errorServices > 0 ? '#EF4444' : '#22C55E'}
+          value={servicesValue}
+          color={errors.services || errorServices > 0 ? '#EF4444' : '#22C55E'}
         />
       </Box>
 
-      {config && (
+      {partialErrors.length > 0 && (
+        <Box flexDirection="column" borderStyle="round" borderColor="#F59E0B" paddingX={2} paddingY={0}>
+          <Text color="#F59E0B" bold>{t('dashboard_partialData')}</Text>
+          {partialErrors.map((item) => (
+            <Text key={item.label} color="#9CA3AF">
+              {item.label}: {item.message}
+            </Text>
+          ))}
+        </Box>
+      )}
+
+      {config && !errors.config && (
         <Box flexDirection="column">
           <SectionHeader emoji={'\u2139\uFE0F'} title={t('dashboard_systemInfo')} gradient={['#F9FAFB', '#9CA3AF']} />
           <Box borderStyle="round" borderColor="#3B82F6" paddingX={2} paddingY={0} flexDirection="column" marginTop={1}>
@@ -57,7 +83,7 @@ export function DashboardView() {
         </Box>
       )}
 
-      {outdated.formulae.length > 0 && (
+      {!errors.outdated && outdated.formulae.length > 0 && (
         <Box flexDirection="column" marginTop={1}>
           <SectionHeader emoji={'\u{1F4E6}'} title={t('dashboard_outdatedPackages')} gradient={GRADIENTS.fire} />
           <Box paddingLeft={2} flexDirection="column">
@@ -74,7 +100,7 @@ export function DashboardView() {
         </Box>
       )}
 
-      {errorServices > 0 && (
+      {!errors.services && errorServices > 0 && (
         <Box flexDirection="column" marginTop={1}>
           <SectionHeader emoji={'\u26A0\uFE0F'} title={t('dashboard_serviceErrors')} color="#EF4444" />
           <Box paddingLeft={2} flexDirection="column">

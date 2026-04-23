@@ -29,6 +29,12 @@ export async function installBrewBar(force = false): Promise<void> {
     throw new Error(t('cli_brewbarMacOnly'));
   }
 
+  // Ensure the license store is populated in one-shot CLI processes.
+  const initial = useLicenseStore.getState();
+  if (initial.status === 'validating' && initial.license === null) {
+    await initial.initialize();
+  }
+
   // Pro check
   const { license, status } = useLicenseStore.getState();
   if (!verifyPro(license, status)) {

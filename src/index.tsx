@@ -5,6 +5,7 @@ import { App } from './app.js';
 import { activate, deactivate, loadLicense } from './lib/license/license-manager.js';
 import { ensureDataDirs } from './lib/data-dir.js';
 import { t } from './i18n/index.js';
+import { useLicenseStore } from './stores/license-store.js';
 
 const [,, command, arg] = process.argv;
 
@@ -53,22 +54,39 @@ async function runCli() {
   }
 
   if (command === 'status') {
-    const license = await loadLicense();
-    if (!license) {
+    await useLicenseStore.getState().initialize();
+    const { status, license, degradation } = useLicenseStore.getState();
+
+    if (status === 'free') {
       console.log(t('cli_planFree'));
       console.log(t('cli_upgradeHint'));
     } else {
       console.log(t('cli_planPro'));
-      console.log(t('cli_email', { email: license.customerEmail }));
-      console.log(t('cli_status', { status: license.status }));
-      if (license.expiresAt) {
+      if (license) {
+        console.log(t('cli_email', { email: license.customerEmail }));
+      }
+
+      const statusText = status === 'pro'
+        ? (degradation === 'none' ? (license?.status ?? 'active') : degradation)
+        : status;
+      console.log(t('cli_status', { status: statusText }));
+
+      if (license?.expiresAt) {
         console.log(t('cli_expires', { date: new Date(license.expiresAt).toLocaleDateString() }));
+      }
+      if (status === 'expired') {
+        console.log(t('cli_upgradeHint'));
+      }
+      if (status === 'pro' && degradation !== 'none' && license) {
+        const days = Math.floor((Date.now() - new Date(license.lastValidatedAt).getTime()) / (24 * 60 * 60 * 1000));
+        console.log(t('license_offlineWarning', { days }));
       }
     }
     return;
   }
 
   if (command === 'install-brewbar') {
+    await useLicenseStore.getState().initialize();
     const { installBrewBar } = await import('./lib/brewbar-installer.js');
     try {
       await installBrewBar(arg === '--force');

@@ -114,6 +114,8 @@ const es: Translations = {
   dashboard_updated: 'Actualizado:',
   dashboard_outdatedPackages: 'Paquetes Desactualizados',
   dashboard_serviceErrors: 'Errores de Servicios',
+  dashboard_partialData: 'Algunas secciones de Homebrew no pudieron cargarse:',
+  dashboard_statError: 'ERR',
 
   // ── Installed ──
   installed_formulaeCount: 'Formulae ({{count}})',

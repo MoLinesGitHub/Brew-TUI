@@ -4,7 +4,7 @@
 
 ## Resumen ejecutivo
 
-El proyecto v0.2.0 presenta una base de gobierno sólida en ambas codebases: los targets son mínimos y claros, los build settings del lado Swift son mayoritariamente correctos y el pipeline CI/CD ha mejorado significativamente respecto a la versión anterior. Se detectan seis hallazgos que requieren atención: la clave de cifrado AES-256-GCM para licencias está embebida en texto claro en `LicenseChecker.swift` y `license-manager.ts` (Media, inherente al modelo client-side), `NSMainStoryboardFile = "Main"` aparece en el template del Info.plist de Tuist sin archivo storyboard correspondiente (Media), la version `CFBundleShortVersionString` no se define explicitamente en `Project.swift` y depende del default `1.0` del template (Media), `SWIFT_STRICT_CONCURRENCY` no se documenta explicitamente en `Project.swift` (Parcial/Media), la clave organizativa de Polar está embebida en codigo fuente (Baja), y el job `publish-github-packages` no ejecuta `typecheck` ni `test` de forma independiente (Baja).
+El proyecto v0.2.0 presenta una base de gobierno sólida en ambas codebases: los targets son mínimos y claros, los build settings del lado Swift son mayoritariamente correctos y el pipeline CI/CD ha mejorado significativamente respecto a la versión anterior. Se detectan cinco hallazgos prioritarios que requieren atención: la clave de cifrado AES-256-GCM para licencias está embebida en texto claro en `LicenseChecker.swift` y `license-manager.ts` (Media, inherente al modelo client-side), `NSMainStoryboardFile = "Main"` aparece en el template del Info.plist de Tuist sin archivo storyboard correspondiente (Media), la version `CFBundleShortVersionString` no se define explicitamente en `Project.swift` y depende del default `1.0` del template (Media), `SWIFT_STRICT_CONCURRENCY` no se documenta explicitamente en `Project.swift` (Parcial/Media), y la clave organizativa de Polar está embebida en codigo fuente (Baja).
 
 ---
 
@@ -228,7 +228,7 @@ Ambas codebases tienen la misma clave de cifrado embebida en texto claro. El niv
 
 #### NPM_TOKEN y secrets de CI
 
-El `release.yml` usa `${{ secrets.NPM_TOKEN }}` para publicar a npm y `${{ secrets.GITHUB_TOKEN }}` para GitHub Packages. Ambos son secrets de GitHub Actions correctamente gestionados fuera del codigo fuente. Conforme.
+El `release.yml` usa `${{ secrets.NPM_TOKEN }}` para publicar a npm. El secreto se gestiona correctamente desde GitHub Actions y no aparece en el codigo fuente. Conforme.
 
 #### Separacion de variables por entorno
 
@@ -248,10 +248,6 @@ No existe sistema de feature flags dinamico. Los "flags" del proyecto son estati
 - `LicenseChecker.checkLicense()` retorna `.notFound` si no existe el archivo de licencia. Conforme.
 - `SchedulerService.swift`: `UserDefaults.standard.integer(forKey: "checkInterval")` retorna `0` si no existe la clave, y el codigo maneja el caso con defaults. Conforme.
 
-#### Job publish-github-packages sin typecheck ni test
-
-El job `publish-github-packages` en `release.yml` (lineas 33-47) solo ejecuta `npm ci && npm run build && npm publish` sin `typecheck` ni `test`. Aunque tiene `needs: publish-npm` (que si ejecuta `typecheck` y `test`), el job de GitHub Packages construye el bundle de nuevo de forma independiente sin re-validar la calidad del codigo. Severidad: Baja.
-
 | Elemento | Estado | Severidad | Evidencia | Accion |
 |----------|--------|-----------|-----------|--------|
 | Clave AES-256-GCM hex en LicenseChecker.swift | No conforme | Media | `LicenseChecker.swift:48: let hex = "5c3b2ae2..."` | Inherente al modelo de licencias client-side. Documentar explicitamente el threat model. Como mejora de largo plazo: inyectar la clave derivada via build setting en CI (no en repo) para evitar exposicion en codigo fuente. |
@@ -262,7 +258,6 @@ El job `publish-github-packages` en `release.yml` (lineas 33-47) solo ejecuta `n
 | No existen .env files en repo | Conforme | — | Busqueda exhaustiva sin resultados | — |
 | Feature flags estaticos auditados | Conforme | — | `feature-gate.ts`: PRO_VIEWS set estatico; sin flags dinamicos externos | — |
 | Fallbacks para configuracion faltante | Conforme | — | `account.tsx:125`, `LicenseChecker.swift:57-59`, `SchedulerService.swift:44-53` | — |
-| publish-github-packages sin typecheck/test | No conforme | Baja | `release.yml:43-45`: solo `npm ci && npm run build && npm publish` | Agregar `npm run typecheck && npm run test` antes de `npm run build` en el job `publish-github-packages` |
 
 ---
 
@@ -273,9 +268,9 @@ El job `publish-github-packages` en `release.yml` (lineas 33-47) solo ejecuta `n
 | Critica | 0 |
 | Alta | 0 |
 | Media | 4 |
-| Baja | 5 |
+| Baja | 4 |
 
-**Total hallazgos no conformes:** 9
+**Total hallazgos no conformes:** 8
 
 ### Detalle de los hallazgos no conformes por prioridad
 
@@ -294,5 +289,3 @@ El job `publish-github-packages` en `release.yml` (lineas 33-47) solo ejecuta `n
 7. **Baja** — `PrivacyInfo.xcprivacy` pendiente de verificacion post-`tuist generate`: la configuracion de `Project.swift` es correcta pero requiere confirmacion de inclusion en bundle.
 
 8. **Baja** — Razon `CA92.1` posiblemente incorrecta en `PrivacyInfo.xcprivacy` para `NSPrivacyAccessedAPICategoryUserDefaults`: deberia ser `1C8F.1`.
-
-9. **Baja** — Job `publish-github-packages` en `release.yml` no ejecuta `typecheck` ni `test` de forma independiente.

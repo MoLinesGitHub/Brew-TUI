@@ -23,6 +23,7 @@ export function ServicesView() {
   const cols = stdout?.columns ?? 80;
   const svcNameWidth = Math.floor(cols * 0.35);
   const svcStatusWidth = Math.floor(cols * 0.15);
+  const MAX_VISIBLE_ROWS = Math.max(5, (stdout?.rows ?? 24) - 10);
 
   useEffect(() => { fetchServices(); }, []);
 
@@ -67,6 +68,9 @@ export function ServicesView() {
     );
   }
 
+  const start = Math.max(0, cursor - Math.floor(MAX_VISIBLE_ROWS / 2));
+  const visible = services.slice(start, start + MAX_VISIBLE_ROWS);
+
   return (
     <Box flexDirection="column">
       <SectionHeader emoji={'\u2699\uFE0F'} title={t('services_titleCount', { count: services.length })} gradient={GRADIENTS.ocean} />
@@ -99,8 +103,13 @@ export function ServicesView() {
           <Text bold color="#F9FAFB">{t('services_user')}</Text>
         </Box>
 
-        {services.map((svc, i) => {
-          const isCurrent = i === cursor;
+        {start > 0 && (
+          <Text color="#6B7280" dimColor>  {t('scroll_moreAbove', { count: start })}</Text>
+        )}
+
+        {visible.map((svc, i) => {
+          const idx = start + i;
+          const isCurrent = idx === cursor;
           return (
             <Box key={svc.name} gap={1}>
               <Text color={isCurrent ? '#22C55E' : '#9CA3AF'}>{isCurrent ? '\u25B6' : ' '}</Text>
@@ -115,6 +124,10 @@ export function ServicesView() {
             </Box>
           );
         })}
+
+        {start + MAX_VISIBLE_ROWS < services.length && (
+          <Text color="#6B7280" dimColor>  {t('scroll_moreBelow', { count: services.length - start - MAX_VISIBLE_ROWS })}</Text>
+        )}
       </Box>
 
       {actionInProgress && <Text color="#38BDF8">{t('services_processing')}</Text>}

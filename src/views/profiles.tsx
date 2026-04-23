@@ -9,6 +9,7 @@ import { SectionHeader } from '../components/common/section-header.js';
 import { GRADIENTS } from '../utils/gradient.js';
 import { t } from '../i18n/index.js';
 import { useModalStore } from '../stores/modal-store.js';
+import { formatDate } from '../utils/format.js';
 import * as manager from '../lib/profiles/profile-manager.js';
 
 type Mode = 'list' | 'detail' | 'create-name' | 'create-desc' | 'importing' | 'edit-name' | 'edit-desc';
@@ -198,7 +199,7 @@ export function ProfilesView() {
       <Box flexDirection="column">
         <Text bold color="#FFD700">{selectedProfile.name}</Text>
         <Text color="#9CA3AF">{selectedProfile.description}</Text>
-        <Text color="#9CA3AF">{t('profiles_created', { date: new Date(selectedProfile.createdAt).toLocaleDateString() })}</Text>
+        <Text color="#9CA3AF">{t('profiles_created', { date: formatDate(selectedProfile.createdAt) })}</Text>
         <Box marginTop={1} flexDirection="column">
           <Text bold>{t('profiles_formulaeCount', { count: selectedProfile.formulae.length })}</Text>
           <Box paddingLeft={2} flexDirection="column">

@@ -44,8 +44,9 @@ npx brew-tui
 
 ```bash
 brew-tui              # Launch the TUI
-brew-tui status       # Show license status
+brew-tui status       # Show evaluated license status
 brew-tui activate <key>   # Activate Pro license
+brew-tui revalidate       # Revalidate the current Pro license
 brew-tui deactivate   # Deactivate Pro license
 ```
 
@@ -58,6 +59,8 @@ brew-tui install-brewbar          # Download & install to /Applications
 brew-tui install-brewbar --force  # Reinstall / update
 brew-tui uninstall-brewbar        # Remove from /Applications
 ```
+
+If BrewBar or `brew-tui status` reports that your Pro license needs refreshing, run `brew-tui revalidate` before retrying.
 
 ### Keyboard Navigation
 
@@ -82,6 +85,7 @@ Brew-TUI supports English and Spanish. The language is detected automatically fr
 ## BrewBar
 
 BrewBar is a companion macOS menu bar app (Swift 6 / SwiftUI) that shows outdated package counts, sends notifications, and lets you upgrade packages without opening a terminal.
+Expired Pro licenses fall back to basic mode until they are revalidated or renewed.
 
 BrewBar lives in the `menubar/` directory and is built separately with [Tuist](https://tuist.io):
 

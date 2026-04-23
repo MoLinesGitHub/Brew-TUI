@@ -23,9 +23,10 @@ xcodebuild -workspace BrewBar.xcworkspace -scheme BrewBar build  # CLI build
 
 CLI subcommands (run without launching TUI):
 ```bash
-brew-tui activate <key>   # Activate Pro license via LemonSqueezy
+brew-tui activate <key>    # Activate Pro license via Polar
+brew-tui revalidate        # Revalidate the current Pro license
 brew-tui deactivate        # Deactivate license on this machine
-brew-tui status            # Show current license status
+brew-tui status            # Show evaluated license status
 brew-tui install-brewbar       # Download & install BrewBar menubar app (Pro only)
 brew-tui install-brewbar --force  # Reinstall BrewBar
 brew-tui uninstall-brewbar     # Remove BrewBar from /Applications
@@ -70,7 +71,7 @@ All rendering via Ink's `<Box>` (flexbox) and `<Text>`. `@inkjs/ui` provides `Te
 
 ## Freemium Model
 
-- **Licensing:** LemonSqueezy API (`src/lib/license/`). License stored at `~/.brew-tui/license.json`. Revalidates every 24h with 7-day offline grace period.
+- **Licensing:** Polar API (`src/lib/license/`). License stored at `~/.brew-tui/license.json`. Revalidates every 24h with 7-day offline grace period.
 - **Feature gating:** `src/lib/license/feature-gate.ts` defines which ViewIds are Pro. `app.tsx` checks `isPro()` before rendering Pro views.
 - **Pro features:** Profiles (`src/lib/profiles/`), Smart Cleanup (`src/lib/cleanup/`), History (`src/lib/history/`), Security Audit (`src/lib/security/` via OSV.dev API).
 - **Data directory:** `~/.brew-tui/` managed by `src/lib/data-dir.ts` (license.json, profiles/, history.json)

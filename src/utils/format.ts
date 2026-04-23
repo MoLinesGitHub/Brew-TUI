@@ -1,4 +1,4 @@
-import { t } from '../i18n/index.js';
+import { getLocale, t } from '../i18n/index.js';
 
 export function formatBytes(bytes: number): string {
   if (!isFinite(bytes) || bytes <= 0) return '0 B';
@@ -16,6 +16,12 @@ export function formatRelativeTime(timestamp: number): string {
   if (diff < 86400) return t('time_hoursAgo', { n: Math.floor(diff / 3600) });
   if (diff < 2592000) return t('time_daysAgo', { n: Math.floor(diff / 86400) });
   return t('time_monthsAgo', { n: Math.floor(diff / 2592000) });
+}
+
+export function formatDate(value: string | number | Date): string {
+  const date = value instanceof Date ? value : new Date(value);
+  const locale = getLocale();
+  return date.toLocaleDateString(locale === 'es' ? 'es-ES' : 'en-US');
 }
 
 export function truncate(str: string, maxLen: number): string {

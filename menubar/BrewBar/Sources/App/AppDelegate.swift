@@ -130,7 +130,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func showLicenseExpired() {
         let alert = NSAlert()
         alert.messageText = String(localized: "Pro license expired")
-        alert.informativeText = String(localized: "Your Pro license has expired or needs revalidation.\n\nRun `brew-tui activate <key>` in the terminal to revalidate, or renew your subscription.\n\nThe app will continue in basic mode.")
+        alert.informativeText = String(localized: "Your Pro license has expired or needs revalidation.\n\nRun `brew-tui revalidate` in the terminal, or renew your subscription.\n\nThe app will continue in basic mode.")
         alert.alertStyle = .warning
         alert.addButton(withTitle: String(localized: "Continue"))
         alert.runModal()

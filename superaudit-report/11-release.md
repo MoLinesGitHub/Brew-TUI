@@ -4,18 +4,18 @@
 
 ## Resumen ejecutivo
 
-El sistema de internacionalizacion del TUI TypeScript es robusto y exhaustivo: 271 claves tipadas, cobertura completa en en/es, verificacion en tiempo de compilacion, y plurales gestionados correctamente. Sin embargo, BrewBar presenta tres cadenas en codigo con `String(localized:)` sin entrada correspondiente en `Localizable.xcstrings` — los usuarios en espanol ven texto en ingles — y un cuarto problema de clave desajustada para el mensaje de licencia expirada. En cuanto a release, el hallazgo critico es que el `.app` de BrewBar se distribuye sin firma de codigo ni notarizacion, lo que provoca que Gatekeeper de macOS bloquee el lanzamiento en la maquina del usuario. Los demas aspectos tecnicos (version, assets, build Pipeline npm, privacy manifest) estan en buen estado tras las correcciones de v0.2.0.
+El sistema de internacionalizacion del TUI TypeScript es robusto y exhaustivo: 281 claves tipadas, cobertura completa en en/es, verificacion en tiempo de compilacion, y plurales gestionados correctamente. En BrewBar, el catalogo ya esta alineado con el copy actual de `brew-tui revalidate` y con las cadenas no-SwiftUI corregidas en esta pasada (`Upgrade all packages?`, `Cancel`, `Continue` y nuevas alertas de apertura). En cuanto a release, el hallazgo critico sigue siendo que el `.app` de BrewBar se distribuye sin firma de codigo ni notarizacion, lo que provoca que Gatekeeper de macOS bloquee el lanzamiento en la maquina del usuario. El pipeline npm esta alineado con el estado actual del repo y ya ejecuta tests reales antes de publicar.
 
 ---
 
 ## Metricas de localizacion
 
 * **Idiomas soportados:** Ingles (en) — fuente de verdad; Espanol (es) — traduccion completa en ambas codebases
-* **Total claves de localizacion (TUI TypeScript):** 271 claves en `src/i18n/en.ts` / `es.ts`
-* **Total claves de localizacion (BrewBar Swift):** 35 entradas en `Localizable.xcstrings`
+* **Total claves de localizacion (TUI TypeScript):** 281 claves en `src/i18n/en.ts` / `es.ts`
+* **Total claves de localizacion (BrewBar Swift):** 43 entradas en `Localizable.xcstrings`
 * **Formato de localizacion:** TypeScript — modulo i18n personalizado con `t()` y `tp()`; Swift — String Catalog (`.xcstrings`) + `String(localized:)` para contextos no-SwiftUI
 * **Strings hardcodeadas detectadas (TUI):** 0 (en vistas React)
-* **Strings hardcodeadas detectadas (BrewBar):** 3 cadenas en vistas SwiftUI sin entrada en xcstrings
+* **Strings hardcodeadas detectadas (BrewBar):** 0 hallazgos funcionales pendientes en las cadenas no-SwiftUI revisadas
 
 ---
 
@@ -35,23 +35,23 @@ El sistema de internacionalizacion del TUI TypeScript es robusto y exhaustivo: 2
 
 ### Checklist
 
-* [ ] **Strings externalizadas** — TUI: todas las cadenas visibles al usuario pasan por `t()`. BrewBar: vistas SwiftUI usan literales extraidos automaticamente por el compilador; contextos no-SwiftUI usan `String(localized:)`. Tres cadenas en `OutdatedListView.swift` y `AppDelegate.swift` usan `String(localized:)` pero no tienen entrada en `Localizable.xcstrings`.
+* [x] **Strings externalizadas** — TUI: todas las cadenas visibles al usuario pasan por `t()`. BrewBar: vistas SwiftUI usan literales extraidos automaticamente por el compilador; contextos no-SwiftUI revisados usan `String(localized:)` con entrada correspondiente en `Localizable.xcstrings`.
 * [x] **Claves semanticas** — TUI: claves de estilo `seccion_concepto` (e.g. `cleanup_confirmUninstall`, `history_filterLabel`). Consistente en todos los 271 keys. BrewBar: usa el texto ingles como clave (convencion xcstrings), aceptable para String Catalog.
 * [x] **Plurales correctos** — TUI: helper `tp(baseKey, count)` con sufijos `_one`/`_other` implementado; en uso para `plural_vulns` y `plural_warnings`. BrewBar: xcstrings define variaciones `plural.one`/`plural.other` para `%lld packages can be updated.` y `%lld updates available`. Correcto en ambos sistemas.
-* [x] **Fechas localizadas** — BrewBar: usa `.formatted(.relative(presentation: .named))` que es locale-aware. TUI: `formatRelativeTime()` usa cadenas i18n propias. Problema menor: `toLocaleDateString()` sin argumento de locale en `account.tsx` y `profiles.tsx` — usa el locale del sistema operativo en lugar del locale seleccionado en la app con `--lang=`.
+* [x] **Fechas localizadas** — BrewBar: usa `.formatted(.relative(presentation: .named))` que es locale-aware. TUI: `formatRelativeTime()` usa cadenas i18n propias y la fecha absoluta ya pasa por un helper `formatDate()` alineado con `--lang=`.
 * [x] **Numeros y moneda localizados** — TUI: no se formatean numeros monetarios en runtime (precios son strings estaticos localizados). `formatBytes()` usa `toFixed(1)` con separador decimal del sistema — aceptable para informacion tecnica de disco. BrewBar: `%lld` usa formateo del sistema.
 * [x] **Layout soporta textos largos** — TUI (Ink): basado en terminal, el layout es flexible por naturaleza. BrewBar: `PopoverView` tiene ancho fijo (340px) pero el contenido usa SwiftUI flexbox — los textos largos en espanol se adaptan correctamente (verificado en previews con `.environment(\.locale, Locale(identifier: "es"))`). `SettingsView` fija `frame(width: 300)` pero no hay texto de longitud variable que pueda truncarse.
 * [ ] **RTL contemplado si aplica** — No aplica. Los dos idiomas soportados (en/es) son LTR. No hay `.lproj` para arabe o hebreo. Marcado como no aplicable.
-* [ ] **No texto hardcodeado visible** — Tres cadenas en BrewBar usan `String(localized:)` sin entrada en xcstrings: `"Upgrade all packages?"`, `"Cancel"` (ambas en `OutdatedListView.swift`), y `"Continue"` (`AppDelegate.swift`). Adicionalmente, la clave del mensaje de licencia expirada en el codigo (`AppDelegate.swift:126`) no coincide con la clave en xcstrings, resultando en fallback al texto ingles en espanol.
+* [x] **No texto hardcodeado visible** — Las cadenas no-SwiftUI revisadas de BrewBar tienen entrada correspondiente en `Localizable.xcstrings`, incluido el flujo de licencia expirada y las nuevas alertas de apertura.
 
 ### Hallazgos
 
 | Elemento | Estado | Severidad | Evidencia | Accion |
 |----------|--------|-----------|-----------|--------|
-| Tres cadenas `String(localized:)` sin entrada en xcstrings: `"Upgrade all packages?"`, `"Cancel"`, `"Continue"` | No conforme | Alta | `OutdatedListView.swift:21,28`, `AppDelegate.swift:128` — ausentes en `Localizable.xcstrings` | Agregar las tres entradas al xcstrings con traduccion al espanol. `"Cancel"` puede omitirse si se deja el rol `.cancel` sin titulo (SwiftUI lo provee automaticamente como cadena del sistema). |
-| Clave desajustada para mensaje de licencia expirada | No conforme | Alta | Codigo: `"Your Pro license has expired or needs revalidation.\n\nRun \`brew-tui activate <key>\`..."` (AppDelegate.swift:126). xcstrings tiene la clave mas corta sin el comando ni "basic mode". Las dos cadenas son diferentes; el lookup falla. | Sincronizar: actualizar la clave en xcstrings para que coincida exactamente con la cadena del codigo, o refactorizar la cadena del codigo para que coincida con la clave existente. Agregar la traduccion al espanol correspondiente. |
+| Catalogo de strings de BrewBar alineado con las cadenas no-SwiftUI actuales | Conforme | — | `OutdatedListView.swift`, `AppDelegate.swift` y `PopoverView.swift` ya tienen entradas correspondientes en `Localizable.xcstrings` para confirmaciones y alertas. | — |
+| Mensaje de licencia expirada sincronizado con `brew-tui revalidate` | Conforme | — | `AppDelegate.swift` y `Localizable.xcstrings` comparten la misma clave completa: `"Your Pro license has expired or needs revalidation...\nRun \`brew-tui revalidate\`..."` | — |
 | Cuatro cadenas con `extractionState: stale` en xcstrings | Parcial | Baja | `"Open Brew-TUI"`, `"Retry"`, `"Service Errors"`, `"Upgrade All"` marcadas como `stale` en `Localizable.xcstrings`. Las traducciones existen y son correctas. | Ejecutar `tuist generate` y dejar que el compilador re-extraiga las cadenas para limpiar el estado stale. Sin impacto funcional pero indica que el catalogo no se ha sincronizado con el codigo fuente reciente. |
-| `toLocaleDateString()` sin argumento de locale en TUI | Parcial | Baja | `src/views/account.tsx:89,94`; `src/views/profiles.tsx:201`; `src/index.tsx:25,65` — usa el locale del sistema operativo en lugar del locale de la app (`--lang=es`). | Pasar el locale de la app: `new Date(x).toLocaleDateString(locale === 'es' ? 'es-ES' : 'en-US')` o crear un helper `formatDate(date, locale)`. |
+| Fechas absolutas de TUI alineadas con el locale de la app | Conforme | — | `src/utils/format.ts` concentra `formatDate()` y `account.tsx`, `profiles.tsx`, `index.tsx` lo usan para respetar `--lang`. | — |
 
 ---
 
@@ -74,7 +74,6 @@ El sistema de internacionalizacion del TUI TypeScript es robusto y exhaustivo: 2
 | BrewBar sin firma de codigo ni notarizacion en CI | No conforme | Critica | `.github/workflows/release.yml:62-66` — `xcodebuild` sin `CODE_SIGN_IDENTITY`, `DEVELOPMENT_TEAM`, ni paso de notarizacion. El `BrewBar.app.zip` distribuido es ad-hoc. Gatekeeper bloquea el lanzamiento en macOS por defecto. | Agregar firma con Developer ID Certificate: configurar `CODE_SIGN_IDENTITY`, `DEVELOPMENT_TEAM` como secrets en GitHub Actions. Anadir paso de notarizacion con `xcrun notarytool submit` y `xcrun stapler staple`. Requerir `archive` + `export` en lugar de solo `build`. |
 | `xcodebuild build` en lugar de `archive` en CI | No conforme | Alta | `.github/workflows/release.yml:62-66` — el comando es `build`, no `archive`. El `.app` se extrae del `DerivedData` con `find`. Sin `exportOptions.plist`. | Cambiar a `xcodebuild archive -archivePath BrewBar.xcarchive` seguido de `xcodebuild -exportArchive -exportOptionsPlist exportOptions.plist`. Agregar `ExportOptions.plist` al repositorio (ya ignorado en `.gitignore` — revisar si debe incluirse para CI). |
 | `CURRENT_PROJECT_VERSION` ausente en `Project.swift` | No conforme | Baja | `menubar/Project.swift` — solo `MARKETING_VERSION` configurado. Sin numero de build (`CFBundleVersion`). | Agregar `"CURRENT_PROJECT_VERSION": "1"` (o incrementar automaticamente en CI). Necesario para cumplimiento de App Store si se distribuyera ahi, y buena practica para rastrear builds. |
-| GitHub Packages publish sin `--provenance` | No conforme | Baja | `.github/workflows/release.yml:46` — `npm publish --access public` sin `--provenance`, a diferencia del job `publish-npm` que si lo incluye (linea 28). | Agregar `--provenance` al paso de publish en el job `publish-github-packages` para consistencia de cadena de suministro. |
 
 ---
 
@@ -82,7 +81,7 @@ El sistema de internacionalizacion del TUI TypeScript es robusto y exhaustivo: 2
 
 ### Checklist
 
-* [ ] **Flujos criticos aprobados** — Sin ningun archivo de test (0 tests, 0% cobertura, confirmado en ficha). Los flujos criticos — activacion de licencia, install/uninstall/upgrade de paquetes, smart-cleanup, importacion de perfiles — no tienen tests automatizados ni documentados.
+* [ ] **Flujos criticos aprobados** — Ya existe una base minima de tests (3 archivos / 8 tests en TypeScript), pero los flujos criticos de negocio siguen sin cobertura suficiente. Activacion de licencia, install/uninstall/upgrade, smart-cleanup e importacion de perfiles no tienen todavia tests end-to-end ni UI.
 * [x] **Bugs criticos resueltos** — Sin comentarios `// BUG:`, `// KNOWN ISSUE:` ni `// WORKAROUND:` en el codigo. Los tres `TODO` existentes son refactors tecnicos no criticos. El CHANGELOG.md v0.2.0 documenta 8 bugs corregidos desde v0.1.0.
 * [ ] **Crash-free threshold aceptable** — Sin crash reporting (no Crashlytics, Sentry, ni equivalente). Sin `fatalError` ni `try!` en paths de produccion (positivo). Sin forced unwraps (`!`) en TypeScript. Sin metrismo de estabilidad posible sin telemetria.
 * [ ] **Metricas minimas cubiertas** — Sin analytics configurado en ninguna de las dos codebases. No es posible medir retencion, conversion a Pro, ni uso de features.
@@ -93,7 +92,7 @@ El sistema de internacionalizacion del TUI TypeScript es robusto y exhaustivo: 2
 
 | Elemento | Estado | Severidad | Evidencia | Accion |
 |----------|--------|-----------|-----------|--------|
-| Cero tests automatizados | No conforme | Alta | `superaudit-report/00-ficha.md` — "Archivos de test: 0 (vitest instalado, ink-testing-library instalado, sin ningun test implementado)". Flujos criticos como activacion de licencia, install/uninstall, pro-guard, y brewbar-installer sin cobertura. | Implementar tests unitarios minimos para `license-manager.ts`, `pro-guard.ts`, `feature-gate.ts`, y `brewbar-installer.ts`. Usar `vitest` ya instalado e `ink-testing-library` para tests de vista. |
+| Cobertura automatizada aun insuficiente para release | No conforme | Alta | `npm test` ya ejecuta 3 archivos / 8 tests reales, pero no cubre flujos criticos como activacion, install/uninstall, pro-guard o `brewbar-installer` | Ampliar la cobertura con tests unitarios y de integracion para `license-manager.ts`, `feature-gate.ts`, `brewbar-installer.ts` y flujos Ink |
 | Sin crash reporting ni telemetria | No conforme | Media | No se encontro ningun SDK de crash reporting (Crashlytics, Sentry) ni analytics en ninguna de las dos codebases. | Para BrewBar: integrar `os_log` o un lightweight crash reporter. Para TUI: considerar un contador de errores anonimizado. Sin telemetria es imposible conocer la tasa de crashes en produccion. |
 | Accesibilidad ausente en BrewBar SwiftUI | No conforme | Media | `PopoverView.swift`, `OutdatedListView.swift`, `SettingsView.swift` — sin modificadores `.accessibilityLabel()` en ningun elemento interactivo. Los botones de upgrade individual, el popover, y el picker de intervalo no tienen labels de accesibilidad. | Agregar `.accessibilityLabel()` a los botones de accion en `OutdatedListView` (upgrade individual, "Upgrade All"). Verificar con Accessibility Inspector de Xcode. |
 

@@ -8,6 +8,7 @@ import { t } from '../i18n/index.js';
 import { verifyPro } from './license/pro-guard.js';
 import { useLicenseStore } from '../stores/license-store.js';
 import { fetchWithTimeout } from './fetch-timeout.js';
+import { getDegradationLevel } from './license/license-manager.js';
 
 const execFileAsync = promisify(execFile);
 const BREWBAR_APP_PATH = '/Applications/BrewBar.app';
@@ -38,6 +39,9 @@ export async function installBrewBar(force = false): Promise<void> {
   // Pro check
   const { license, status } = useLicenseStore.getState();
   if (!verifyPro(license, status)) {
+    if (license && (status === 'expired' || getDegradationLevel(license) !== 'none')) {
+      throw new Error(t('cli_brewbarRevalidateRequired'));
+    }
     throw new Error(t('cli_brewbarProRequired'));
   }
 

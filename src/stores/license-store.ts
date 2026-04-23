@@ -58,12 +58,13 @@ export const useLicenseStore = create<LicenseState>((set, get) => ({
     if (manager.needsRevalidation(license) && !_revalidating) {
       _revalidating = true;
       try {
-        const valid = await manager.revalidate(license);
-        if (!valid) {
-          set({ status: 'expired', license: { ...license, status: 'expired' } });
+        const result = await manager.revalidate(license);
+        if (result === 'expired') {
+          set({ status: 'expired', license: { ...license, status: 'expired' }, degradation: 'expired' });
         } else {
           const updated = await manager.loadLicense();
-          if (updated) set({ license: updated });
+          const effective = updated ?? license;
+          set({ license: effective, degradation: getDegradationLevel(effective) });
         }
       } finally {
         _revalidating = false;
@@ -79,12 +80,13 @@ export const useLicenseStore = create<LicenseState>((set, get) => ({
       if (_revalidating) return;
       _revalidating = true;
       try {
-        const valid = await manager.revalidate(current);
-        if (!valid) {
-          set({ status: 'expired', license: { ...current, status: 'expired' } });
+        const result = await manager.revalidate(current);
+        if (result === 'expired') {
+          set({ status: 'expired', license: { ...current, status: 'expired' }, degradation: 'expired' });
         } else {
           const updated = await manager.loadLicense();
-          if (updated) set({ license: updated });
+          const effective = updated ?? current;
+          set({ license: effective, degradation: getDegradationLevel(effective) });
         }
       } finally {
         _revalidating = false;
@@ -97,7 +99,7 @@ export const useLicenseStore = create<LicenseState>((set, get) => ({
     set({ error: null });
     try {
       const license = await manager.activate(key);
-      set({ status: 'pro', license });
+      set({ status: 'pro', license, degradation: 'none' });
       return true;
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
@@ -111,11 +113,11 @@ export const useLicenseStore = create<LicenseState>((set, get) => ({
     if (license) {
       const { remoteSuccess } = await manager.deactivate(license);
       if (!remoteSuccess) {
-        set({ status: 'free', license: null, error: 'License removed locally but server deactivation failed. It may remain active remotely.' });
+        set({ status: 'free', license: null, degradation: 'none', error: 'License removed locally but server deactivation failed. It may remain active remotely.' });
         return;
       }
     }
-    set({ status: 'free', license: null, error: null });
+    set({ status: 'free', license: null, degradation: 'none', error: null });
   },
 
   isPro: () => get().status === 'pro',

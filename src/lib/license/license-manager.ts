@@ -168,6 +168,7 @@ export function isWithinGracePeriod(license: LicenseData): boolean {
 // ── Layer 15: Gradual degradation after extended offline ──
 
 export type DegradationLevel = 'none' | 'warning' | 'limited' | 'expired';
+export type RevalidationResult = 'valid' | 'grace' | 'expired';
 
 /**
  * Returns the degradation level based on time since last server validation.
@@ -240,7 +241,7 @@ export async function activate(key: string): Promise<LicenseData> {
  * allows LemonSqueezy to track activation count, last-seen timestamp,
  * and detect if the activation limit is exceeded (license sharing).
  */
-export async function revalidate(license: LicenseData): Promise<boolean> {
+export async function revalidate(license: LicenseData): Promise<RevalidationResult> {
   try {
     const res = await apiValidate(license.key, license.instanceId);
 
@@ -252,14 +253,14 @@ export async function revalidate(license: LicenseData): Promise<boolean> {
         expiresAt: res.license_key.expires_at,
       };
       await saveLicense(updated);
-      return true;
+      return 'valid';
     }
 
     await saveLicense({ ...license, status: 'expired' });
-    return false;
+    return 'expired';
   } catch {
     // Network error: check grace period
-    return isWithinGracePeriod(license);
+    return isWithinGracePeriod(license) ? 'grace' : 'expired';
   }
 }
 

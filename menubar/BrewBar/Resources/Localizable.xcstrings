@@ -224,6 +224,39 @@
         }
       }
     },
+    "Could not open Brew-TUI" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudo abrir Brew-TUI"
+          }
+        }
+      }
+    },
+    "Could not open Brew-TUI in your terminal app." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudo abrir Brew-TUI en tu app de terminal."
+          }
+        }
+      }
+    },
+    "Continue" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Continuar"
+          }
+        }
+      }
+    },
     "Done" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -231,6 +264,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Listo"
+          }
+        }
+      }
+    },
+    "Cancel" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cancelar"
           }
         }
       }
@@ -253,6 +297,50 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Cada 8 horas"
+          }
+        }
+      }
+    },
+    "Upgrade" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Actualizar"
+          }
+        }
+      }
+    },
+    "Upgrade %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Actualizar %@"
+          }
+        }
+      }
+    },
+    "Upgrade %@?" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "¿Actualizar %@?"
+          }
+        }
+      }
+    },
+    "Upgrade all packages?" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "¿Actualizar todos los paquetes?"
           }
         }
       }
@@ -432,13 +520,13 @@
         }
       }
     },
-    "Your Pro license has expired or needs revalidation.\n\nRun brew-tui in the terminal to revalidate, or renew your subscription." : {
+    "Your Pro license has expired or needs revalidation.\n\nRun `brew-tui revalidate` in the terminal, or renew your subscription.\n\nThe app will continue in basic mode." : {
       "extractionState" : "manual",
       "localizations" : {
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tu licencia Pro ha expirado o necesita revalidación.\n\nEjecuta brew-tui en la terminal para revalidar, o renueva tu suscripción."
+            "value" : "Tu licencia Pro ha expirado o necesita revalidación.\n\nEjecuta `brew-tui revalidate` en la terminal, o renueva tu suscripción.\n\nLa app continuará en modo básico."
           }
         }
       }

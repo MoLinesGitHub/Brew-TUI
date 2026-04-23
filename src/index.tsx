@@ -2,10 +2,11 @@ import React from 'react';
 import { createInterface } from 'node:readline/promises';
 import { render } from 'ink';
 import { App } from './app.js';
-import { activate, deactivate, loadLicense } from './lib/license/license-manager.js';
+import { activate, deactivate, loadLicense, revalidate } from './lib/license/license-manager.js';
 import { ensureDataDirs } from './lib/data-dir.js';
 import { t } from './i18n/index.js';
 import { useLicenseStore } from './stores/license-store.js';
+import { formatDate } from './utils/format.js';
 
 const [,, command, arg] = process.argv;
 
@@ -23,7 +24,7 @@ async function runCli() {
       console.log(t('cli_activated', { email: license.customerEmail }));
       console.log(t('cli_planPro'));
       if (license.expiresAt) {
-        console.log(t('cli_expires', { date: new Date(license.expiresAt).toLocaleDateString() }));
+        console.log(t('cli_expires', { date: formatDate(license.expiresAt) }));
       }
     } catch (err) {
       console.error(t('cli_activationFailed', { error: err instanceof Error ? err.message : String(err) }));
@@ -53,6 +54,31 @@ async function runCli() {
     return;
   }
 
+  if (command === 'revalidate') {
+    const license = await loadLicense();
+    if (!license) {
+      console.log(t('cli_noLicense'));
+      process.exit(1);
+    }
+
+    const result = await revalidate(license);
+    if (result === 'expired') {
+      console.error(t('cli_revalidateFailed'));
+      process.exit(1);
+    }
+
+    const updated = await loadLicense();
+    if (result === 'grace') {
+      console.warn(t('cli_revalidateGrace'));
+    } else {
+      console.log(t('cli_revalidated'));
+    }
+    if (updated?.expiresAt) {
+      console.log(t('cli_expires', { date: formatDate(updated.expiresAt) }));
+    }
+    return;
+  }
+
   if (command === 'status') {
     await useLicenseStore.getState().initialize();
     const { status, license, degradation } = useLicenseStore.getState();
@@ -61,7 +87,8 @@ async function runCli() {
       console.log(t('cli_planFree'));
       console.log(t('cli_upgradeHint'));
     } else {
-      console.log(t('cli_planPro'));
+      const planLabel = status === 'expired' ? t('cli_planExpired') : t('cli_planPro');
+      console.log(planLabel);
       if (license) {
         console.log(t('cli_email', { email: license.customerEmail }));
       }
@@ -72,14 +99,15 @@ async function runCli() {
       console.log(t('cli_status', { status: statusText }));
 
       if (license?.expiresAt) {
-        console.log(t('cli_expires', { date: new Date(license.expiresAt).toLocaleDateString() }));
+        console.log(t('cli_expires', { date: formatDate(license.expiresAt) }));
       }
       if (status === 'expired') {
-        console.log(t('cli_upgradeHint'));
+        console.log(t('cli_revalidateHint'));
       }
       if (status === 'pro' && degradation !== 'none' && license) {
         const days = Math.floor((Date.now() - new Date(license.lastValidatedAt).getTime()) / (24 * 60 * 60 * 1000));
         console.log(t('license_offlineWarning', { days }));
+        console.log(t('cli_revalidateHint'));
       }
     }
     return;

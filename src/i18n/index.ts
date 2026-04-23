@@ -34,6 +34,10 @@ export const useLocaleStore = create<LocaleState>((set) => ({
   setLocale: (locale) => set({ locale }),
 }));
 
+export function getLocale(): Locale {
+  return useLocaleStore.getState().locale;
+}
+
 // ── Translation function ──
 export function t(key: TranslationKey, values?: Record<string, string | number>): string {
   const locale = useLocaleStore.getState().locale;

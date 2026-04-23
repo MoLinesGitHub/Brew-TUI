@@ -48,7 +48,7 @@ const VIEW_KEYS: Record<ViewId, string> = {
 };
 
 const TAB_VIEWS: ViewId[] = [
-  'dashboard', 'installed', 'search', 'outdated', 'services', 'doctor',
+  'dashboard', 'installed', 'search', 'outdated', 'package-info', 'services', 'doctor',
   'profiles', 'smart-cleanup', 'history', 'security-audit', 'account',
 ];
 

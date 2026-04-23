@@ -36,7 +36,11 @@ export function SearchView() {
   }, [results]);
 
   const doSearch = useCallback(async (term: string) => {
-    if (term.length < 2) return;
+    if (term.length < 2) {
+      setResults(null);
+      setSearchError(t('search_minChars'));
+      return;
+    }
     setSearching(true);
     setSearchError(null);
     try {
@@ -66,6 +70,12 @@ export function SearchView() {
   useInput((input, key) => {
     if (stream.isRunning) {
       if (key.escape) stream.cancel();
+      return;
+    }
+    if (stream.lines.length > 0) {
+      if (key.escape) {
+        stream.clear();
+      }
       return;
     }
     if (confirmInstall) return;
@@ -116,7 +126,7 @@ export function SearchView() {
                 {stream.error ? `\u2718 ${stream.error}` : `\u2714 ${t('search_installComplete')}`}
               </Text>
             </Box>
-            <Text color="#6B7280">esc:{t('hint_back')}</Text>
+            <Text color="#6B7280">esc:{t('hint_clear')}</Text>
           </Box>
         )}
       </Box>

@@ -65,6 +65,7 @@ struct PopoverView: View {
             }
             .buttonStyle(.borderless)
             .disabled(appState.isLoading)
+            .accessibilityLabel(String(localized: "Retry"))
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 10)
@@ -153,6 +154,7 @@ struct PopoverView: View {
                     .font(.caption)
             }
             .buttonStyle(.borderless)
+            .accessibilityLabel(String(localized: "Open Brew-TUI"))
 
             Spacer()
 
@@ -168,6 +170,7 @@ struct PopoverView: View {
                 Image(systemName: "gear")
             }
             .buttonStyle(.borderless)
+            .accessibilityLabel(String(localized: "BrewBar Settings"))
 
             Button {
                 NSApp.terminate(nil)
@@ -175,6 +178,7 @@ struct PopoverView: View {
                 Image(systemName: "power")
             }
             .buttonStyle(.borderless)
+            .accessibilityLabel(String(localized: "Quit"))
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
@@ -194,10 +198,42 @@ struct PopoverView: View {
     }
 
     private func openBrewTUI() {
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/usr/bin/open")
-        process.arguments = ["-a", "Terminal", "--args", "-e", "brew-tui"]
-        try? process.run()
+        do {
+            let scriptURL = try makeLaunchScript()
+            guard NSWorkspace.shared.open(scriptURL) else {
+                throw NSError(
+                    domain: "BrewBar",
+                    code: 1,
+                    userInfo: [NSLocalizedDescriptionKey: String(localized: "Could not open Brew-TUI in your terminal app.")]
+                )
+            }
+        } catch {
+            let alert = NSAlert()
+            alert.messageText = String(localized: "Could not open Brew-TUI")
+            alert.informativeText = error.localizedDescription
+            alert.alertStyle = .warning
+            alert.addButton(withTitle: String(localized: "Continue"))
+            alert.runModal()
+        }
+    }
+
+    private func makeLaunchScript() throws -> URL {
+        let tempURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent("brew-tui-launch", isDirectory: true)
+        try FileManager.default.createDirectory(at: tempURL, withIntermediateDirectories: true, attributes: nil)
+
+        let scriptURL = tempURL.appendingPathComponent("brew-tui.command")
+        let script = """
+        #!/bin/zsh
+        exec brew-tui
+        """
+
+        try script.write(to: scriptURL, atomically: true, encoding: .utf8)
+        try FileManager.default.setAttributes(
+            [.posixPermissions: 0o755],
+            ofItemAtPath: scriptURL.path
+        )
+        return scriptURL
     }
 }
 

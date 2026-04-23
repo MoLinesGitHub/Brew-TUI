@@ -4,20 +4,20 @@
 
 ## Resumen ejecutivo
 
-Brew-TUI v0.2.0 mantiene una cobertura de test del **0%** en ambas codebases (TypeScript y Swift). La version 0.2.0 introduce dos mejoras verificadas respecto a v0.1.0: `NODE_ENV` se inyecta en tiempo de compilacion via tsup, y el workflow `release.yml` ejecuta `typecheck` y `test` antes de publicar; sin embargo, al no existir ningun test, el paso `npm run test` siempre pasa en verde de forma vacia, ofreciendo una falsa garantia de calidad. La observabilidad es igualmente inexistente: ni crash reporting, ni analytics, ni logging estructurado en ninguno de los dos targets.
+Brew-TUI v0.2.0 ya no esta en `0 tests`: el repo incorpora una base minima de cobertura en TypeScript con 3 archivos y 8 tests Vitest para parsers, deduplicacion de `brew-store` y revalidacion/degradacion del `license-store`. La cobertura sigue siendo baja, no hay tests de integracion ni UI, y BrewBar continua sin target XCTest/XCUITest. La observabilidad sigue siendo inexistente: ni crash reporting, ni analytics, ni logging estructurado en ninguno de los dos targets.
 
 ---
 
 ## Metricas de testing
 
-* **Total archivos de test:** 0
-* **Total metodos de test:** 0
-* **Frameworks de test:** vitest ^3.0.0 (instalado, sin configuracion ni tests), ink-testing-library ^4.0.0 (instalado, sin uso)
-* **Tests unitarios:** 0
+* **Total archivos de test:** 3
+* **Total metodos de test:** 8
+* **Frameworks de test:** vitest ^3.0.0 (en uso), ink-testing-library ^4.0.0 (instalado, sin uso)
+* **Tests unitarios:** 8
 * **Tests de integracion:** 0
 * **Tests de UI:** 0
 * **Tests de snapshot:** 0
-* **Tests deshabilitados/saltados:** 0 (no aplica — no existen tests)
+* **Tests deshabilitados/saltados:** 0
 * **Targets de test Swift (XCTest):** 0 — `menubar/Project.swift` define un unico target `BrewBar` sin target de tests
 
 ---
@@ -26,20 +26,20 @@ Brew-TUI v0.2.0 mantiene una cobertura de test del **0%** en ambas codebases (Ty
 
 ### Checklist
 
-* [ ] Casos de uso cubiertos — No existe ningun archivo de test. Las funciones `activate`, `revalidate`, `deactivate`, `analyzeCleanup`, `runSecurityAudit`, `exportCurrentSetup`, `importProfile` no tienen ni un unico test.
-* [ ] Logica de dominio cubierta — `license-manager.ts`, `cleanup-analyzer.ts`, `osv-api.ts`, `history-logger.ts` no tienen tests. La logica de degradacion gradual (`getDegradationLevel`) y el rate limiting de activaciones son criticos y carecen de cobertura.
-* [ ] Mapping cubierto — `json-parser.ts` y `text-parser.ts` contienen funciones de parseo puras (`parseInstalledJson`, `parseOutdatedJson`, `parseSearchResults`, `parseDoctorOutput`, `parseBrewConfig`) ideales para tests unitarios; ningun test existe.
+* [ ] Casos de uso cubiertos — Hay una base minima de tests, pero solo cubre parsers, deduplicacion de `fetchAll()` y refresco de degradacion tras revalidacion. Las funciones `activate`, `revalidate` (end-to-end), `deactivate`, `analyzeCleanup`, `runSecurityAudit`, `exportCurrentSetup`, `importProfile` siguen sin cobertura directa.
+* [ ] Logica de dominio cubierta — `license-manager.ts`, `cleanup-analyzer.ts`, `osv-api.ts`, `history-logger.ts` siguen mayoritariamente sin tests. La logica de degradacion gradual (`getDegradationLevel`) y el rate limiting de activaciones siguen sin cobertura unitaria directa.
+* [ ] Mapping cubierto — `json-parser.ts` y `text-parser.ts` ya tienen cobertura parcial (`parseSearchResults`, `parseDoctorOutput`, `parseLeavesOutput`, `parseServicesJson`), pero quedan fuera `parseInstalledJson`, `parseOutdatedJson` y `parseBrewConfig`.
 * [ ] Validaciones cubiertas — `validateProfileName`, `validateLicenseKey`, `validateApiUrl` (polar-api.ts), validaciones de patrones `TAP_PATTERN`/`PKG_PATTERN` (profile-manager.ts) no estan cubiertas por ningun test.
-* [ ] Casos borde cubiertos — Ningun caso borde cubierto: inputs vacios, nil/undefined, tokens malformados, respuestas JSON truncadas, fechas invalidas en licencia.
+* [ ] Casos borde cubiertos — Hay algunos casos borde cubiertos (normalizacion de campos ausentes en services, licencia expirada tras revalidacion), pero siguen faltando inputs vacios, JSON truncado, tokens malformados y fechas invalidas en licencia.
 
 ### Hallazgos
 
 | Elemento | Estado | Severidad | Evidencia | Accion |
 |----------|--------|-----------|-----------|--------|
-| Cobertura unit tests = 0% | No conforme | Critica | 0 archivos `.test.ts` en todo `src/` | Implementar tests unitarios comenzando por `parsers/`, `license-manager.ts` y `utils/format.ts` |
+| Cobertura unitaria aun muy limitada | No conforme | Alta | 3 archivos `.test.ts` / 8 tests en `src/`, concentrados en `parsers`, `brew-store` y `license-store` | Ampliar la cobertura unitaria hacia `license-manager.ts`, `cleanup-analyzer.ts`, `osv-api.ts`, `profile-manager.ts` y `utils/format.ts` |
 | `getDegradationLevel` sin test | No conforme | Critica | `src/lib/license/license-manager.ts:179` — logica de time-bomb critica para el modelo de negocio | Cubrir todos los rangos de tiempo (0-7d, 7-14d, 14-30d, 30+d) con tests de fecha inyectada |
 | Rate limiting en memoria sin test | No conforme | Alta | `src/lib/license/license-manager.ts:29-58` — `checkRateLimit` y `recordAttempt` sin tests | Verificar lockout tras MAX_ATTEMPTS y reset en caso de exito |
-| Parsers puros sin test | No conforme | Alta | `src/lib/parsers/json-parser.ts`, `src/lib/parsers/text-parser.ts` — funciones deterministicas sin tests | Crear `json-parser.test.ts` y `text-parser.test.ts` con fixtures de output real de brew |
+| Parsers puros cubiertos solo parcialmente | Parcial | Media | `src/lib/parsers/parsers.test.ts` cubre `parseSearchResults`, `parseDoctorOutput`, `parseLeavesOutput` y `parseServicesJson`, pero no `parseInstalledJson`, `parseOutdatedJson` ni `parseBrewConfig` | Completar la cobertura con fixtures reales de `brew info`, `brew outdated --json` y `brew config` |
 | `validateProfileName` sin test | No conforme | Alta | `src/lib/profiles/profile-manager.ts:25-35` — path traversal prevention sin cobertura | Cubrir: nombre vacio, longitud maxima, caracteres especiales, `../` traversal |
 | Canary functions sin test | No conforme | Media | `src/lib/license/canary.ts` — `checkCanaries()` no verificado por tests automatizados | Anadir test que verifique que `isProUnlocked()`, `hasProAccess()`, `isLicenseValid()` retornan false |
 
@@ -59,7 +59,7 @@ Brew-TUI v0.2.0 mantiene una cobertura de test del **0%** en ambas codebases (Ty
 
 | Elemento | Estado | Severidad | Evidencia | Accion |
 |----------|--------|-----------|-----------|--------|
-| Flujo de licencia sin test end-to-end | No conforme | Critica | `src/lib/license/` — 10 archivos, 0 tests | Crear test de integracion con filesystem temporal: activate → saveLicense → loadLicense → decrypt → revalidate |
+| Flujo de licencia sin test end-to-end | No conforme | Critica | `src/lib/license/` ya tiene cobertura indirecta via `license-store.test.ts`, pero sigue sin tests de integracion reales sobre disco/red | Crear test de integracion con filesystem temporal: activate → saveLicense → loadLicense → decrypt → revalidate |
 | AES-256-GCM round-trip sin verificacion | No conforme | Alta | `src/lib/license/license-manager.ts:73-103` — cifrado/descifrado sin test | Test que encripte y desencripte datos de licencia verificando integridad del GCM tag |
 | `polar-api.ts` sin mock de red | No conforme | Alta | `src/lib/license/polar-api.ts` — calls a `https://api.polar.sh` sin test | Usar `vi.mock` o MSW para simular respuestas de Polar: activacion exitosa, clave invalida, red caida |
 | `osv-api.ts` fallback HTTP 400 sin test | No conforme | Alta | `src/lib/security/osv-api.ts:72-77` — rama critica de recuperacion sin test | Test que simule HTTP 400 del batch y verifique fallback a `queryOneByOne` |

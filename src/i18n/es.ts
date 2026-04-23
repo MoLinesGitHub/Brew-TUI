@@ -134,6 +134,7 @@ const es: Translations = {
   search_formulaeHeader: '=== Formulae ({{count}})',
   search_casksHeader: '=== Casks ({{count}})',
   search_noResults: 'Sin resultados',
+  search_minChars: 'Escribe al menos 2 caracteres para buscar.',
 
   // ── Outdated ──
   outdated_title: 'Paquetes Desactualizados ({{count}})',
@@ -262,6 +263,7 @@ const es: Translations = {
   account_activateCmd: 'brew-tui activate <clave>',
   account_licenseExpired: 'Tu licencia ha expirado. Renueva para seguir usando las funciones Pro.',
   account_deactivating: 'Desactivando...',
+  account_loading: 'Cargando estado de la licencia...',
 
   // ── Upgrade Prompt ──
   upgrade_proFeature: '{{title}} \u2014 Funci\u00F3n Pro',
@@ -302,11 +304,16 @@ const es: Translations = {
   cli_deactivated: '\u2714 Licencia desactivada.',
   cli_planFree: 'Plan: Gratis',
   cli_planPro: 'Plan: Pro',
+  cli_planExpired: 'Plan: Expirada',
   cli_confirmDeactivate: '\u00BFDesactivar tu licencia Pro en esta m\u00E1quina? (s/N): ',
   cli_deactivateCancelled: 'Desactivaci\u00F3n cancelada.',
   cli_upgradeHint: 'Ejecuta `brew-tui activate <clave>` para actualizar a Pro.',
+  cli_revalidateHint: 'Ejecuta `brew-tui revalidate` para refrescar tu licencia actual.',
   cli_email: 'Email: {{email}}',
   cli_status: 'Estado: {{status}}',
+  cli_revalidated: '\u2714 Licencia revalidada.',
+  cli_revalidateGrace: '\u26A0 No se pudo contactar al servidor. Tu licencia actual sigue siendo usable dentro del periodo de gracia offline.',
+  cli_revalidateFailed: '\u2718 La revalidaci\u00F3n de la licencia fall\u00F3. Renueva tu suscripci\u00F3n o activa una clave v\u00E1lida.',
   cli_rateLimited: 'Demasiados intentos de activaci\u00F3n. Int\u00E9ntalo en {{minutes}} minutos.',
   cli_cooldown: 'Por favor espera antes de intentar de nuevo.',
   cli_brewbarInstalling: 'Descargando BrewBar...',
@@ -315,6 +322,7 @@ const es: Translations = {
   cli_brewbarUninstalled: '\u2714 BrewBar eliminado de /Applications.',
   cli_brewbarNotInstalled: 'BrewBar no est\u00E1 instalado.',
   cli_brewbarProRequired: '\u2718 BrewBar requiere una licencia Pro.\n  Ejecuta: brew-tui activate <clave>',
+  cli_brewbarRevalidateRequired: '\u2718 BrewBar requiere una licencia Pro v\u00E1lida.\n  Ejecuta: brew-tui revalidate',
   cli_brewbarMacOnly: '\u2718 BrewBar solo est\u00E1 disponible en macOS.',
   cli_brewbarDownloadFailed: '\u2718 Error al descargar BrewBar: {{error}}',
   cli_deactivateRemoteFailed: '\u26A0 Advertencia: No se pudo contactar al servidor para desactivar remotamente. La licencia se elimin\u00F3 localmente pero puede seguir contando como activa.',

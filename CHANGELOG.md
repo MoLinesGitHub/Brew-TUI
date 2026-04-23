@@ -19,6 +19,12 @@
 - Installed: ProgressLog dismissible with Esc after uninstall
 - BrewBar: Upgrade All now requires confirmation
 - BrewBar: Expired license no longer terminates app
+- CLI: `status` now reports expired licenses correctly
+- CLI: `install-brewbar` now evaluates the current license before requiring Pro
+- Dashboard: partial Homebrew fetch failures now surface explicit warnings instead of misleading stats
+- License: revalidation now refreshes degradation state instead of leaving stale warnings
+- BrewBar: expired-license guidance now points to `brew-tui revalidate`
+- BrewBar: expired licenses now fall back to actual basic mode with upgrades disabled
 
 ### Improved
 - Dynamic terminal row adaptation (no more hardcoded 20 rows)
@@ -28,11 +34,14 @@
 - fetchAll no longer blocks on brew update
 - BrewBar badge timer reduced from 2s to 30s
 - Parallel refresh in BrewBar (outdated + services)
+- CLI: new `revalidate` command for existing licenses
+- Docs and release notes aligned with the current npm-only publish flow
 
 ### Added
 - Color tokens file (src/utils/colors.ts)
 - Fetch timeout utility
 - CHANGELOG.md
+- Vitest coverage for parsers, `brew-store` concurrency, and `license-store` revalidation
 
 ## [0.1.0] - 2026-04-22
 - Initial release

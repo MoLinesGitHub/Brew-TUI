@@ -2,9 +2,11 @@ import React, { useState } from 'react';
 import { Box, Text, useInput } from 'ink';
 import { useLicenseStore } from '../stores/license-store.js';
 import { ConfirmDialog } from '../components/common/confirm-dialog.js';
+import { Loading } from '../components/common/loading.js';
 import { SectionHeader } from '../components/common/section-header.js';
 import { GRADIENTS } from '../utils/gradient.js';
 import { t } from '../i18n/index.js';
+import { formatDate } from '../utils/format.js';
 
 export function AccountView() {
   const { status, license, deactivate, degradation } = useLicenseStore();
@@ -23,6 +25,10 @@ export function AccountView() {
     if (key.length <= 8) return key;
     return key.slice(0, 4) + '-****-****-' + key.slice(-4);
   };
+
+  if (status === 'validating') {
+    return <Loading message={t('account_loading')} />;
+  }
 
   return (
     <Box flexDirection="column">
@@ -52,7 +58,6 @@ export function AccountView() {
           {status === 'pro' && <Text color="#22C55E" bold>{t('account_pro')}</Text>}
           {status === 'free' && <Text color="#9CA3AF">{t('account_free')}</Text>}
           {status === 'expired' && <Text color="#EF4444">{t('account_expired')}</Text>}
-          {status === 'validating' && <Text color="#38BDF8">{t('account_validating')}</Text>}
         </Box>
 
         {(degradation === 'warning' || degradation === 'limited') && license && (
@@ -86,12 +91,12 @@ export function AccountView() {
             {license.expiresAt && (
               <Box gap={1}>
                 <Text color="#9CA3AF">{t('account_expiresLabel')}</Text>
-                <Text>{new Date(license.expiresAt).toLocaleDateString()}</Text>
+                <Text>{formatDate(license.expiresAt)}</Text>
               </Box>
             )}
             <Box gap={1}>
               <Text color="#9CA3AF">{t('account_activatedLabel')}</Text>
-              <Text>{new Date(license.activatedAt).toLocaleDateString()}</Text>
+              <Text>{formatDate(license.activatedAt)}</Text>
             </Box>
           </>
         )}

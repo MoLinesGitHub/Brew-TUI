@@ -4,7 +4,7 @@
 
 ## Resumen ejecutivo
 
-Brew-TUI v0.2.0 presenta una codebase de UI saludable en lo estructural: los fixes del ciclo anterior estan verificados (navegacion por historial, tamaños dinamicos, memoizacion de GradientText, errores visibles, claves React estables). Los hallazgos pendientes son de severidad media o baja y no bloquean ninguna funcionalidad critica. El riesgo mayor residual es de deuda tecnica acumulada — el archivo `COLORS.ts` creado como fix no tiene ninguna importacion (189 literales hex permanecen inline), y `ProfilesView` concentra 7 modos de interaccion sin descomposicion. BrewBar mantiene una estructura Swift ejemplar con cobertura de previews excelente y separacion limpia de responsabilidades.
+Brew-TUI v0.2.0 presenta una codebase de UI saludable en lo estructural: los fixes del ciclo anterior estan verificados (navegacion por historial, tamaños dinamicos, memoizacion de GradientText, errores visibles, claves React estables), y en esta pasada quedaron corregidos varios hallazgos bajos del frontend operativo (`package-info` en la cabecera, loading de `AccountView`, paginacion de `ServicesView` y feedback de lanzamiento de BrewBar). Los riesgos residuales siguen siendo principalmente de deuda tecnica acumulada — el archivo `COLORS.ts` creado como fix no tiene ninguna importacion (189 literales hex permanecen inline), y `ProfilesView` concentra 7 modos de interaccion sin descomposicion. BrewBar mantiene una estructura Swift ejemplar con cobertura de previews excelente y separacion limpia de responsabilidades.
 
 ---
 
@@ -14,7 +14,7 @@ Brew-TUI v0.2.0 presenta una codebase de UI saludable en lo estructural: los fix
 
 * [x] Root views identificadas
 * [x] Contenedores claros
-* [ ] Navegacion consistente *(ver hallazgo FE-01)*
+* [x] Navegacion consistente
 * [x] Separacion entre layout y comportamiento
 * [ ] Subvistas extraidas por intencion de dominio *(ver hallazgo FE-02)*
 * [ ] No hay vistas gigantes dificiles de mantener *(ver hallazgo FE-02)*
@@ -23,7 +23,7 @@ Brew-TUI v0.2.0 presenta una codebase de UI saludable en lo estructural: los fix
 
 | Elemento | Estado | Severidad | Evidencia | Accion |
 |----------|--------|-----------|-----------|--------|
-| FE-01: `package-info` en VIEWS pero ausente de TAB_VIEWS en header | No conforme | Baja | `src/stores/navigation-store.ts` incluye `'package-info'` en `VIEWS`; `src/components/layout/header.tsx` lo excluye de `TAB_VIEWS`. Tab cycling puede llegar a esta vista sin que aparezca destacada en el nav bar. | Agregar `package-info` a `TAB_VIEWS` en `header.tsx`, o sacarlo de `VIEWS` si debe ser solo accesible por navegacion directa desde otra vista. |
+| FE-01: `package-info` visible y consistente en la cabecera | Conforme | — | `src/components/layout/header.tsx` ya incluye `'package-info'` en `TAB_VIEWS`, manteniendo la vista destacada cuando esta activa. | — |
 | FE-02: `ProfilesView` con 7 modos inline y 267 lineas | No conforme | Media | `src/views/profiles.tsx` — FSM con `mode: 'list' \| 'detail' \| 'create-name' \| 'create-desc' \| 'importing' \| 'edit-name' \| 'edit-desc'`, cada rama renderiza un arbol JSX completamente diferente dentro del mismo componente. | Extraer subcomponentes con nombres de dominio: `<ProfileListMode>`, `<ProfileDetailMode>`, `<ProfileCreateFlow>`, `<ProfileEditFlow>`. El componente padre solo orquesta la maquina de estados. |
 | FE-03: `app.tsx` mezcla inicializacion de licencia con routing de vistas | No conforme | Baja | `src/app.tsx:8` — `useEffect(()=>{ initLicense(); }, [])` y el switch de routing conviven en el mismo componente. Comentario TODO presente en linea 5. | Extraer `<LicenseInitializer>` y `<ViewRouter>` como se indica en el TODO. Mejora legibilidad y testabilidad sin cambio de comportamiento. |
 
@@ -63,7 +63,7 @@ Brew-TUI v0.2.0 presenta una codebase de UI saludable en lo estructural: los fix
 * [x] Error recuperable — `if (errors.installed) return <ErrorMessage>`
 * [ ] Error fatal — No aplica (sin errores irrecuperables en este contexto)
 * [ ] Sin conexion — No aplica (brew es herramienta local)
-* [ ] Datos parciales — No conforme: el bloque de configuracion se renderiza condicionalmente con `{config && (...)}` sin indicador de carga separado para config; si `config` tarda, la seccion simplemente no aparece sin feedback.
+* [x] Datos parciales — Conforme: `DashboardView` ya marca fallos parciales de `outdated`, `services` y `config` con un bloque de advertencia visible, y evita mostrar cifras engañosas cuando esas fuentes fallan.
 * [ ] Permiso denegado — No aplica
 * [ ] Modo edicion — No aplica (vista de solo lectura)
 * [ ] Confirmacion — No aplica (sin acciones destructivas en dashboard)
@@ -237,8 +237,8 @@ Brew-TUI v0.2.0 presenta una codebase de UI saludable en lo estructural: los fix
 #### AccountView
 
 * **Ruta:** `src/views/account.tsx`
-* [ ] Estado inicial — No conforme: mientras `status === 'validating'` la seccion de licencia renderiza el label pero sin indicador de carga; el usuario ve contenido vacio sin explicacion durante el tiempo de validacion inicial
-* [ ] Cargando — No conforme: no hay `<Loading>` / spinner durante validacion de licencia
+* [x] Estado inicial — Conforme: mientras `status === 'validating'` la vista devuelve `<Loading>` y evita renderizar contenido vacio
+* [x] Cargando — Conforme: hay `<Loading>` explicito durante la validacion inicial de licencia
 * [x] Vacio — Estado free/expirado con CTA de upgrade
 * [x] Error recuperable — `error` string del store visible en UI
 * [ ] Error fatal — No aplica
@@ -310,9 +310,8 @@ Brew-TUI v0.2.0 presenta una codebase de UI saludable en lo estructural: los fix
 
 | Elemento | Estado | Severidad | Evidencia | Accion |
 |----------|--------|-----------|-----------|--------|
-| FE-04: `AccountView` sin indicador de carga durante `status === 'validating'` | No conforme | Baja | `src/views/account.tsx` — el estado `validating` no tiene rama de `<Loading>`. El usuario ve la seccion de licencia vacia durante el tiempo de inicializacion del store. | Agregar `if (status === 'validating') return <Loading message={t('loading_license')} />` o un placeholder de skeleton antes del switch de estados. |
-| FE-05: `DashboardView` sin loading guard para `config` | No conforme | Baja | `src/views/dashboard.tsx` — `{config && (...)}` renderiza la seccion de configuracion sin feedback si `config` esta pendiente. | Agregar `{loading.config ? <Text dimColor>{t('loading_config')}</Text> : config && (...)}` para el bloque de configuracion. |
-| FE-06: `ServicesView` sin paginacion en lista de servicios | No conforme | Baja | `src/views/services.tsx` — `services.map()` sin limite ni `MAX_VISIBLE_ROWS`. En sistemas con muchos servicios (>20) la lista puede exceder el viewport sin posibilidad de scroll. | Aplicar el mismo patron `MAX_VISIBLE_ROWS = Math.max(5, (stdout?.rows ?? 24) - 8)` con paginacion `j/k` que usan `InstalledView`, `OutdatedView` e `HistoryView`. |
+| FE-04: `AccountView` con loading explicito durante `status === 'validating'` | Conforme | — | `src/views/account.tsx` devuelve `<Loading>` mientras se inicializa el estado de licencia, evitando un panel vacio. | — |
+| FE-06: `ServicesView` con paginacion para listas largas | Conforme | — | `src/views/services.tsx` usa `MAX_VISIBLE_ROWS`, ventana visible y pistas `scroll_moreAbove/Below`, alineandose con las demas vistas largas. | — |
 
 ---
 
@@ -381,7 +380,7 @@ Brew-TUI v0.2.0 presenta una codebase de UI saludable en lo estructural: los fix
 
 | Elemento | Estado | Severidad | Evidencia | Accion |
 |----------|--------|-----------|-----------|--------|
-| FE-08: `openBrewTUI()` en BrewBar silencia errores de lanzamiento | No conforme | Baja | `menubar/BrewBar/Sources/App/AppDelegate.swift` — `try? process.run()` descarta silenciosamente cualquier error de lanzamiento del proceso. Si brew-tui no esta instalado o el path es incorrecto, el usuario no recibe feedback. | Sustituir `try?` por un bloque `do/catch` que muestre un `NSAlert` con el error de lanzamiento. El check de `which brew-tui` al inicio reduce la probabilidad pero no la elimina. |
+| FE-08: `openBrewTUI()` muestra feedback al fallar | Conforme | — | `menubar/BrewBar/Sources/Views/PopoverView.swift` usa `do/catch`, genera un `.command` temporal y muestra `NSAlert` si no puede abrir Brew-TUI. | — |
 
 ### Registro de motion
 
@@ -464,22 +463,17 @@ Brew-TUI v0.2.0 presenta una codebase de UI saludable en lo estructural: los fix
 | Critica | 0 |
 | Alta | 0 |
 | Media | 2 |
-| Baja | 12 |
+| Baja | 7 |
 
-**Total hallazgos no conformes:** 14
+**Total hallazgos no conformes:** 9
 
 ### Indice de hallazgos
 
 | ID | Descripcion | Seccion | Severidad | Archivo principal |
 |----|-------------|---------|-----------|-------------------|
-| FE-01 | `package-info` en VIEWS pero ausente de TAB_VIEWS | 5.1 | Baja | `src/components/layout/header.tsx` |
 | FE-02 | `ProfilesView` 267 lineas con 7 modos inline sin descomposicion | 5.1 | Media | `src/views/profiles.tsx` |
 | FE-03 | `app.tsx` mezcla inicializacion de licencia con routing | 5.1 | Baja | `src/app.tsx` |
-| FE-04 | `AccountView` sin loading durante `status === 'validating'` | 5.3 | Baja | `src/views/account.tsx` |
-| FE-05 | `DashboardView` sin guard de carga para bloque `config` | 5.3 | Baja | `src/views/dashboard.tsx` |
-| FE-06 | `ServicesView` sin paginacion para listas largas | 5.3 | Baja | `src/views/services.tsx` |
 | FE-07 | BrewBar PopoverView frame fijo puede truncar texto con Dynamic Type grande | 5.4 | Baja | `menubar/BrewBar/Sources/Views/PopoverView.swift` |
-| FE-08 | `openBrewTUI()` silencia errores de lanzamiento con `try?` | 9.2 | Baja | `menubar/BrewBar/Sources/App/AppDelegate.swift` |
 | FE-09 | Clave composite en `ProgressLog` puede causar parpadeo | 10.1 | Baja | `src/components/common/progress-log.tsx` |
 | FE-10 | `key={j}` en lineas de warning en `DoctorView` | 10.1 | Baja | `src/views/doctor.tsx` |
 | FE-11 | `Task {}` anonimos en botones de BrewBar sin handle de cancelacion | 10.2 | Baja | `menubar/BrewBar/Sources/Views/OutdatedListView.swift` |

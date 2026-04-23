@@ -326,5 +326,5 @@ Brew-TUI v0.2.0 es un proyecto hibrido compuesto por dos codebases independiente
 * **Total targets:** 2 (brew-tui CLI/TUI + BrewBar macOS app)
 * **Total features TUI:** 14 (12 vistas + CLI subcommands + BrewBar app)
 * **Total dependencias externas (produccion):** 4 npm + 5 Apple frameworks + 3 APIs externas
-* **Archivos de test:** 0 (vitest instalado, ink-testing-library instalado, sin ningun test implementado)
-* **Cobertura de test:** 0%
+* **Archivos de test:** 3 (`src/lib/parsers/parsers.test.ts`, `src/stores/brew-store.test.ts`, `src/stores/license-store.test.ts`)
+* **Cobertura de test:** No instrumentada; suite minima presente con 8 tests Vitest en TypeScript

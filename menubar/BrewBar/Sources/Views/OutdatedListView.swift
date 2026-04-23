@@ -3,6 +3,7 @@ import SwiftUI
 struct OutdatedListView: View {
     let appState: AppState
     @State private var showUpgradeAllConfirm = false
+    @State private var packageToConfirm: OutdatedPackage?
 
     var body: some View {
         VStack(spacing: 0) {
@@ -18,6 +19,7 @@ struct OutdatedListView: View {
                     .buttonStyle(.borderedProminent)
                     .controlSize(.small)
                     .disabled(appState.isLoading)
+                    .accessibilityLabel(String(localized: "Upgrade All"))
                     .confirmationDialog(
                         String(localized: "Upgrade all packages?"),
                         isPresented: $showUpgradeAllConfirm,
@@ -75,12 +77,32 @@ struct OutdatedListView: View {
             // Note: Task in button action — .task modifier not applicable here
             if appState.canUpgrade {
                 Button {
-                    Task { await appState.upgrade(package: pkg.name) }
+                    packageToConfirm = pkg
                 } label: {
                     Image(systemName: "arrow.up.circle")
                 }
                 .buttonStyle(.borderless)
                 .disabled(appState.isLoading || pkg.pinned)
+                .accessibilityLabel(
+                    String(format: String(localized: "Upgrade %@", comment: "Accessibility label for upgrading a single package"), pkg.name)
+                )
+                .confirmationDialog(
+                    String(format: String(localized: "Upgrade %@?"), pkg.name),
+                    isPresented: Binding(
+                        get: { packageToConfirm?.id == pkg.id },
+                        set: { isPresented in
+                            if !isPresented {
+                                packageToConfirm = nil
+                            }
+                        }
+                    ),
+                    titleVisibility: .visible
+                ) {
+                    Button(String(localized: "Upgrade"), role: .destructive) {
+                        Task { await appState.upgrade(package: pkg.name) }
+                    }
+                    Button(String(localized: "Cancel"), role: .cancel) {}
+                }
             } else {
                 Image(systemName: "lock.fill")
                     .font(.caption)

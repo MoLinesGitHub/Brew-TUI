@@ -39,6 +39,17 @@ export function OutdatedView() {
       if (key.escape) stream.cancel();
       return;
     }
+    if (stream.lines.length > 0) {
+      if (key.escape) {
+        stream.clear();
+        return;
+      }
+      if (input === 'r') {
+        stream.clear();
+        void fetchOutdated();
+      }
+      return;
+    }
     if (confirmAction) return;
 
     if (input === 'j' || key.downArrow) {
@@ -85,7 +96,7 @@ export function OutdatedView() {
               </Text>
               <Text color="#9CA3AF"> {t('outdated_pressRefresh')}</Text>
             </Box>
-            <Text color="#6B7280">r:{t('hint_refresh')} esc:{t('hint_back')}</Text>
+            <Text color="#6B7280">r:{t('hint_refresh')} esc:{t('hint_clear')}</Text>
           </Box>
         )}
       </Box>

@@ -242,21 +242,21 @@ struct PopoverView: View {
 #Preview("Outdated Packages") {
     PopoverView(
         appState: PreviewData.makeAppState(),
-        scheduler: SchedulerService()
+        scheduler: PreviewData.makeScheduler()
     )
 }
 
 #Preview("Up to Date") {
     PopoverView(
         appState: PreviewData.makeAppState(packages: []),
-        scheduler: SchedulerService()
+        scheduler: PreviewData.makeScheduler()
     )
 }
 
 #Preview("Loading") {
     PopoverView(
         appState: PreviewData.makeAppState(packages: [], isLoading: true),
-        scheduler: SchedulerService()
+        scheduler: PreviewData.makeScheduler()
     )
 }
 
@@ -266,7 +266,7 @@ struct PopoverView: View {
             packages: [],
             error: "Homebrew is not installed. Install it from https://brew.sh"
         ),
-        scheduler: SchedulerService()
+        scheduler: PreviewData.makeScheduler()
     )
 }
 
@@ -275,14 +275,14 @@ struct PopoverView: View {
         appState: PreviewData.makeAppState(
             services: PreviewData.errorServices
         ),
-        scheduler: SchedulerService()
+        scheduler: PreviewData.makeScheduler()
     )
 }
 
 #Preview("Spanish / Outdated") {
     PopoverView(
         appState: PreviewData.makeAppState(),
-        scheduler: SchedulerService()
+        scheduler: PreviewData.makeScheduler()
     )
     .environment(\.locale, Locale(identifier: "es"))
 }
@@ -290,7 +290,7 @@ struct PopoverView: View {
 #Preview("Spanish / Up to Date") {
     PopoverView(
         appState: PreviewData.makeAppState(packages: []),
-        scheduler: SchedulerService()
+        scheduler: PreviewData.makeScheduler()
     )
     .environment(\.locale, Locale(identifier: "es"))
 }

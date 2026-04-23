@@ -52,6 +52,11 @@ enum PreviewData {
     ]
 
     @MainActor
+    static func makeScheduler() -> SchedulerService {
+        SchedulerService(isPreview: true)
+    }
+
+    @MainActor
     static func makeAppState(
         packages: [OutdatedPackage] = outdatedPackages,
         services: [BrewService] = [],

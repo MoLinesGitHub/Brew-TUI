@@ -2,10 +2,18 @@ import SwiftUI
 import ServiceManagement
 
 struct SettingsView: View {
+    private static let isRunningForPreviews = ProcessInfo.processInfo.environment["XCODE_RUNNING_FOR_PREVIEWS"] == "1"
+
     let scheduler: SchedulerService
 
-    @State private var launchAtLogin = SMAppService.mainApp.status == .enabled
+    @State private var launchAtLogin: Bool
     @Environment(\.dismiss) private var dismiss
+
+    init(scheduler: SchedulerService, launchAtLogin: Bool? = nil) {
+        self.scheduler = scheduler
+        let resolvedLaunchAtLogin = launchAtLogin ?? (Self.isRunningForPreviews ? false : SMAppService.mainApp.status == .enabled)
+        _launchAtLogin = State(initialValue: resolvedLaunchAtLogin)
+    }
 
     var body: some View {
         VStack(spacing: 16) {
@@ -42,6 +50,8 @@ struct SettingsView: View {
 
                 Toggle("Launch at login", isOn: $launchAtLogin)
                     .onChange(of: launchAtLogin) { _, newValue in
+                        guard !Self.isRunningForPreviews else { return }
+
                         do {
                             if newValue {
                                 try SMAppService.mainApp.register()
@@ -72,10 +82,10 @@ struct SettingsView: View {
 // MARK: - Previews
 
 #Preview("Settings") {
-    SettingsView(scheduler: SchedulerService())
+    SettingsView(scheduler: PreviewData.makeScheduler(), launchAtLogin: false)
 }
 
 #Preview("Spanish") {
-    SettingsView(scheduler: SchedulerService())
+    SettingsView(scheduler: PreviewData.makeScheduler(), launchAtLogin: false)
         .environment(\.locale, Locale(identifier: "es"))
 }

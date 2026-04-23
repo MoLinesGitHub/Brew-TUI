@@ -37,10 +37,21 @@ final class SchedulerService {
 
     private var timer: Timer?
     private weak var state: AppState?
+    private let isPreview: Bool
 
     private static let hasLaunchedKey = "hasLaunchedBefore"
 
-    init() {
+    init(isPreview: Bool? = nil) {
+        let resolvedIsPreview = isPreview ?? (ProcessInfo.processInfo.environment["XCODE_RUNNING_FOR_PREVIEWS"] == "1")
+        self.isPreview = resolvedIsPreview
+
+        if resolvedIsPreview {
+            interval = .oneHour
+            notificationsEnabled = false
+            notificationsDenied = false
+            return
+        }
+
         let saved = UserDefaults.standard.integer(forKey: "checkInterval")
         interval = Interval(rawValue: saved) ?? .oneHour
 
@@ -55,6 +66,8 @@ final class SchedulerService {
     }
 
     func start(state: AppState) {
+        guard !isPreview else { return }
+
         self.state = state
         restartTimer()
         // Sync toggle with actual system permission on each launch
@@ -69,6 +82,11 @@ final class SchedulerService {
     /// Query the OS for the actual notification authorization status.
     /// If the user denied permission, turn off the toggle and flag it.
     func syncNotificationPermission() async {
+        guard !isPreview else {
+            notificationsDenied = false
+            return
+        }
+
         let settings = await UNUserNotificationCenter.current().notificationSettings()
         switch settings.authorizationStatus {
         case .denied:
@@ -88,6 +106,8 @@ final class SchedulerService {
 
     private func restartTimer() {
         timer?.invalidate()
+        guard !isPreview else { return }
+
         timer = Timer.scheduledTimer(
             withTimeInterval: TimeInterval(interval.rawValue),
             repeats: true
@@ -114,6 +134,8 @@ final class SchedulerService {
     }
 
     private func requestNotificationPermission() {
+        guard !isPreview else { return }
+
         UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { [weak self] granted, _ in
             Task { @MainActor in
                 if !granted {

@@ -3,6 +3,8 @@ import SwiftUI
 
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
+    private static let isRunningForPreviews = ProcessInfo.processInfo.environment["XCODE_RUNNING_FOR_PREVIEWS"] == "1"
+
     private var statusItem: NSStatusItem!
     private var popover: NSPopover!
     private let appState = AppState()
@@ -13,6 +15,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var hostingController: NSHostingController<PopoverView>?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        guard !Self.isRunningForPreviews else { return }
+
         launchTask = Task {
             guard await checkBrewTuiInstalled() else {
                 showBrewTuiRequired()

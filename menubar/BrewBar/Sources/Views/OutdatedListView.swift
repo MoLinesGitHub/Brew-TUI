@@ -4,6 +4,8 @@ struct OutdatedListView: View {
     let appState: AppState
     @State private var showUpgradeAllConfirm = false
     @State private var packageToConfirm: OutdatedPackage?
+    private let installedVersionColor = Color.orange
+    private let currentVersionColor = Color.cyan
 
     var body: some View {
         VStack(spacing: 0) {
@@ -56,12 +58,12 @@ struct OutdatedListView: View {
                     .fontWeight(.medium)
                 HStack(spacing: 4) {
                     Text(pkg.installedVersion)
-                        .foregroundStyle(.red)
+                        .foregroundStyle(installedVersionColor)
                     Image(systemName: "arrow.right")
                         .font(.caption2)
                         .foregroundStyle(.secondary)
                     Text(pkg.currentVersion)
-                        .foregroundStyle(.green)
+                        .foregroundStyle(currentVersionColor)
                 }
                 .font(.caption)
             }

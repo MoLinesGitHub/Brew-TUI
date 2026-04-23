@@ -51,17 +51,6 @@ struct LicenseChecker {
 
     /// Degradation thresholds (days since last validation)
     private static let expiredThreshold: Double = 30
-    private static let fractionalFormatter: ISO8601DateFormatter = {
-        let formatter = ISO8601DateFormatter()
-        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        return formatter
-    }()
-    private static let plainFormatter: ISO8601DateFormatter = {
-        let formatter = ISO8601DateFormatter()
-        formatter.formatOptions = [.withInternetDateTime]
-        return formatter
-    }()
-
     // MARK: - Public API
 
     static func checkLicense() -> LicenseStatus {
@@ -139,7 +128,16 @@ struct LicenseChecker {
     }
 
     private static func parseDate(_ value: String) -> Date? {
-        fractionalFormatter.date(from: value) ?? plainFormatter.date(from: value)
+        let fractionalFormatter = ISO8601DateFormatter()
+        fractionalFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+
+        if let date = fractionalFormatter.date(from: value) {
+            return date
+        }
+
+        let plainFormatter = ISO8601DateFormatter()
+        plainFormatter.formatOptions = [.withInternetDateTime]
+        return plainFormatter.date(from: value)
     }
 }
 

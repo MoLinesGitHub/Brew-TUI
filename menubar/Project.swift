@@ -13,6 +13,7 @@ let project = Project(
             "MARKETING_VERSION": "$(MARKETING_VERSION:default=0.2.0)",
             "DEAD_CODE_STRIPPING": "YES",
             "ENABLE_USER_SCRIPT_SANDBOXING": "YES",
+            "STRING_CATALOG_GENERATE_SYMBOLS": "NO",
             "ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS": "YES",
         ],
         configurations: [

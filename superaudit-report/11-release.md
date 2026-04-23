@@ -1,38 +1,33 @@
 # 17. Localizacion / 18. Release readiness
 
-> Auditor: release-auditor | Fecha: 2026-04-22
+> Auditor: release-auditor | Fecha: 2026-04-23
 
 ## Resumen ejecutivo
 
-El codebase TypeScript (Brew-TUI TUI) tiene una infraestructura de localizacion excelente: 120 claves semanticas, cobertura bilingue (en/es) completa con verificacion de tipos en tiempo de compilacion, y ninguna cadena de texto visible hardcodeada en las vistas. El codebase Swift (BrewBar) tiene cobertura completa: todas las vistas SwiftUI localizan automaticamente via `LocalizedStringKey`, las rutas no-SwiftUI usan `String(localized:)` correctamente, y el String Catalog cubre los dos idiomas. Se detectan 4 entradas marcadas como `stale` en el String Catalog, lo que indica desincronizacion con el extractor de Xcode.
-
-En materia de release, el mayor bloqueador es que BrewBar se distribuye sin firma de codigo ni notarizacion de Apple, lo que significa que macOS Gatekeeper bloqueara la app para la mayoria de usuarios al descargarla. Ademas se detectan dos workflows de CI duplicados para publicacion npm, ausencia total de `PrivacyInfo.xcprivacy`, ausencia de CHANGELOG, y 0% de cobertura de tests en ambos codebases.
+El sistema de internacionalizacion del TUI TypeScript es robusto y exhaustivo: 271 claves tipadas, cobertura completa en en/es, verificacion en tiempo de compilacion, y plurales gestionados correctamente. Sin embargo, BrewBar presenta tres cadenas en codigo con `String(localized:)` sin entrada correspondiente en `Localizable.xcstrings` — los usuarios en espanol ven texto en ingles — y un cuarto problema de clave desajustada para el mensaje de licencia expirada. En cuanto a release, el hallazgo critico es que el `.app` de BrewBar se distribuye sin firma de codigo ni notarizacion, lo que provoca que Gatekeeper de macOS bloquee el lanzamiento en la maquina del usuario. Los demas aspectos tecnicos (version, assets, build Pipeline npm, privacy manifest) estan en buen estado tras las correcciones de v0.2.0.
 
 ---
 
 ## Metricas de localizacion
 
-* **Idiomas soportados:** Ingles (en), Espanol (es) — ambos codebases
-* **Total claves de localizacion (TUI TypeScript):** 120 claves en `src/i18n/en.ts` / `es.ts`
-* **Total claves de localizacion (BrewBar Swift):** 30 entradas en `Localizable.xcstrings` (en + es); 4 marcadas `stale`
-* **Formato de localizacion:** TypeScript: modulo i18n custom con claves semanticas; Swift: String Catalog (`Localizable.xcstrings`)
-* **Strings hardcodeadas detectadas (TUI):** 0
-* **Strings hardcodeadas detectadas (BrewBar):** 0 — las vistas SwiftUI (`Text`, `Button`, `Label`, `Toggle`, `Picker`, `ProgressView`) localizan automaticamente via `LocalizedStringKey`; las rutas no-SwiftUI usan `String(localized:)` correctamente
-* **Entradas `stale` en String Catalog:** 4 (`"Open Brew-TUI"`, `"Retry"`, `"Service Errors"`, `"Upgrade All"`) — traducciones presentes y funcionales en runtime, pero el extractor de Xcode las considera obsoletas
-* **Plurales correctos:** TUI via `tp()` (`_one`/`_other`); BrewBar via String Catalog plural variations
+* **Idiomas soportados:** Ingles (en) — fuente de verdad; Espanol (es) — traduccion completa en ambas codebases
+* **Total claves de localizacion (TUI TypeScript):** 271 claves en `src/i18n/en.ts` / `es.ts`
+* **Total claves de localizacion (BrewBar Swift):** 35 entradas en `Localizable.xcstrings`
+* **Formato de localizacion:** TypeScript — modulo i18n personalizado con `t()` y `tp()`; Swift — String Catalog (`.xcstrings`) + `String(localized:)` para contextos no-SwiftUI
+* **Strings hardcodeadas detectadas (TUI):** 0 (en vistas React)
+* **Strings hardcodeadas detectadas (BrewBar):** 3 cadenas en vistas SwiftUI sin entrada en xcstrings
 
 ---
 
 ## Metricas de release
 
-* **Version actual (npm):** 0.1.0
-* **Version actual (BrewBar):** 0.1.0 (declarada en Homebrew cask; `Project.swift` no declara `MARKETING_VERSION`)
-* **Configuraciones de build:** Debug / Release (via Tuist `Project.swift`)
-* **Firma BrewBar:** No configurada — sin `CODE_SIGN_IDENTITY`, sin `DEVELOPMENT_TEAM` en `Project.swift`
-* **Notarizacion BrewBar:** Ausente — no hay pasos `notarytool` ni `codesign` en CI
-* **Privacy manifest (`PrivacyInfo.xcprivacy`):** Ausente en todo el proyecto
-* **CHANGELOG:** Ausente
-* **CI/CD:** 2 workflows de GitHub Actions — `release.yml` (trigger: tag push) y `publish.yml` (trigger: release published) — con solapamiento de responsabilidades
+* **Version actual (TUI):** 0.2.0 (`package.json`, `jsr.json`)
+* **Version actual (BrewBar):** 0.2.0 (`MARKETING_VERSION: $(MARKETING_VERSION:default=0.2.0)` en `Project.swift`)
+* **Build number (BrewBar):** No configurado — `CURRENT_PROJECT_VERSION` ausente en `Project.swift`
+* **Configuraciones:** Debug, Release (via Tuist en BrewBar); sin configuracion de build para TUI
+* **Firma (BrewBar):** No configurada en CI — sin `CODE_SIGN_IDENTITY`, sin `DEVELOPMENT_TEAM`, sin notarizacion
+* **Privacy manifest:** Presente — `menubar/BrewBar/Resources/PrivacyInfo.xcprivacy`
+* **Canales de distribucion:** npm, JSR, GitHub Releases (BrewBar.app.zip), Homebrew tap (formula + cask)
 
 ---
 
@@ -40,26 +35,23 @@ En materia de release, el mayor bloqueador es que BrewBar se distribuye sin firm
 
 ### Checklist
 
-* [x] Strings externalizadas (TUI) — todas las vistas usan `t()` / `tp()`; ninguna cadena user-visible hardcodeada
-* [x] Strings externalizadas (BrewBar) — vistas SwiftUI localizan automaticamente via `LocalizedStringKey`; rutas no-SwiftUI usan `String(localized:)` correctamente (NSAlert, UNNotification, SchedulerService); cobertura completa
-* [x] Claves semanticas (TUI) — claves con namespace semantico consistente (ej. `dashboard_overview`, `badge_outdated`, `cli_activated`)
-* [x] Claves semanticas (BrewBar) — String Catalog usa el texto en ingles como clave (patron valido para xcstrings con auto-extraccion)
-* [x] Plurales correctos (TUI) — `tp('plural_vulns', count)` / `tp('plural_warnings', count)` con sufijos `_one`/`_other`; compilacion detecta claves faltantes
-* [x] Plurales correctos (BrewBar) — String Catalog con variaciones `one`/`other` para `%lld packages can be updated` y `%lld updates available`
-* [x] Fechas localizadas — TUI usa `toLocaleDateString()` (locale-aware del runtime); BrewBar usa `.formatted(.relative(presentation: .named))` con locale del sistema; no hay `dateFormat` hardcodeados
-* [x] Numeros y moneda localizados — precios en euros como strings literales (ej. `account_monthlyPrice: '9€/month'`); numeros en BrewBar via `%lld` con `String(format:)`; sin `NumberFormatter` hardcodeado
-* [ ] Layout soporta textos largos (BrewBar) — popover de tamano fijo 340x420pt; en textos largos en espanol puede haber truncamiento en etiquetas del popover sin `lineLimit`/`minimumScaleFactor`; nota: es intencionalmente fijo como menu bar popover
-* [x] RTL contemplado — No aplica; no se soportan idiomas RTL (no hay directorios `.lproj` para ar/he)
-* [x] No texto hardcodeado visible (TUI) — 0 strings hardcodeadas en `src/`
-* [x] No texto hardcodeado visible (BrewBar) — 0 strings hardcodeadas; todas las cadenas visibles estan en el String Catalog con traduccion al espanol
+* [ ] **Strings externalizadas** — TUI: todas las cadenas visibles al usuario pasan por `t()`. BrewBar: vistas SwiftUI usan literales extraidos automaticamente por el compilador; contextos no-SwiftUI usan `String(localized:)`. Tres cadenas en `OutdatedListView.swift` y `AppDelegate.swift` usan `String(localized:)` pero no tienen entrada en `Localizable.xcstrings`.
+* [x] **Claves semanticas** — TUI: claves de estilo `seccion_concepto` (e.g. `cleanup_confirmUninstall`, `history_filterLabel`). Consistente en todos los 271 keys. BrewBar: usa el texto ingles como clave (convencion xcstrings), aceptable para String Catalog.
+* [x] **Plurales correctos** — TUI: helper `tp(baseKey, count)` con sufijos `_one`/`_other` implementado; en uso para `plural_vulns` y `plural_warnings`. BrewBar: xcstrings define variaciones `plural.one`/`plural.other` para `%lld packages can be updated.` y `%lld updates available`. Correcto en ambos sistemas.
+* [x] **Fechas localizadas** — BrewBar: usa `.formatted(.relative(presentation: .named))` que es locale-aware. TUI: `formatRelativeTime()` usa cadenas i18n propias. Problema menor: `toLocaleDateString()` sin argumento de locale en `account.tsx` y `profiles.tsx` — usa el locale del sistema operativo en lugar del locale seleccionado en la app con `--lang=`.
+* [x] **Numeros y moneda localizados** — TUI: no se formatean numeros monetarios en runtime (precios son strings estaticos localizados). `formatBytes()` usa `toFixed(1)` con separador decimal del sistema — aceptable para informacion tecnica de disco. BrewBar: `%lld` usa formateo del sistema.
+* [x] **Layout soporta textos largos** — TUI (Ink): basado en terminal, el layout es flexible por naturaleza. BrewBar: `PopoverView` tiene ancho fijo (340px) pero el contenido usa SwiftUI flexbox — los textos largos en espanol se adaptan correctamente (verificado en previews con `.environment(\.locale, Locale(identifier: "es"))`). `SettingsView` fija `frame(width: 300)` pero no hay texto de longitud variable que pueda truncarse.
+* [ ] **RTL contemplado si aplica** — No aplica. Los dos idiomas soportados (en/es) son LTR. No hay `.lproj` para arabe o hebreo. Marcado como no aplicable.
+* [ ] **No texto hardcodeado visible** — Tres cadenas en BrewBar usan `String(localized:)` sin entrada en xcstrings: `"Upgrade all packages?"`, `"Cancel"` (ambas en `OutdatedListView.swift`), y `"Continue"` (`AppDelegate.swift`). Adicionalmente, la clave del mensaje de licencia expirada en el codigo (`AppDelegate.swift:126`) no coincide con la clave en xcstrings, resultando en fallback al texto ingles en espanol.
 
 ### Hallazgos
 
 | Elemento | Estado | Severidad | Evidencia | Accion |
 |----------|--------|-----------|-----------|--------|
-| 4 entradas `extractionState: stale` en xcstrings — `"Open Brew-TUI"`, `"Retry"`, `"Service Errors"`, `"Upgrade All"` | Parcial | Baja | `menubar/BrewBar/Resources/Localizable.xcstrings` lineas 348, 381, 392, 403 — las traducciones son funcionales en runtime pero el extractor de Xcode las marca como obsoletas | Resolver con `tuist generate` y re-ejecutar `xcodebuild -extractLocStrings`; actualizar estado a `manual` o eliminar entradas obsoletas para mantener el catalog limpio |
-| Precio como string literal no localizable — `account_monthlyPrice: '9€/month'` / `account_pricing: '9€/month or 29€ lifetime'` | Parcial | Baja | `src/i18n/en.ts` lineas 249, 257; `es.ts` lineas 251, 258 | Las traducciones al espanol ya existen; el formato de moneda es correcto en ambos idiomas; considerar si el simbolo de moneda requiere adaptacion regional |
-| Textos de fecha en TUI usan `toLocaleDateString()` sin opciones de locale explicitas | Parcial | Baja | `src/index.tsx` linea 25 (`new Date(license.expiresAt).toLocaleDateString()`) | Pasar el locale activo como argumento: `new Date(...).toLocaleDateString(currentLocale)` para garantizar consistencia con el locale seleccionado por el usuario |
+| Tres cadenas `String(localized:)` sin entrada en xcstrings: `"Upgrade all packages?"`, `"Cancel"`, `"Continue"` | No conforme | Alta | `OutdatedListView.swift:21,28`, `AppDelegate.swift:128` — ausentes en `Localizable.xcstrings` | Agregar las tres entradas al xcstrings con traduccion al espanol. `"Cancel"` puede omitirse si se deja el rol `.cancel` sin titulo (SwiftUI lo provee automaticamente como cadena del sistema). |
+| Clave desajustada para mensaje de licencia expirada | No conforme | Alta | Codigo: `"Your Pro license has expired or needs revalidation.\n\nRun \`brew-tui activate <key>\`..."` (AppDelegate.swift:126). xcstrings tiene la clave mas corta sin el comando ni "basic mode". Las dos cadenas son diferentes; el lookup falla. | Sincronizar: actualizar la clave en xcstrings para que coincida exactamente con la cadena del codigo, o refactorizar la cadena del codigo para que coincida con la clave existente. Agregar la traduccion al espanol correspondiente. |
+| Cuatro cadenas con `extractionState: stale` en xcstrings | Parcial | Baja | `"Open Brew-TUI"`, `"Retry"`, `"Service Errors"`, `"Upgrade All"` marcadas como `stale` en `Localizable.xcstrings`. Las traducciones existen y son correctas. | Ejecutar `tuist generate` y dejar que el compilador re-extraiga las cadenas para limpiar el estado stale. Sin impacto funcional pero indica que el catalogo no se ha sincronizado con el codigo fuente reciente. |
+| `toLocaleDateString()` sin argumento de locale en TUI | Parcial | Baja | `src/views/account.tsx:89,94`; `src/views/profiles.tsx:201`; `src/index.tsx:25,65` — usa el locale del sistema operativo en lugar del locale de la app (`--lang=es`). | Pasar el locale de la app: `new Date(x).toLocaleDateString(locale === 'es' ? 'es-ES' : 'en-US')` o crear un helper `formatDate(date, locale)`. |
 
 ---
 
@@ -67,30 +59,22 @@ En materia de release, el mayor bloqueador es que BrewBar se distribuye sin firm
 
 ### Checklist
 
-* [x] Build Release limpia (TUI) — sin `TODO`/`FIXME`/`HACK` en ningun archivo TypeScript; el unico `console.error` esta guardado por `process.env.NODE_ENV !== 'production'`
-* [x] Build Release limpia (BrewBar) — sin `TODO`/`FIXME`/`fatalError`/`preconditionFailure`/`try!`/`as!` en el codigo Swift de produccion
-* [x] Archive correcto (TUI) — `prepublishOnly` ejecuta `typecheck && build`; CI en `release.yml` ejecuta `typecheck`, `build`, `lint` antes de `npm publish`
-* [ ] Archive correcto (BrewBar) — el CI no realiza `codesign --deep --force` despues del build; la distribucion de `BrewBar.app.zip` se hace con `ditto` pero sin firma ni notarizacion
-* [ ] Firma correcta (BrewBar) — `Project.swift` y `Tuist.swift` no declaran `CODE_SIGN_IDENTITY`, `DEVELOPMENT_TEAM` ni `PROVISIONING_PROFILE`; el build de CI (`xcodebuild ... build`) usara firma ad-hoc por defecto
-* [x] Assets correctos — `Assets.xcassets` contiene `AppIcon.appiconset` con todos los tamanos macOS (16, 32, 128, 256, 512 en 1x y 2x); `MenuBarIcon.imageset` con variantes `dark`/`light` en 1x y 2x; `AccentColor.colorset` presente
-* [ ] Configuracion entorno correcta (TUI) — sin mecanismo de configuracion de entorno (sin `.env`, sin variables de entorno de build); las URLs de Polar API y OSV.dev estan hardcodeadas en el codigo fuente sin separacion debug/release
-* [x] Feature flags revisadas — no hay sistema de feature flags dinamico; el gating Pro se hace en compile-time via `PRO_VIEWS` set en `src/lib/license/feature-gate.ts`; estado claro y determinista
-* [x] Logs verbosos eliminados o controlados (TUI) — unico `console.error` en `brew-store.ts:111` esta guardado por `NODE_ENV !== 'production'`; no hay `print()` descontrolado en TS
-* [ ] Logs verbosos eliminados o controlados (BrewBar) — `NSLog("[BrewBar] Failed to open Brew-TUI: %@", ...)` en `PopoverView.swift:181` sin guarda de build configuration; aparecera en logs de produccion
-* [ ] Dos workflows CI solapados — `release.yml` y `publish.yml` ambos publican a npm; pueden ejecutarse en secuencia para el mismo release causando doble publish
+* [x] **Build Release limpia** — Sin `fatalError()`, `preconditionFailure()`, `try!` ni `as!` en codigo de produccion (ni TypeScript ni Swift). Tres `TODO` menores en TypeScript (`app.tsx:22`, `brew-cli.ts:64`, `doctor.tsx:9`) describen refactors, no codigo inacabado critico. Sin mock ni test code en paths de produccion.
+* [ ] **Archive correcto** — CI usa `xcodebuild build` en lugar de `xcodebuild archive`. No se genera un `.xcarchive`. El artefacto `.app` se extrae del directorio `build/` con `find` y se comprime con `ditto`. Sin `exportOptions.plist`. Sin Fastlane.
+* [ ] **Firma correcta** — El job `build-brewbar` en `release.yml` no configura `CODE_SIGN_IDENTITY`, `DEVELOPMENT_TEAM` ni `PROVISIONING_PROFILE_SPECIFIER`. El `.app` resultante no esta firmado con Developer ID. Sin pasos de notarizacion (`xcrun notarytool`). Cualquier Mac con Gatekeeper activo (predeterminado) bloqueara la ejecucion del `.app` descargado.
+* [x] **Assets correctos** — `AppIcon.appiconset` completo: 10 tamanos macOS (16x16 @1x/@2x, 32x32 @1x/@2x, 128x128 @1x/@2x, 256x256 @1x/@2x, 512x512 @1x/@2x). `MenuBarIcon.imageset` presente con `isTemplate = true`. `AccentColor.colorset` configurado. No se requiere `LaunchScreen` (app LSUIElement).
+* [x] **Configuracion entorno correcta** — Sin URLs de desarrollo o staging en codigo de produccion. La unica URL de API en TypeScript es `https://api.polar.sh/v1/customer-portal/license-keys` (produccion). Sin credenciales de prueba en codigo fuente. `process.env.NODE_ENV !== 'production'` guarda el unico `console.error` de debug en `brew-store.ts:121`.
+* [x] **Feature flags revisadas** — No hay sistema de feature flags externo (LaunchDarkly, Firebase Remote Config, etc.). El gating Pro es estatico via `PRO_VIEWS` set en `src/lib/license/feature-gate.ts`. Todos los Pro views correctamente gateados: `profiles`, `smart-cleanup`, `history`, `security-audit`.
+* [x] **Logs verbosos eliminados o controlados** — `console.log/error/warn` en TUI se usan exclusivamente en `src/index.tsx` para salida de CLI (subcomandos `activate`, `status`, `deactivate`) — comportamiento correcto e intencionado. Un solo `console.error` en `brew-store.ts:121` protegido por `process.env.NODE_ENV !== 'production'`. Sin `NSLog` ni `print()` de debug en Swift.
 
 ### Hallazgos
 
 | Elemento | Estado | Severidad | Evidencia | Accion |
 |----------|--------|-----------|-----------|--------|
-| BrewBar distribuido sin firma de codigo ni notarizacion | No conforme | **Critica** | `.github/workflows/release.yml` — ningun paso de `codesign` ni `xcrun notarytool`; `Project.swift` sin `CODE_SIGN_IDENTITY` | Configurar Developer ID Application en `Project.swift`; agregar pasos de `codesign --deep --force --sign "Developer ID Application: ..."` y `xcrun notarytool submit` en CI; almacenar certificados en GitHub Secrets |
-| macOS Gatekeeper bloqueara BrewBar en usuarios que lo descarguen via GitHub Releases o Homebrew cask | No conforme | **Critica** | `homebrew/Casks/brewbar.rb` linea 5; `.github/workflows/release.yml` — distribuye zip sin notarizar | Sin notarizacion, macOS >=10.15 mostrara "Apple no puede comprobar si este software contiene malware"; Homebrew cask instalara la app pero Gatekeeper la bloqueara al primer lanzamiento; solucion: notarizar y aplicar `spctl --assess` antes de empaquetar |
-| Dos workflows CI con responsabilidades solapadas para npm publish | No conforme | Media | `release.yml` lineas 26, 37; `publish.yml` lineas 19, 43 | Unificar en un unico workflow; eliminar `publish.yml` o redefinir el trigger de `release.yml` para no solaparse; riesgo de doble publicacion y error `403 Forbidden` en la segunda ejecucion |
-| `publish.yml` no ejecuta `typecheck` ni `build` antes de `npm publish` | No conforme | Alta | `publish.yml` lineas 17-22 — solo `npm ci` y `npm publish` | Agregar `npm run typecheck && npm run build` antes de publicar para garantizar que el artefacto publicado es siempre compilado y verificado |
-| Inconsistencia de version Node entre workflows — `release.yml` usa Node 18; `publish.yml` usa Node 20 | No conforme | Baja | `release.yml` linea 20; `publish.yml` linea 8 | Unificar en Node 20 (LTS vigente) o usar `engines.node: ">=18"` del `package.json` como fuente de verdad |
-| `NSLog` en produccion sin guarda en BrewBar | No conforme | Baja | `menubar/BrewBar/Sources/Views/PopoverView.swift:181` | Envolver en `#if DEBUG` o reemplazar con `Logger` (OSLog) usando nivel `.debug` que no aparece en builds release |
-| Clave de derivacion AES-256-GCM hardcodeada en LicenseChecker | No conforme | **Critica** | `menubar/BrewBar/Sources/Services/LicenseChecker.swift:47` — `let hex = "5c3b2ae2..."` | Esta clave permite descifrar cualquier licencia de cualquier usuario; mover al Keychain o usar un mecanismo de verificacion asincrono contra el servidor Polar; riesgo de pirateria total del sistema de licencias |
-| `Project.swift` no declara version de marketing ni build number para BrewBar | No conforme | Media | `menubar/Project.swift` — sin `MARKETING_VERSION` ni `CURRENT_PROJECT_VERSION` en `base` settings | Agregar `"MARKETING_VERSION": "0.1.0"` y `"CURRENT_PROJECT_VERSION": "1"` en la seccion `base` de `settings`; sincronizar con version del cask Homebrew |
+| BrewBar sin firma de codigo ni notarizacion en CI | No conforme | Critica | `.github/workflows/release.yml:62-66` — `xcodebuild` sin `CODE_SIGN_IDENTITY`, `DEVELOPMENT_TEAM`, ni paso de notarizacion. El `BrewBar.app.zip` distribuido es ad-hoc. Gatekeeper bloquea el lanzamiento en macOS por defecto. | Agregar firma con Developer ID Certificate: configurar `CODE_SIGN_IDENTITY`, `DEVELOPMENT_TEAM` como secrets en GitHub Actions. Anadir paso de notarizacion con `xcrun notarytool submit` y `xcrun stapler staple`. Requerir `archive` + `export` en lugar de solo `build`. |
+| `xcodebuild build` en lugar de `archive` en CI | No conforme | Alta | `.github/workflows/release.yml:62-66` — el comando es `build`, no `archive`. El `.app` se extrae del `DerivedData` con `find`. Sin `exportOptions.plist`. | Cambiar a `xcodebuild archive -archivePath BrewBar.xcarchive` seguido de `xcodebuild -exportArchive -exportOptionsPlist exportOptions.plist`. Agregar `ExportOptions.plist` al repositorio (ya ignorado en `.gitignore` — revisar si debe incluirse para CI). |
+| `CURRENT_PROJECT_VERSION` ausente en `Project.swift` | No conforme | Baja | `menubar/Project.swift` — solo `MARKETING_VERSION` configurado. Sin numero de build (`CFBundleVersion`). | Agregar `"CURRENT_PROJECT_VERSION": "1"` (o incrementar automaticamente en CI). Necesario para cumplimiento de App Store si se distribuyera ahi, y buena practica para rastrear builds. |
+| GitHub Packages publish sin `--provenance` | No conforme | Baja | `.github/workflows/release.yml:46` — `npm publish --access public` sin `--provenance`, a diferencia del job `publish-npm` que si lo incluye (linea 28). | Agregar `--provenance` al paso de publish en el job `publish-github-packages` para consistencia de cadena de suministro. |
 
 ---
 
@@ -98,25 +82,20 @@ En materia de release, el mayor bloqueador es que BrewBar se distribuye sin firm
 
 ### Checklist
 
-* [ ] Flujos criticos aprobados — 0 tests automatizados; vitest configurado sin ningun archivo `.test.ts`; `ink-testing-library` instalada sin uso
-* [ ] Bugs criticos resueltos — no hay comentarios `BUG:`/`KNOWN ISSUE:` en el codigo; sin embargo, flujo de NSAppleScript en BrewBar solo soporta Terminal.app (hardcoded) lo que falla en iTerm2, Warp, Ghostty
-* [ ] Crash-free threshold aceptable — sin crash reporting configurado (ni Crashlytics, ni Sentry) en ninguno de los dos codebases; imposible medir crash-free rate; en BrewBar no hay `try!`/`as!` en rutas de produccion criticas; el `Data(hexString: hex)!` en `LicenseChecker.swift:48` opera sobre una constante literal de compilacion (riesgo de crash practico nulo)
-* [ ] Metricas minimas cubiertas — sin analytics configurado en ningun codebase
-* [ ] Privacidad revisada — `PrivacyInfo.xcprivacy` ausente; BrewBar usa `UserDefaults` (requiere `NSPrivacyAccessedAPITypesUserDefaultsKey`), `FileManager` para timestamps de ficheros (requiere razon), y `UNUserNotificationCenter`; sin declaracion en Info.plist de permisos de usuario requeridos
-* [ ] Accesibilidad minima validada (TUI) — no hay uso de `accessibilityLabel` ni APIs de accesibilidad en ninguna vista TypeScript/Ink; 0 ocurrencias en todo `src/`
-* [x] Accesibilidad minima validada (BrewBar) — `accessibilityDescription` presente en el status item icon (`AppDelegate.swift:141,165`); SwiftUI tiene accesibilidad basica automatica para los controles nativos
+* [ ] **Flujos criticos aprobados** — Sin ningun archivo de test (0 tests, 0% cobertura, confirmado en ficha). Los flujos criticos — activacion de licencia, install/uninstall/upgrade de paquetes, smart-cleanup, importacion de perfiles — no tienen tests automatizados ni documentados.
+* [x] **Bugs criticos resueltos** — Sin comentarios `// BUG:`, `// KNOWN ISSUE:` ni `// WORKAROUND:` en el codigo. Los tres `TODO` existentes son refactors tecnicos no criticos. El CHANGELOG.md v0.2.0 documenta 8 bugs corregidos desde v0.1.0.
+* [ ] **Crash-free threshold aceptable** — Sin crash reporting (no Crashlytics, Sentry, ni equivalente). Sin `fatalError` ni `try!` en paths de produccion (positivo). Sin forced unwraps (`!`) en TypeScript. Sin metrismo de estabilidad posible sin telemetria.
+* [ ] **Metricas minimas cubiertas** — Sin analytics configurado en ninguna de las dos codebases. No es posible medir retencion, conversion a Pro, ni uso de features.
+* [x] **Privacidad revisada** — `PrivacyInfo.xcprivacy` presente y correcto para BrewBar: `NSPrivacyAccessedAPICategoryUserDefaults` con razon `CA92.1` (uso en preferencias de usuario verificado en `SchedulerService.swift`). `NSPrivacyTracking: false`. `NSPrivacyCollectedDataTypes: []`. La declaracion `NSPrivacyAccessedAPICategoryFileTimestamp` con razon `C617.1` esta incluida — no se encontro uso directo de API de timestamp de ficheros en el codigo Swift (el acceso al fichero de licencia usa `FileManager.default.contents(atPath:)` que puede triggerar internamente) — inofensivo tenerla declarada.
+* [ ] **Accesibilidad minima validada** — TUI (Ink): sin soporte de accesibilidad — Ink no expone APIs de accesibilidad a VoiceOver; es una limitacion del framework. BrewBar: solo `accessibilityDescription` en el icono de barra de menu (`AppDelegate.swift:141,168`). Sin `.accessibilityLabel`, `.accessibilityHint`, ni `.accessibilityValue` en vistas SwiftUI. Sin infraestructura de test de accesibilidad.
 
 ### Hallazgos
 
 | Elemento | Estado | Severidad | Evidencia | Accion |
 |----------|--------|-----------|-----------|--------|
-| Cero tests automatizados en ambos codebases | No conforme | **Critica** | `src/` — 0 archivos `.test.ts`; `menubar/` — 0 archivos `.xctest`; vitest configurado pero sin tests; `ink-testing-library` instalada sin uso | Escribir tests de integracion para flujos criticos: activacion/desactivacion de licencia, gating Pro, comandos CLI; para BrewBar: tests unitarios de `LicenseChecker` y `BrewChecker` |
-| Sin crash reporting configurado | No conforme | Alta | No hay `Crashlytics`, `Sentry` ni equivalente en `package.json` ni en `Project.swift` | Integrar Sentry (SDK npm para TUI, Swift SDK para BrewBar) o Crashlytics via Firebase para ambos targets antes del lanzamiento publico |
-| Sin analytics configurado | No conforme | Media | No hay evento de tracking en ningun archivo de `src/`; no hay dependencia de analytics en `package.json` | Integrar analytics minimo para medir conversion Free-to-Pro, activaciones, y errores de activacion de licencia |
-| NSAppleScript hardcoded a Terminal.app en BrewBar | No conforme | Media | `menubar/BrewBar/Sources/Views/PopoverView.swift:176` — `tell application \"Terminal\" to do script \"brew-tui\"` | Detectar el terminal por defecto via `NSWorkspace` o permitir al usuario configurarlo en Settings; alternativa: usar `Process` para lanzar `brew-tui` directamente |
-| Forced unwrap en constante de compilacion en LicenseChecker | Parcial | Baja | `menubar/BrewBar/Sources/Services/LicenseChecker.swift:48` — `Data(hexString: hex)!` sobre una cadena hex literal compile-time | El riesgo de crash en produccion es nulo porque `hex` es una constante literal verificable en compilacion; sin embargo es un code smell; reemplazar con `guard let` para mayor claridad defensiva |
-| Ausencia de `PrivacyInfo.xcprivacy` | No conforme | **Critica** | No existe ningun archivo `*.xcprivacy` en el proyecto; BrewBar usa `UserDefaults`, `FileManager` timestamp access, y `UNUserNotificationCenter` | Crear `BrewBar/Resources/PrivacyInfo.xcprivacy` declarando `NSPrivacyAccessedAPITypes` con razones para `UserDefaults` (`CA92.1`) y acceso a timestamps de ficheros (`C617.1`); necesario para notarizacion en macOS 15+ |
-| Accesibilidad nula en vistas TUI | No conforme | Baja | 0 ocurrencias de `accessibilityLabel` en `src/`; la naturaleza de terminal de Ink limita la accesibilidad, pero se podria documentar la limitacion | Documentar que la accesibilidad de Ink/terminal es gestionada por el screen reader del sistema operativo; evaluar si las teclas de navegacion son anunciadas correctamente por VoiceOver |
+| Cero tests automatizados | No conforme | Alta | `superaudit-report/00-ficha.md` — "Archivos de test: 0 (vitest instalado, ink-testing-library instalado, sin ningun test implementado)". Flujos criticos como activacion de licencia, install/uninstall, pro-guard, y brewbar-installer sin cobertura. | Implementar tests unitarios minimos para `license-manager.ts`, `pro-guard.ts`, `feature-gate.ts`, y `brewbar-installer.ts`. Usar `vitest` ya instalado e `ink-testing-library` para tests de vista. |
+| Sin crash reporting ni telemetria | No conforme | Media | No se encontro ningun SDK de crash reporting (Crashlytics, Sentry) ni analytics en ninguna de las dos codebases. | Para BrewBar: integrar `os_log` o un lightweight crash reporter. Para TUI: considerar un contador de errores anonimizado. Sin telemetria es imposible conocer la tasa de crashes en produccion. |
+| Accesibilidad ausente en BrewBar SwiftUI | No conforme | Media | `PopoverView.swift`, `OutdatedListView.swift`, `SettingsView.swift` — sin modificadores `.accessibilityLabel()` en ningun elemento interactivo. Los botones de upgrade individual, el popover, y el picker de intervalo no tienen labels de accesibilidad. | Agregar `.accessibilityLabel()` a los botones de accion en `OutdatedListView` (upgrade individual, "Upgrade All"). Verificar con Accessibility Inspector de Xcode. |
 
 ---
 
@@ -124,20 +103,15 @@ En materia de release, el mayor bloqueador es que BrewBar se distribuye sin firm
 
 ### Checklist
 
-* [x] Metadata correcta (npm) — `package.json` con `name`, `version`, `description`, `keywords`, `license`, `homepage`, `repository`, `engines`; `bin` correcto; `files` lista explicitamente `build/`, `bin/`, `LICENSE`, `README.md`
-* [ ] Metadata correcta (BrewBar) — `Project.swift` no declara `MARKETING_VERSION` ni `CURRENT_PROJECT_VERSION`; la version 0.1.0 esta solo en el cask Homebrew, no en el bundle
-* [ ] Capturas correctas — no existe ningun sistema de capturas de pantalla automatizadas; no hay screenshots en el repositorio para la pagina de npm, JSR ni GitHub
-* [x] Privacy manifest / nutrition labels — N/A para npm/GitHub Releases; para BrewBar en distribucion ad-hoc via GitHub no es mandatorio a menos que se distribuya por App Store; sin embargo, la notarizacion en macOS 15+ requiere `PrivacyInfo.xcprivacy` para accesos a APIs del sistema
-* [ ] Notas de revision correctas — no existe `CHANGELOG.md` ni `RELEASE_NOTES.md`; `generate_release_notes: true` en `release.yml` genera notas automaticamente desde commits pero sin estructura semantica
-* [x] Deep links / universal links — N/A confirmado; sin `CFBundleURLTypes` en Info.plist de BrewBar; sin `.onOpenURL` en TUI; proyecto no requiere deep links segun su funcionalidad
+* [x] **Metadata correcta** — Sin App Store (BrewBar se distribuye via GitHub Releases, no Mac App Store). Version `0.2.0` consistente en `package.json`, `jsr.json`, `Project.swift`, y `CHANGELOG.md`. Nombre del paquete npm: `brew-tui`. Bundle ID BrewBar: `com.molinesdesigns.brewbar`.
+* [ ] **Capturas correctas** — Sin automatizacion de screenshots (sin Fastlane `snapshot`, sin UI tests de captura). No aplicable para distribucion directa, pero relevante para landing page y documentacion.
+* [x] **Privacy manifest / nutrition labels correctos** — `PrivacyInfo.xcprivacy` presente con `NSPrivacyAccessedAPITypes` declarando `UserDefaults` (CA92.1) y `FileTimestamp` (C617.1). `NSPrivacyTracking: false`. `NSPrivacyCollectedDataTypes` vacio. Cumple los requisitos de Apple para SDK/app privacy manifest desde primavera 2024.
+* [x] **Notas de revision correctas** — `CHANGELOG.md` presente y actualizado con v0.2.0 (fecha 2026-04-23). Contiene secciones Security, Fixed, Improved, Added. `generate_release_notes: true` en `softprops/action-gh-release@v2` genera notas automaticas de GitHub Release a partir de commits.
+* [x] **Deep links / universal links validados** — No aplica. BrewBar no registra URL schemes en `Project.swift` (`CFBundleURLTypes` ausente). TUI es CLI — sin URL handling. Sin `.onOpenURL` ni `Associated Domains`. Correcto para el tipo de producto.
 
 ### Hallazgos
 
 | Elemento | Estado | Severidad | Evidencia | Accion |
 |----------|--------|-----------|-----------|--------|
-| Homebrew cask distribuye app sin notarizar — Gatekeeper la bloqueara | No conforme | **Critica** | `homebrew/Casks/brewbar.rb` linea 5 — cask apunta a `BrewBar.app.zip` del GitHub Release; el CI no notariza ni firma con Developer ID | Notarizar y `staple` la app antes de empaquetar en zip; sin esto, `brew install --cask brewbar` instala una app que macOS bloqueara al primer lanzamiento con "unidentified developer" |
-| Version de BrewBar no declarada en el bundle — bundle version drift | No conforme | Media | `menubar/Project.swift` sin `MARKETING_VERSION`; `homebrew/Casks/brewbar.rb` hardcodea `version "0.1.0"` | Declarar `"MARKETING_VERSION": "$(BREW_TUI_VERSION)"` o un valor explicito en `Project.swift`; considerar un script que sincronice la version del cask con la del bundle en cada release |
-| Ausencia de CHANGELOG estructurado | No conforme | Media | No hay `CHANGELOG.md` ni `RELEASE_NOTES.md` en la raiz del repositorio; `generate_release_notes: true` genera notas desde commits sin formato semantico | Crear `CHANGELOG.md` siguiendo Keep a Changelog; el workflow puede prepender el bloque del tag automaticamente usando `gh release view --json body` |
-| Sha256 en Formula Homebrew podria desincronizarse en futuros releases | Parcial | Media | `homebrew/Formula/brew-tui.rb` linea 5 — `sha256 "4fa582ff..."` hardcodeado para 0.1.0; `homebrew/Casks/brewbar.rb` linea 3 — `sha256 "78a74e7b..."` | Automatizar la actualizacion de sha256 en el CI (post-publish, calcular hash del artefacto publicado y hacer PR a la formula); sin esto cada release manual puede desincronizarse |
-| No hay screenshots para npm/JSR ni pagina del producto | No conforme | Baja | `package.json` sin campo `screenshots`; repositorio sin directorio `screenshots/` o `docs/assets/` | Agregar capturas de pantalla del TUI y del popover de BrewBar al README y a la pagina npm para mejorar discoverability y conversion |
-| `publish.yml` modifica `package.json` en tiempo de ejecucion para cambiar nombre del paquete | Parcial | Baja | `publish.yml` lineas 35-42 — usa `node -e` para mutar `package.json` antes de publicar a GitHub Packages | Preferir un archivo `.npmrc` de publicacion o un `package.json` separado para el scope `@molinesgithub`; mutar el archivo en CI es fragil y puede causar inconsistencias |
+| BrewBar.app.zip sin firma ni notarizacion afecta distribucion directa | No conforme | Critica | (Ver tambien 18.1) El archivo descargado por usuarios desde GitHub Releases no pasara Gatekeeper. El comando `brew-tui install-brewbar` en `src/lib/brewbar-installer.ts` descarga este mismo artefacto. Los usuarios reciben error "can't be opened because it is from an unidentified developer" o similar. | Prioritario: configurar Developer ID Application certificate como secret en GitHub Actions y notarizar antes de publicar el Release. Ver hallazgo de firma en 18.1. |
+| Sin screenshots ni assets de marketing automatizados | No conforme | Baja | No se encontraron screenshots en el repositorio ni automatizacion para generarlos. Sin impacto en distribucion tecnica pero limita la documentacion y el listing en cuanto el producto se expanda. | Agregar screenshots al `README.md` o a una carpeta `/assets/screenshots/`. Para BrewBar, `xcrun simctl screenshot` o el Inspector de Xcode pueden capturarlos manualmente. |

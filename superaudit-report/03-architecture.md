@@ -1,10 +1,10 @@
 # 3. Arquitectura y limites del sistema
 
-> Auditor: architecture-auditor | Fecha: 2026-04-22
+> Auditor: architecture-auditor | Fecha: 2026-04-23
 
 ## Resumen ejecutivo
 
-Brew-TUI tiene una arquitectura bien estratificada para ser un proyecto TUI de tamano mediano. El patron Views → Stores (Zustand) → brew-api → Parsers → brew-cli esta claramente implementado y se respeta en casi todos los modulos, con violaciones de capa directas en `OutdatedView` y `ProfilesView`. El codebase Swift (BrewBar) tambien mantiene una separacion correcta entre modelos, servicios y vistas, con una arquitectura @Observable/@MainActor coherente. La deuda estructural principal es moderada: algunos modulos del lado TypeScript en la capa `lib/license/` importan directamente `useLicenseStore` desde la capa `stores/`, la licencia hardcodea la clave derivada en BrewBar, y el modulo `AppState.swift` importa SwiftUI en la capa de modelo. No hay god objects, todos los archivos estan por debajo de 350 lineas, y la cohesion por modulo es alta.
+Brew-TUI v0.2.0 presenta una arquitectura hibrida bien estructurada en sus niveles superiores: el entry point es claro, la navegacion es predecible y la separacion entre stores/views es solida. Sin embargo, persiste un patron sistematico de violacion de capas: cinco modulos de la capa `lib/` importan directamente del store de Zustand (`useLicenseStore`), invirtiendo el flujo de dependencias esperado (UI → Stores → Lib) e introduciendo acoplamiento circular entre la capa de dominio/servicio y la capa de estado. En BrewBar (Swift), la arquitectura es compacta y bien aislada, con `AppState` como fuente de verdad unica bajo `@MainActor`, aunque la clave de descifrado AES-256-GCM hardcodeada en `LicenseChecker.swift` constituye el hallazgo de mayor gravedad de todo el proyecto.
 
 ---
 
@@ -14,22 +14,19 @@ Brew-TUI tiene una arquitectura bien estratificada para ser un proyecto TUI de t
 
 * [x] Existe composition root claro
 * [x] La inicializacion global esta centralizada
-* [ ] No hay inicializacion de servicios dispersa en vistas — **Baja**: `SearchView` importa `* as api` de `brew-api` y llama `api.search()` directamente
-* [x] La navegacion tiene modelo definido
+* [x] No hay inicializacion de servicios dispersa en vistas
+* [ ] La navegacion tiene modelo definido — **Parcial**: navigation-store con historial correcto, pero `previousView` es un campo redundante con `viewHistory[-1]`
 * [x] La DI es explicita y predecible
 
 ### Hallazgos
 
 | Elemento | Estado | Severidad | Evidencia | Accion |
 |----------|--------|-----------|-----------|--------|
-| Composition root TypeScript | Conforme | — | `src/index.tsx` arranca el CLI y renderiza `<App />`. `src/app.tsx` es el router central con gate Pro. Cada store Zustand se inicializa de forma lazy en el primer acceso, sin disperion de estado. | — |
-| Composition root Swift | Conforme | — | `BrewBarApp.swift` declara `@main` + `@NSApplicationDelegateAdaptor`. `AppDelegate.swift` centraliza toda la inicializacion: `AppState`, `SchedulerService`, `LicenseChecker`, `statusItem`, `popover`. | — |
-| Inicializacion global TypeScript | Conforme | — | `src/app.tsx:28` llama `initLicense()` en un `useEffect` sin dependencias. `fetchAll()` se llama desde `DashboardView` al montar. Los stores Zustand se configuran a nivel modulo, no dentro de vistas. | — |
-| Inicializacion global Swift | Conforme | — | `AppDelegate.applicationDidFinishLaunching` coordina todo el arranque en un `Task` unico con guard clauses para dependencias faltantes. | — |
-| `SearchView` llama `api.search()` directo | No conforme | Baja | `src/views/search.tsx:12`: `import * as api from '../lib/brew-api.js'` y `src/views/search.tsx:41`: `api.search(term)`. Es la unica vista que bypassa el store para una operacion de lectura. | Crear `searchPackages(term)` en `brew-store.ts` o en un store dedicado `search-store.ts`, y mover la llamada alli. |
-| Modelo de navegacion TypeScript | Conforme | — | `src/stores/navigation-store.ts`: `VIEWS`, `navigate()`, `goBack()`, `selectPackage()`. El router en `src/app.tsx` es un switch simple y claro. Keyboard en `src/hooks/use-keyboard.ts`. | — |
-| DI TypeScript | Conforme | — | Los stores Zustand se acceden directamente mediante hooks tipados. No hay singletons globales ni Context de React. Las dependencias entre modulos son explicitas via imports. | — |
-| DI Swift | Conforme | — | `AppState` y `SchedulerService` se crean en `AppDelegate` y se pasan explicitamente a `PopoverView(appState:scheduler:)`. No hay singletons de acceso implicito. `LicenseChecker` usa solo static methods, acceptable para una utilidad sin estado. | — |
+| Entry point TUI (`src/index.tsx`) | Conforme | — | Unico entry, CLI subcommands separados, render de `<App/>` al final. | — |
+| Composition root TUI (`src/app.tsx`) | Conforme | — | Router central con `isProView()` gate, `useEffect` para `initLicense()`. | — |
+| Composition root BrewBar (`AppDelegate.swift`) | Conforme | — | `AppDelegate` instancia `AppState` y `SchedulerService` en su propio scope, los pasa por init. | — |
+| `previousView` redundante en `navigation-store.ts` | Parcial | Baja | `src/stores/navigation-store.ts:6,30` — `previousView` es siempre igual a `viewHistory[viewHistory.length-1]`; la unica fuente de verdad del historial es `viewHistory`. | Eliminar el campo `previousView` y derivarlo de `viewHistory` donde se necesite; reducir superficie de estado duplicado. |
+| Inicializacion de `licenseStore` en `useEffect` | Conforme | — | `src/app.tsx:29` — `initLicense()` se llama desde el componente raiz, no desde vistas hoja. | — |
 
 ---
 
@@ -38,26 +35,21 @@ Brew-TUI tiene una arquitectura bien estratificada para ser un proyecto TUI de t
 ### Checklist
 
 * [x] UI no conoce detalles de persistencia
-* [ ] UI no conoce detalles de red — **Baja**: `SearchView` llama `brew-api` directamente (CLI, no red pura, pero es infra)
+* [ ] UI no conoce detalles de red — **Parcial**: `outdated.tsx` importa `execBrew()` directamente
 * [x] Domain no depende de UI
-* [x] Data implementa contratos del dominio
-* [ ] Shared/Core no se convierte en cajon desastre — **Baja**: `src/lib/` raiz mezcla tipos de dominio con utilidades de infra
-* [x] No hay dependencias ciclicas
+* [ ] Data implementa contratos del dominio — **No conforme**: 5 modulos `lib/` importan `useLicenseStore` del store layer
+* [x] Shared/Core no se convierte en cajon desastre
+* [x] No hay dependencias ciclicas (detectadas)
 
 ### Hallazgos
 
 | Elemento | Estado | Severidad | Evidencia | Accion |
 |----------|--------|-----------|-----------|--------|
-| UI no accede persistencia directamente | Conforme | — | Ninguna vista importa `readFile`, `writeFile`, ni llama a history/profiles/license directamente. Toda escritura de disco pasa por stores o lib managers. | — |
-| `OutdatedView` importa `execBrew` | No conforme | Media | `src/views/outdated.tsx:5`: `import { execBrew } from '../lib/brew-cli.js'` y `src/views/outdated.tsx:54`: `void execBrew([pkg.pinned ? 'unpin' : 'pin', pkg.name])`. Una vista llama directamente a la primitiva CLI para la accion pin/unpin, saltandose el store y el api layer. | Agregar `pinPackage(name, pinned)` en `brew-api.ts` y `togglePinPackage(name)` en `brew-store.ts`, y reemplazar la llamada directa. |
-| `ProfilesView` llama `profile-manager` directamente | No conforme | Baja | `src/views/profiles.tsx:12`: `import * as manager from '../lib/profiles/profile-manager.js'`. En `startImport()` (lineas 91-92) la vista llama `manager.loadProfile(name)` y `manager.importProfile(profile)` directamente, saltandose `useProfileStore`. El store ya expone `loadProfile` como accion, pero para la operacion de import la vista gestiona el generator y el ciclo de vida del refRef manualmente. El manejo de errores y la cancelacion con `mountedRef` son correctos, pero el bypass rompe la consistencia del patron capa-store. | Mover la logica de import (iterator, `mountedRef`, lineas streaming) a una accion del store `importProfile(name)` que exponga un `ReadableStream` o un callback de progreso, alineando el patron con las demas acciones del store. |
-| Domain no depende de UI | Conforme | — | Todos los modulos en `src/lib/` importan solo Node.js core, otros modulos de `lib/`, e `i18n`. Ningun archivo en `src/lib/` importa `ink`, `react`, ni ninguna vista. | — |
-| `AppState.swift` importa SwiftUI | No conforme | Baja | `menubar/BrewBar/Sources/Models/AppState.swift:2`: `import SwiftUI`. El import es innecesario: `AppState` es un modelo `@Observable` y no necesita SwiftUI para eso en Swift 5.9+. | Eliminar `import SwiftUI`; `@Observable` esta en el modulo `Observation`, disponible sin SwiftUI en Swift 5.9+. |
-| `lib/license/pro-guard.ts` importa `stores/` | No conforme | Media | `src/lib/license/pro-guard.ts:1`: `import { useLicenseStore } from '../../stores/license-store.js'`. La capa `lib/` importa la capa `stores/`. Esto invierte la dependencia esperada (stores → lib), creando una dependencia ciclica potencial y acoplando logica de dominio al estado de presentacion. Lo mismo ocurre en `anti-tamper.ts:1` y `watermark.ts:1`. | Refactorizar `verifyPro()` para que acepte el estado de licencia como parametro (`verifyPro(status, license)`) en lugar de acceder al store directamente. Alternativa: usar una funcion de callback registrada al iniciar el store. |
-| `lib/license/license-manager.ts` importa `i18n` | Parcial | Baja | `src/lib/license/license-manager.ts:5`: `import { t } from '../../i18n/index.js'`. Los managers de dominio deberian lanzar errores en ingles y dejar la traduc cion a la capa de presentacion. | Reemplazar los usos de `t()` en `license-manager.ts` por mensajes de error en ingles; traducir en la capa de vista o en `license-store.ts`. |
-| Contratos del dominio en Data | Conforme | — | Los parsers (`json-parser.ts`, `text-parser.ts`) implementan contratos definidos por los tipos en `src/lib/types.ts`. Las interfaces `Formula`, `Cask`, `OutdatedPackage`, etc. son el contrato del dominio. | — |
-| `src/lib/` raiz como cajon | Parcial | Baja | `src/lib/` raiz contiene cinco archivos: `types.ts` (tipos de dominio), `brew-api.ts` (capa API), `brew-cli.ts` (primitivas CLI), `data-dir.ts` (infra de filesystem), `brewbar-installer.ts` (infra de instalacion). La mezcla entre contrato de dominio, API de alto nivel y utilidades de infra es moderada pero controlable para el tamano actual del proyecto. | Considerar mover `data-dir.ts` y `brewbar-installer.ts` a `src/lib/infra/` cuando el proyecto crezca, para separar claramente la infra del contrato de dominio. |
-| Dependencias ciclicas | Conforme | — | El ciclo `pro-guard → license-store → license-manager → pro-guard` no existe directamente porque `license-store` importa `license-manager` pero `license-manager` NO importa `license-store`. Sin embargo, `pro-guard` accede al store en runtime, lo que crea un acoplamiento logico (no un ciclo de importacion estatico). | Ver hallazgo de `pro-guard` arriba. |
+| `lib/` importa `useLicenseStore` (5 modulos) | No conforme | Alta | `src/lib/history/history-logger.ts:5`, `src/lib/security/audit-runner.ts:3`, `src/lib/cleanup/cleanup-analyzer.ts:6`, `src/lib/profiles/profile-manager.ts:9`, `src/lib/brewbar-installer.ts:9` — todos extraen `{ license, status }` del store para llamar a `requirePro()`. La capa `lib` conoce la capa `stores`, invirtiendo la jerarquia deseada. | Refactorizar las funciones afectadas para recibir `{ license, status }` como parametros expliciticos desde la capa de stores/hooks. Asi `lib` solo dependeria de `lib/license/types.ts`, no del store. |
+| `outdated.tsx` importa `execBrew` directamente | Parcial | Media | `src/views/outdated.tsx:5` — importa `execBrew` de `lib/brew-cli.ts` para la operacion de `pin`. El resto de operaciones va a traves de `useBrewStream`. Rompe la abstraccion: el store/API deberian ser la frontera de la UI con la CLI. | Mover la operacion de pin a `brew-api.ts` (p. ej. `pinPackage(name)`) y eliminar el import directo de `brew-cli` en la vista. |
+| `installed.tsx`, `package-info.tsx` y `search.tsx` importan `brew-api.ts` directamente | Parcial | Baja | `src/views/installed.tsx:7` (`formulaeToListItems`, `casksToListItems`), `src/views/package-info.tsx:14` (llamadas API directas), `src/views/search.tsx:12` (`import * as api`). `formulaeToListItems` es una funcion de presentacion que deberia vivir en el store o en una capa de adaptacion, no en `brew-api`. Las llamadas directas a `api.getFormulaInfo()` en `package-info` eluden el store. | Mover `formulaeToListItems`/`casksToListItems` a un modulo de utilidades de presentacion o al store. Centralizar `getFormulaInfo` en el store o en un store propio de `package-info`. |
+| `src/utils/` coherente y acotado | Conforme | — | Solo 3 ficheros: `format.ts`, `colors.ts`, `gradient.tsx`. No hay junk drawer. | — |
+| Capas BrewBar bien separadas (App / Models / Services / Views) | Conforme | — | `BrewChecker` y `LicenseChecker` son structs `Sendable` sin dependencia de Views. `AppState` es el unico punto de contacto entre Services y Views. | — |
 
 ---
 
@@ -68,19 +60,18 @@ Brew-TUI tiene una arquitectura bien estratificada para ser un proyecto TUI de t
 * [x] Cada modulo tiene responsabilidad clara
 * [x] No hay god objects
 * [x] No hay view models con demasiadas responsabilidades
-* [ ] No hay servicios transversales con logica de negocio escondida — **Media**: el modulo de licencia (`pro-guard`, `anti-tamper`, `canary`, `integrity`) concentra logica tecnica no trivial con obfuscacion
+* [ ] No hay servicios transversales con logica de negocio escondida — **Parcial**: `profile-manager.ts` mezcla logica de validacion de dominio con IO
 * [x] Las features son componibles
 
 ### Hallazgos
 
 | Elemento | Estado | Severidad | Evidencia | Accion |
 |----------|--------|-----------|-----------|--------|
-| Responsabilidades por modulo | Conforme | — | Cada directorio tiene un objetivo claro: `views/` (render + input), `stores/` (estado reactivo), `lib/brew-*` (CLI infra), `lib/parsers/` (parsing), `lib/license/` (licencias), `lib/security/` (CVE scanning), `lib/cleanup/` (orphan analysis), `lib/history/` (registro de acciones), `lib/profiles/` (perfiles de configuracion), `i18n/` (traducciones). | — |
-| Ausencia de god objects | Conforme | — | El archivo mas grande es `src/i18n/en.ts` (333 lineas, solo datos de traduccion) y `src/i18n/es.ts` (333 lineas). El archivo de logica mas grande es `src/lib/license/license-manager.ts` (262 lineas). Ningun archivo supera 500 lineas. | — |
-| Stores Zustand: responsabilidades | Conforme | — | `brew-store.ts` (173 lineas): gestiona datos de Homebrew. `license-store.ts` (113 lineas): gestiona estado de licencia. `navigation-store.ts` (58 lineas): gestiona navegacion. `profile-store.ts` (69 lineas): gestiona perfiles. `cleanup-store.ts`, `security-store.ts`, `history-store.ts`, `modal-store.ts`: cada uno con responsabilidad unica. Ninguno supera 15 propiedades o 20 metodos publicos. | — |
-| Logica de negocio en `pro-guard.ts` | No conforme | Media | `src/lib/license/pro-guard.ts` implementa: obfuscacion de strings (lineas 11-12), verificacion multinivel con anti-debug, integridad de bundle, verificacion de canaries, comprobacion de degradacion. La tecnica de obfuscacion (`String.fromCharCode`) es trivialmente reversible en JS y no aporta seguridad real mientras aumenta la deuda de mantenibilidad. Ademas, `anti-tamper.ts` captura referencias a funciones del store en tiempo de carga del modulo, lo que puede causar problemas en entornos de test. | Documentar explicitamente que esta obfuscacion es "security theater" en un binario JS distribuido. Si se mantiene, aislarla en un modulo separado con una interfaz limpia. Considerar eliminar la obfuscacion de strings ya que no provee seguridad real. |
-| Canaries logica | Parcial | Baja | `src/lib/license/canary.ts`: las tres funciones `isProUnlocked`, `hasProAccess`, `isLicenseValid` siempre devuelven `false`. El objetivo es la trampa, pero el codigo es confuso y dificulta la lectura. La variable `_canaryTripped` nunca se usa para nada fuera del modulo. | Documentar claramente en comentarios de que se trata la tecnica. La logica es correcta pero requiere contexto para cualquier mantenedor. |
-| Features componibles | Conforme | — | Las features Pro (profiles, cleanup, history, security-audit) son independientes entre si. `CleanupStore` reutiliza `useBrewStore.getState()` para obtener datos de formulae, lo que es composicion correcta entre stores. | — |
+| Ningun archivo supera 280 lineas | Conforme | — | Archivo mas grande: `profiles.tsx` (267 lineas), `license-manager.ts` (279 lineas). Sin god objects. | — |
+| Stores Zustand con responsabilidad acotada | Conforme | — | `brew-store`, `license-store`, `navigation-store`, `modal-store` tienen interfaces cohesivas y claras. Los stores de features Pro (`cleanup-store`, `security-store`, etc.) son adicionales y bien delimitados. | — |
+| `profile-manager.ts` mezcla validacion de input, IO y watermark | Parcial | Baja | `src/lib/profiles/profile-manager.ts:23-42` — la funcion `validateProfileName()` y la logica de watermark (`exportedBy: getWatermark(license)`) conviven con la persistencia. La responsabilidad es razonablemente acotada pero la validacion y el watermark podrian separarse para facilitar el testing. | Considerar extraer `validateProfileName` a un modulo de validacion y la logica de watermark a la llamada desde el store. Mejora de mantenibilidad, no bloqueante. |
+| `history-logger.ts` contiene tanto `detectAction` como `appendEntry` | Conforme | — | `src/lib/history/history-logger.ts:11` — `detectAction` fue movida aqui correctamente segun ARQ-006. Cohesion adecuada para un modulo de historial. | — |
+| `BrewChecker.swift` contiene clase `OnceGuard` anidada | Conforme | — | `menubar/BrewBar/Sources/Services/BrewChecker.swift:27` — clase privada anidada para exactamente-una-vez en la continuacion. Patron correcto y no duplicado externamente. | — |
 
 ---
 
@@ -90,104 +81,102 @@ Brew-TUI tiene una arquitectura bien estratificada para ser un proyecto TUI de t
 
 * [x] Codigo muerto identificado
 * [x] Extensiones utilitarias justificadas
-* [ ] Helpers sin semantica reducidos o eliminados — **Baja**: `useBrewCommand` hook no se usa en ninguna vista
+* [x] Helpers sin semantica reducidos o eliminados
 * [x] Nombres alineados con el dominio
-* [ ] No hay duplicacion estructural relevante — **Baja**: patron loading/error/success duplicado manualmente en 8+ vistas
+* [ ] No hay duplicacion estructural relevante — **Parcial**: patron de carga loading/error repetido en cada vista sin abstraccion
 
 ### Hallazgos
 
 | Elemento | Estado | Severidad | Evidencia | Accion |
 |----------|--------|-----------|-----------|--------|
-| `useBrewCommand` hook sin usar | No conforme | Baja | `src/hooks/use-brew-command.ts`: hook generico `useBrewCommand<T>` que envuelve `execBrew`. No hay ninguna vista ni componente que lo importe. El patron identico existe en los stores Zustand. | Eliminar el archivo o documentarlo como placeholder para uso futuro. |
-| `useDebounce` bien justificado | Conforme | — | `src/hooks/use-debounce.ts`: usado en `installed.tsx` y `history.tsx` para debounce de filtros de busqueda. | — |
-| Patron loading/error duplicado | No conforme | Baja | En 8 vistas (`dashboard.tsx`, `installed.tsx`, `outdated.tsx`, `services.tsx`, `doctor.tsx`, `smart-cleanup.tsx`, `history.tsx`, `security-audit.tsx`) el patron `if (loading.X) return <Loading />;` + `if (errors.X) return <ErrorMessage />` se repite identicamente. | Extraer un HOC o un hook `useViewState(key)` que retorne el estado tipado `{ status: 'loading' | 'error' | 'ready', error? }`. |
-| `src/utils/` limitado y cohesivo | Conforme | — | Solo dos archivos: `format.ts` (formateo de bytes, tiempo relativo, truncate) y `gradient.tsx` (componente + paletas de gradiente). Ambos tienen responsabilidades claras. | — |
-| Nombres alineados con dominio | Conforme | — | `PackageListItem`, `BrewService`, `OutdatedPackage`, `CleanupCandidate`, `HistoryEntry`, `Profile`, `LicenseData` — todos los nombres reflejan conceptos del dominio Homebrew/SaaS, no detalles de implementacion. | — |
-| `LemonSqueezyActivateResponse` / `LemonSqueezyValidateResponse` en `types.ts` | Parcial | Baja | `src/lib/license/types.ts:23-49`: los tipos `LemonSqueezyActivateResponse` y `LemonSqueezyValidateResponse` son contratos del proveedor externo (ahora Polar, no LemonSqueezy), pero el nombre aun referencia la plataforma anterior. | Renombrar a `PolarActivateResponse` / `PolarValidateResponse` para alinear con la implementacion real en `polar-api.ts`. |
+| `use-brew-command.ts` eliminado (ARQ-007) | Conforme | — | `Glob` no encuentra el fichero. Confirmado eliminado. | — |
+| Patron `loading/error` sin abstraccion en vistas | Parcial | Baja | Cada vista repite la misma logica: `if (loading.X) return <Loading .../>; if (errors.X) return <ErrorMessage .../>`. Hay un `TODO` en `src/views/doctor.tsx:9` que lo reconoce explicitamente. | Crear un hook `useViewState(key)` o un componente `<AsyncView>` que encapsule el patron. Mejora de consistencia y reduccion de duplicacion estructural. |
+| `previousView` duplica `viewHistory[-1]` | Parcial | Baja | `src/stores/navigation-store.ts:6` — campo que siempre es equivalente al ultimo elemento del historial. Introduce posibilidad de inconsistencia si se modifica el historial sin actualizar `previousView`. | Eliminar `previousView` del state interface y derivarlo de `viewHistory`. |
+| Constante `VIEWS` exportada de `navigation-store` | Conforme | — | `src/stores/navigation-store.ts:59` — exportada correctamente, usada por `use-keyboard.ts`. | — |
+| `LemonSqueezyActivateResponse` y `LemonSqueezyValidateResponse` en `types.ts` | Parcial | Baja | `src/lib/license/types.ts:24-49` — los tipos de respuesta de la API externa (LemonSqueezy / Polar) conviven con los tipos de dominio en el mismo fichero. Son DTOs de red que deberian separarse en `polar-api.ts` o en un fichero `dto.ts` propio. | Mover los response-types de la API a `polar-api.ts` donde se consumen. Claridad de capas sin impacto funcional. |
 
 ### Matriz de dependencias
 
 | Modulo | Depende de | Permitido? | Riesgo | Accion |
 |--------|------------|------------|--------|--------|
-| `src/views/*` | `stores/`, `components/`, `lib/brew-api`, `i18n/`, `utils/` | Si | — | — |
-| `src/views/outdated.tsx` | `lib/brew-cli` (directo) | No | Bypassa la capa API/store | Agregar `togglePin` a `brew-api` y `brew-store` |
-| `src/views/search.tsx` | `lib/brew-api` (directo) | Parcial | Bypassa el store; accepta para llamadas sin estado | Mover `search()` a un store o hook dedicado |
-| `src/views/profiles.tsx` | `lib/profiles/profile-manager` (directo) | No | Bypassa `profile-store` para operacion de import | Mover logica de streaming import al store |
-| `src/stores/*` | `lib/*`, `i18n/` | Si | — | — |
-| `src/lib/license/pro-guard.ts` | `stores/license-store` | No | Capa lib depende de stores (inversion) | Refactorizar a parametros o callback |
-| `src/lib/license/anti-tamper.ts` | `stores/license-store` | No | Igual que pro-guard | Igual que pro-guard |
-| `src/lib/license/watermark.ts` | `stores/license-store` | No | Igual | Igual |
-| `src/lib/license/license-manager.ts` | `i18n/` | Parcial | Dominio con strings localizados | Eliminar traducciones del manager |
-| `src/lib/profiles/profile-manager.ts` | `i18n/` | Parcial | Generator yielding i18n strings | Aceptable si se documenta como intencion |
-| `src/lib/cleanup/cleanup-analyzer.ts` | `src/utils/format.ts` | Parcial | lib → utils, aceptable | — |
-| `src/hooks/*` | `stores/`, `lib/brew-cli` | Si | — | — |
-| `menubar/Services/*` | Foundation only | Si | — | — |
-| `menubar/Models/AppState.swift` | SwiftUI (innecesario) | No | Dependencia UI en capa de modelo | Eliminar `import SwiftUI` |
-| `menubar/Views/*` | AppState, SchedulerService | Si | DI explicita via parametros | — |
-| `menubar/App/AppDelegate.swift` | Todos los modulos Swift | Si | Es el composition root | — |
+| `views/*` | `stores/*`, `lib/brew-api`, `hooks/*`, `i18n`, `utils`, `components/*` | Si (parcial) | `outdated.tsx` importa `brew-cli` directamente | Reemplazar con funcion en `brew-api` |
+| `views/installed.tsx`, `package-info.tsx`, `search.tsx` | `lib/brew-api` | Parcial | Acoplamiento directo a API en lugar de pasar por store | Crear funciones en store / capa adaptacion |
+| `stores/*` | `lib/*`, tipos | Si | Sin violaciones en stores | — |
+| `lib/history/history-logger.ts` | `stores/license-store` | **No** | Inversion de dependencias: lib conoce store | Pasar `{ license, status }` como parametro |
+| `lib/security/audit-runner.ts` | `stores/license-store` | **No** | Idem | Idem |
+| `lib/cleanup/cleanup-analyzer.ts` | `stores/license-store` | **No** | Idem | Idem |
+| `lib/profiles/profile-manager.ts` | `stores/license-store` | **No** | Idem | Idem |
+| `lib/brewbar-installer.ts` | `stores/license-store` | **No** | Idem | Idem |
+| `lib/license/*` | Solo tipos y Node.js APIs | Si | Sin violaciones | — |
+| `lib/brew-api.ts` | `lib/brew-cli`, `lib/parsers`, `lib/types` | Si | Sin violaciones | — |
+| BrewBar `Views/*` | `Models/AppState`, `Services/SchedulerService` | Si | Dependencias pasadas por init/let | — |
+| BrewBar `Services/BrewChecker` | Foundation, `Models/*` | Si | Struct Sendable bien aislado | — |
+| BrewBar `Services/LicenseChecker` | CryptoKit, Foundation, `Models/*` | Si | Clave hardcodeada es riesgo de seguridad, no de capa | Ver hallazgo en seccion 4 |
+| BrewBar `AppDelegate` | `Models/AppState`, `Services/*`, SwiftUI, AppKit | Si | Composition root correcto | — |
 
 ---
 
 # 4. Estado, concurrencia y flujo de datos
 
-> Auditor: architecture-auditor | Fecha: 2026-04-22
+> Auditor: architecture-auditor | Fecha: 2026-04-23
 
 ## 4.1 Ownership del estado
+
+> Nota metodologica: La TUI TypeScript no usa los wrappers de SwiftUI (`@State`, `@Binding`, etc.). Los equivalentes funcionales son: `useState` React (estado local de vista), Zustand stores (estado global/shared), props (projection/binding), `useRef` (estado mutable sin re-render). BrewBar usa Observation framework (`@Observable`) sobre SwiftUI, por lo que los items de `@StateObject`/`@ObservedObject` son marcados como **No aplica** para BrewBar.
 
 ### Checklist
 
 * [x] Cada fuente de verdad esta claramente definida
-* [ ] No hay duplicacion de estado — **Media**: `PackageInfoView` mantiene `formula` local mientras `brew-store` tiene los mismos datos
-* [x] `@State` solo para estado local de vista (Swift) / `useState` solo para estado local (TS)
-* [x] `@Binding` usado solo para proyeccion controlada
-* [x] `@StateObject` en propietarios reales (no aplica — usa `@Observable`)
-* [x] `@ObservedObject` no recrea ownership accidental (no aplica — usa `@Observable`)
-* [ ] `@EnvironmentObject` no introduce dependencias invisibles peligrosas — No aplica (no se usa `@EnvironmentObject`)
-* [x] `@Observable` usado con criterio arquitectonico
+* [ ] No hay duplicacion de estado — **Parcial**: `previousView` duplica el ultimo elemento de `viewHistory`
+* [x] `@State` solo para estado local de vista (TS: `useState` para estado local de vista)
+* [x] `@Binding` usado solo para proyeccion controlada (TS: props; Swift: `Binding(get:set:)` manual en SettingsView)
+* [x] `@StateObject` en propietarios reales — **No aplica** para BrewBar (`@Observable`); TS no usa `@StateObject`
+* [x] `@ObservedObject` no recrea ownership accidental — **No aplica** para BrewBar; TS no usa `@ObservedObject`
+* [x] `@EnvironmentObject` no introduce dependencias invisibles peligrosas — No se usa en ninguno de los dos codebases
+* [x] `@Observable` usado con criterio arquitectonico (BrewBar: `AppState` y `SchedulerService` son `@Observable @MainActor`)
 
 ### Hallazgos
 
 | Elemento | Estado | Severidad | Evidencia | Accion |
 |----------|--------|-----------|-----------|--------|
-| Fuentes de verdad TypeScript | Conforme | — | `brew-store.ts`: formulae, casks, outdated, services, config, leaves. `license-store.ts`: status, license, degradation. `navigation-store.ts`: currentView, selectedPackage, viewHistory. `profile-store.ts`, `cleanup-store.ts`, `security-store.ts`, `history-store.ts`: cada uno con su dominio. `modal-store.ts`: contador de modales. Cada dato tiene exactamente un store propietario. | — |
-| `PackageInfoView` duplica estado de formula | No conforme | Media | `src/views/package-info.tsx:32-33`: `const [formula, setFormula] = useState<Formula | null>(null)` + `const [loading, setLoading] = useState(true)`. La vista carga y almacena la formula localmente con `api.getFormulaInfo()`, mientras `brew-store` ya tiene los datos de formulae. Hay dos fuentes para el mismo dato con ciclos de vida distintos. | Agregar `selectedFormulaDetails: Formula | null` a `brew-store.ts` y una accion `fetchFormulaDetails(name)`. La vista lee del store en lugar de hacer la llamada directa. Alternativa menos invasiva: el estado local esta bien documentado, pero debe sincronizarse cuando el brew-store actualice los datos. |
-| `useState` en vistas para estado verdaderamente local | Conforme | — | Los `useState` en las vistas son: `cursor` (posicion de lista), `filter` (texto de busqueda local), `tab` (tab activo), `confirmAction` (estado de dialogo de confirmacion), `mode` (sub-modo de vista). Todos son estados efimeros de UI sin necesidad de persistir en un store. | — |
-| `@Observable` + `@MainActor` en BrewBar | Conforme | — | `AppState` y `SchedulerService` son `@Observable @MainActor`. Las vistas leen propiedades observadas sin wrappers adicionales. `PreviewData.makeAppState()` es `@MainActor`. El ownership es claro: `AppDelegate` crea y posee ambos objetos. | — |
-| `SettingsView` accede a `SchedulerService` via parametro | Conforme | — | `menubar/BrewBar/Sources/Views/SettingsView.swift:3`: `let scheduler: SchedulerService`. No hay acceso implicito via environment. El `Binding` customizado en las lineas 16-28 y 25-34 proyecta correctamente los valores del scheduler. | — |
-| `launchAtLogin` en `SettingsView` | Parcial | Baja | `menubar/BrewBar/Sources/Views/SettingsView.swift:7`: `@State private var launchAtLogin = SMAppService.mainApp.status == .enabled`. Este `@State` se inicializa una sola vez al crear la vista y no se sincroniza si el estado cambia externamente. Si el usuario habilita login-at-launch desde otra app y luego abre Settings, el toggle mostrara el estado desactualizado. | Sincronizar con `.task { launchAtLogin = SMAppService.mainApp.status == .enabled }` al aparecer la vista. |
-| `_revalidating` module-level flag | Parcial | Media | `src/stores/license-store.ts:11`: `let _revalidating = false` declarado a nivel de modulo. Esta variable no es reactiva y su acceso desde el closure del `setInterval` (linea 71) y desde `initialize()` no esta coordinado con ninguna primitiva de sincronizacion. En el contexto de Node.js single-threaded es seguro, pero la variable sobrevive entre reinicios de la aplicacion si el modulo no se descarga (por ejemplo en tests). | Documentar explicitamente que solo es seguro en entorno single-threaded. En tests, resetear el modulo entre suites. |
+| `previousView` duplica `viewHistory[-1]` | Parcial | Baja | `src/stores/navigation-store.ts:6,21,30,41` — dos campos representan la misma informacion; pueden divergir si el historial se modifica sin actualizar `previousView`. | Eliminar `previousView` del interface, derivarlo de `viewHistory` en los consumidores. |
+| Estado local `loading`/`error` en `package-info.tsx` | Parcial | Baja | `src/views/package-info.tsx:33-34` — `loading` y `error` gestionados con `useState` local en lugar de pasar por el store. Inconsistente con el resto de vistas que usan `brew-store`. | Valorar crear un store o hook de `package-info` para unificar el patron. Impacto bajo. |
+| `AppState` como unica fuente de verdad en BrewBar | Conforme | — | `menubar/BrewBar/Sources/Models/AppState.swift:6` — `@MainActor @Observable`, propietario en `AppDelegate`. Pasado por init a Views y a SchedulerService como `weak var state`. Sin duplicaciones. | — |
+| `SchedulerService` es `@Observable` y propietario de `interval`/`notificationsEnabled` | Conforme | — | `menubar/BrewBar/Sources/Services/SchedulerService.swift:6` — correcto: la preferencia de intervalo vive en el scheduler, no en AppState. | — |
+| `Binding(get:set:)` manual en `SettingsView` para `scheduler.interval` | Conforme | — | `menubar/BrewBar/Sources/Views/SettingsView.swift:16-23` — necesario porque `@Observable` no genera `Binding` automatico para propiedades de tipos referencia pasados como `let`. Patron correcto. | — |
+| `@EnvironmentObject` no usado en ninguna codebase | Conforme | — | Grep confirma ausencia. Todas las dependencias son explicitas via init o `useXxxStore()`. | — |
 
 ---
 
 ## 4.2 Concurrencia
 
+> Nota metodologica: La TUI TypeScript es single-threaded (Node.js event loop). Los patrones relevantes son: Promises/async-await, AsyncGenerator para streaming, unhandled rejections, race conditions en actualizaciones de estado Zustand desde fetches paralelos, y lifecycle de tareas asincronas en componentes React. BrewBar usa Swift 6 concurrencia estructurada con `@MainActor`, `async/await`, `Task`, y `Sendable`.
+
 ### Checklist
 
-* [x] Aislamiento de actores definido (Swift: `@MainActor` correcto; TypeScript: single-threaded, sin actores)
-* [ ] `@MainActor` usado solo donde corresponde — **Baja**: `SchedulerService` es `@MainActor` pero ejecuta lógica de scheduling y notificaciones
-* [x] No hay trabajo pesado en main thread
-* [ ] `Task` cancelables y con ciclo de vida claro — **Media**: multiples `Task { }` fire-and-forget en vistas SwiftUI
-* [ ] No hay fire-and-forget sin control — **Media**: idem
-* [x] Errores async propagados correctamente
-* [ ] Reentrancy revisada — **Media**: `AppState.refresh()` tiene guard, pero `upgrade` + `refresh` en secuencia es reentrable
-* [x] Race conditions analizadas
-* [x] Sendable revisado en tipos compartidos
+* [ ] Aislamiento de actores definido — **No aplica** para TUI TypeScript; **Parcial** para BrewBar: sin `actor` declarado, aislamiento via `@MainActor`
+* [ ] `@MainActor` usado solo donde corresponde — **No aplica** para TUI; **Conforme** para BrewBar
+* [ ] No hay trabajo pesado en main thread — **No aplica** para TUI (single-thread); **Conforme** para BrewBar (brew spawn en background)
+* [ ] Task cancelables y con ciclo de vida claro — **Parcial**: `launchTask` en AppDelegate se cancela en `applicationWillTerminate`, pero Tasks en botones de views son fire-and-forget
+* [ ] No hay fire-and-forget sin control — **Parcial**: Tasks en botones de SwiftUI Views no tienen handle ni cancelacion; `brewUpdate().catch(() => {})` en brew-store swallows errores silenciosamente
+* [ ] Errores async propagados correctamente — **Parcial**: `src/stores/brew-store.ts:147` swallows errores de `brewUpdate()` completamente
+* [ ] Reentrancy revisada — **Parcial**: `AppState.refresh()` tiene guard `guard force || !isLoading`, pero `upgrade()` llama `refresh(force: true)` y puede solaparse con un refresh del scheduler
+* [ ] Race conditions analizadas — **Parcial**: `_revalidating` es un flag de modulo (no atomic), posible race en Node.js si dos microtasks verifican simultaneamente
+* [x] Sendable revisado en tipos compartidos (BrewBar: `OutdatedPackage`, `BrewService`, `BrewChecker` conforman `Sendable`)
 
 ### Hallazgos
 
 | Elemento | Estado | Severidad | Evidencia | Accion |
 |----------|--------|-----------|-----------|--------|
-| `Task { }` fire-and-forget en vistas SwiftUI | No conforme | Media | `menubar/.../PopoverView.swift:54`: `Task { await appState.refresh() }` en `Button`. `menubar/.../OutdatedListView.swift:14`: `Task { await appState.upgradeAll() }`. Lineas 63, 85, 31 en sus respectivos archivos. Estas tasks no tienen handle para cancelacion ni estan ligadas al ciclo de vida de la vista. Si la vista se desmonta durante la operacion, la task continua y puede modificar `AppState` huerfano. | Capturar el handle en una variable `@State private var task: Task<Void, Never>?` y cancelarlo en `.onDisappear`. Alternativamente, usar `.task { ... }` modifier que cancela automaticamente. |
-| `SchedulerService` es `@MainActor` innecesariamente | No conforme | Baja | `menubar/.../SchedulerService.swift:4-5`: `@MainActor @Observable final class SchedulerService`. El servicio gestiona timers y notificaciones, operaciones que no son exclusivamente UI. Estar en `@MainActor` significa que `check()`, `syncNotificationPermission()`, y `sendNotification()` bloquean el hilo principal durante su ejecucion. En la practica, estas operaciones son rapidas, pero el diseño no es correcto. | Considerar mover `@MainActor` solo a las propiedades observadas (`interval`, `notificationsEnabled`, `notificationsDenied`) usando `nonisolated` en los metodos de scheduling, o mover el servicio a un actor propio. |
-| `AppDelegate.launchTask` sin cancelacion en error paths | Parcial | Baja | `menubar/.../AppDelegate.swift:15`: `launchTask = Task { ... }`. El task se cancela correctamente en `applicationWillTerminate`. Sin embargo, si `setupStatusItem()` o `setupPopover()` lanzaran (son metodos privados que no lanzan ahora), el `launchTask` se quedaria pendiente. La implementacion actual es correcta, pero fragil. | Documenting the cancellation contract. Mantener `applicationWillTerminate` como esta. |
-| `BrewChecker.run()` con `OnceGuard` | Conforme | — | `menubar/.../BrewChecker.swift:27-44`: el patron `OnceGuard` garantiza que la continuation solo se resuma una vez, incluso si tanto el `terminationHandler` como el timeout disparan simultaneamente. Correcto. | — |
-| Timeout con `DispatchQueue.global().asyncAfter` | Parcial | Media | `menubar/.../BrewChecker.swift:78-83`: el timeout usa `DispatchQueue.global().asyncAfter` que no es concurrency-aware. Podria haber una carrera entre el `terminationHandler` y el timeout si el proceso termina exactamente cuando el timeout dispara. El `OnceGuard` previene el doble-resume, pero `process.terminate()` se llama aunque el proceso ya termino, lo cual es inofensivo pero impreciso. | El patron `OnceGuard` lo protege. Considerar reemplazar por `withCheckedThrowingContinuation` con un `Task` de timeout cancelable para alinear con structured concurrency. |
-| Node.js async patterns en TypeScript | Conforme | — | `src/lib/brew-cli.ts`: `execBrew` usa `Promise` correctamente. `streamBrew` usa `AsyncGenerator` con `finally` que hace `proc.kill()` al cancelar. `use-brew-stream.ts`: el hook guarda el generator en `generatorRef` y llama `.return()` en `cancel()` y en el cleanup del `useEffect`. Los `void` en las vistas son intencionales para fire-and-forget de operaciones de refresco donde el error ya se maneja internamente. | — |
-| `setInterval` en `license-store.ts` sin limpieza | No conforme | Media | `src/stores/license-store.ts:71-88`: `setInterval(async () => { ... }, REVALIDATION_CHECK_MS).unref()`. El `.unref()` evita que Node.js quede bloqueado, pero el interval nunca se cancela mientras el proceso vive. Si se llama `initialize()` multiples veces (ej. en tests), se acumulan intervals. La flag `_revalidating` previene solapamiento de revalidaciones, pero no los intervals duplicados. | Guardar el ID del interval en el store: `let _intervalId: ReturnType<typeof setInterval> | null = null` y cancelar el anterior antes de crear uno nuevo. |
-| `void execBrew([...]).then(...)` en `OutdatedView` | Parcial | Media | `src/views/outdated.tsx:54`: `void execBrew([pkg.pinned ? 'unpin' : 'pin', pkg.name]).then(() => void fetchOutdated())`. Este patron fire-and-forget ignora errores del `execBrew`. Si `brew pin` falla, el usuario no recibe feedback. | Manejar el error mostrando un mensaje de error local, o mover la logica al store donde los errores se capturan en el mapa `errors`. |
-| Reentrancy en `AppState.upgrade` + `refresh` | Parcial | Media | `menubar/.../AppState.swift:43-55`: `upgrade(package:)` hace `isLoading = true`, llama `upgradePackage`, luego `refresh(force: true)`. Si el usuario pulsa el boton de upgrade dos veces rapidamente, el segundo `upgrade` sera bloqueado por el guard `guard !isLoading`. Sin embargo, si `upgradePackage` falla, `isLoading` se setea a `false` antes de retornar, permitiendo que otro upgrade empiece inmediatamente. Esto es correcto, pero `refresh` se llama sin guard de reentrada independiente. | El diseño es aceptable. Considerar agregar un indicador de que operacion especifica esta en curso para feedback mas granular en la UI. |
-| `Sendable` en tipos Swift | Conforme | — | `BrewChecker: Sendable` (linea 3), `BrewService: Sendable` (linea 3), `OutdatedPackage: Sendable` (via `Codable`). `AppState` y `SchedulerService` son `@MainActor`, por lo que son implicitamente `Sendable`. `OnceGuard` es `@unchecked Sendable` con NSLock, correcto. | — |
-| Errores async TypeScript | Conforme | — | En `brew-store.ts`, todos los async actions tienen `try/catch` que almacenan el error en `errors[key]`. En `useBrewStream.ts`, el `for await` esta en `try/catch`. En `license-store.ts`, el revalidation handler captura errores correctamente. | — |
+| `_revalidating` flag no atomico en `license-store.ts` | Parcial | Media | `src/stores/license-store.ts:12,58,79` — flag booleano de modulo usado para evitar revalidaciones concurrentes. En Node.js single-thread esto es seguro para callbacks, pero si dos microtasks en el mismo tick evaluan el flag antes de que alguna lo setee (posible con `Promise.all` o scheduling), podrian pasar dos revalidaciones simultaneas. El mutex no es verdaderamente atomico. | Reemplazar el flag por una `Promise` pendiente que actue como mutex real: `let _revalidationPromise: Promise<void> | null = null`. Quien llega segundo espera la misma promesa. |
+| `brewUpdate().catch(() => {})` swallows error completamente | No conforme | Media | `src/stores/brew-store.ts:147` — `api.brewUpdate().catch(() => {})` descarta cualquier error de la actualizacion de brew en silencio. Si `brew update` falla (sin conexion, permisos), el usuario no recibe ningun feedback y el store no actualiza ningun flag de error. | Cambiar a `.catch((err) => { set({ errors: { ...state.errors, update: String(err) } }) })` para que el error sea observable en el store y la UI pueda mostrarlo. |
+| `streamBrew()` usa polling de 100ms en lugar de evento | Parcial | Baja | `src/lib/brew-cli.ts:65` — `await new Promise((r) => setTimeout(r, 100))` en el bucle del generador. El propio comentario `TODO` lo reconoce. En operaciones largas esto introduce latencia de hasta 100ms por linea y aumenta CPU idle. | Refactorizar para usar un event emitter o una cola de lineas con un `Promise` que se resuelve en el callback `on('data')`, eliminando el polling. |
+| Tasks fire-and-forget en buttons de BrewBar Views | Parcial | Media | `menubar/BrewBar/Sources/Views/PopoverView.swift:57,88`, `OutdatedListView.swift:26,75`, `SettingsView.swift:31` — `Task { await appState.refresh() }` sin almacenar el handle. Si la view desaparece (popover cerrado) el Task continua y podria actualizar `AppState` correctamente (ya que `AppState` es `@MainActor`), pero no hay cancelacion. El comentario en PopoverView lo reconoce. | Almacenar los Task handles en `@State` o en la propia view y cancelarlos en `.onDisappear` o usar `.task` modifier donde la semantica de cancelacion automatica sea aplicable. Para acciones disparadas por boton (no por lifecycle), el riesgo real es bajo, pero documentar la decision. |
+| `DispatchQueue.global().asyncAfter` en `BrewChecker` con `@unchecked Sendable` | Parcial | Media | `menubar/BrewBar/Sources/Services/BrewChecker.swift:78` — el timeout del proceso usa `DispatchQueue.global()` en lugar de una task estructurada. El mecanismo `OnceGuard` (clase anidada en linea 27, marcada `@unchecked Sendable` con `NSLock` manual) garantiza exactamente-una-vez, pero mezcla GCD y Swift concurrency. El uso de `@unchecked Sendable` requiere discipline manual para mantener la correccion del lock bajo refactoring futuro. | Reemplazar el timeout con `withTaskGroup` o `Task { try await Task.sleep(...); if process.isRunning { process.terminate() } }` en el contexto structured concurrency para eliminar la mezcla GCD/async y el `@unchecked Sendable`. |
+| `setInterval` en `license-store.ts` con `unref()` | Conforme | — | `src/stores/license-store.ts:74-93` — intervalo limpiado con `clearInterval` antes de crear uno nuevo, y marcado con `.unref()` para no bloquear el proceso. CON-001 correctamente resuelto. | — |
+| `useBrewStream` con lifecycle correcto | Conforme | — | `src/hooks/use-brew-stream.ts:38-45` — `mountedRef` + `generatorRef.current?.return(undefined)` en el cleanup del `useEffect`. Cancelacion de stream correcta al desmontar. | — |
+| `ProfilesView` cancela el importGenerator al desmontar | Conforme | — | `src/views/profiles.tsx:35-43` — `importGenRef.current?.return(undefined)` en el cleanup. Correcto. | — |
+| `AppDelegate.launchTask` cancelado en `applicationWillTerminate` | Conforme | — | `menubar/BrewBar/Sources/App/AppDelegate.swift:47-53` — `launchTask?.cancel()` + `badgeTimer?.invalidate()` + `scheduler.stop()`. Lifecycle correcto. | — |
 
 ---
 
@@ -196,24 +185,24 @@ Brew-TUI tiene una arquitectura bien estratificada para ser un proyecto TUI de t
 ### Checklist
 
 * [x] La transformacion de datos ocurre en la capa correcta
-* [ ] DTO != modelo de dominio != modelo de presentacion — **Media**: los mismos tipos `Formula`/`Cask` fluyen desde el JSON crudo hasta la vista sin ninguna transformacion de dominio intermedia
+* [ ] DTO != modelo de dominio != modelo de presentacion — **Parcial**: tipos de API externa conviven con tipos de dominio en `types.ts`
 * [x] El mapping es explicito
-* [ ] No hay logica de negocio en la vista — **Media**: `SmartCleanupView` contiene logica para detectar errores de dependencia
+* [ ] No hay logica de negocio en la vista — **Parcial**: `search.tsx` determina si un resultado es formula o cask, `outdated.tsx` importa `execBrew` directamente
 * [x] Estados de carga, error y exito estan tipados
-* [ ] Cancelaciones y reintentos modelados — **Media**: no hay retry logic en llamadas a OSV.dev ni a Polar API
+* [ ] Cancelaciones y reintentos modelados — **Parcial**: reintentos en `deactivate` (3 intentos), pero no en `scan()` de seguridad ni en fetches de brew
 
 ### Hallazgos
 
 | Elemento | Estado | Severidad | Evidencia | Accion |
 |----------|--------|-----------|-----------|--------|
-| Tipos DTO = Dominio = Presentacion | No conforme | Media | `src/lib/types.ts` define `Formula`, `Cask`, `OutdatedPackage`, `BrewService`. Estos tipos reflejan directamente el JSON de Homebrew (snake_case, estructura anidada con `installed[0]`). El mismo tipo `Formula` se usa en: el parser JSON, el store Zustand, `brew-api.ts`, `formulaeToListItems()`, y directamente en `PackageInfoView`. Solo existe una transformacion ligera a `PackageListItem` para las listas. No hay separation entre DTO de red / modelo de dominio / modelo de presentacion. | Para el tamano actual del proyecto este acoplamiento es gestionable. Si el proyecto crece, definir un `DomainFormula` con nombres camelCase y sin anidamiento innecesario, y mapear desde el DTO en el parser. |
-| `formulaeToListItems` / `casksToListItems` | Conforme | — | `src/lib/brew-api.ts:89-118`: estas funciones son mappers explicitos de `Formula[]` / `Cask[]` a `PackageListItem[]`. Son la unica transformacion de presentacion y estan en la capa correcta (api/lib, no en la vista). | — |
-| Logica de deteccion de errores en `SmartCleanupView` | No conforme | Media | `src/views/smart-cleanup.tsx:33-34`: `const isDependencyError = stream.error != null && stream.lines.some((l) => l.includes('Refusing to uninstall') \|\| l.includes('required by'))`. Esta logica analiza la salida de texto de `brew uninstall` para detectar un tipo especifico de error. Es parsing de texto de CLI dentro de la vista. | Mover la deteccion a `brew-cli.ts` o a un helper en `lib/cleanup/` que clasifique el tipo de error. La vista deberia recibir un tipo de error estructurado. |
-| Estados de carga tipados | Conforme | — | En los stores TypeScript: `loading: Record<string, boolean>` + `errors: Record<string, string \| null>` por clave. En los stores especificos (cleanup, security, history): `loading: boolean` + `error: string \| null`. En BrewBar: `AppState.isLoading`, `AppState.error`, `AppState.servicesError`. Todos los estados estan representados explicitamente. No se usa un enum tipado (ej. `ViewState<T>`), pero los flags son suficientes para este proyecto. | — |
-| Cancelacion de streams TypeScript | Conforme | — | `useBrewStream` expone `cancel()` que llama `generatorRef.current?.return(undefined)` y `streamBrew` tiene `finally { if (!done) proc.kill() }`. El proceso child es terminado en cancelacion. Las vistas usan `key.escape` para cancelar. | — |
-| Cancelacion en OSV.dev y Polar API | No conforme | Media | `src/lib/security/osv-api.ts` y `src/lib/license/polar-api.ts` usan `fetch()` sin `AbortController`. Si el usuario navega fuera de la vista `security-audit` durante un scan, el request HTTP continua. Tampoco hay retry logic para errores transitorios de red. | Agregar `AbortController` y pasar la signal al `fetch`. Implementar retry con backoff exponencial para errores 5xx en Polar API. |
-| Mapping de datos en parsers | Conforme | — | `src/lib/parsers/json-parser.ts` transforma el JSON crudo de Homebrew en los tipos del dominio con validacion defensiva (`Array.isArray`, valores por defecto). `text-parser.ts` parsea los formatos de texto (search, doctor, config). El mapping ocurre exclusivamente en esta capa. | — |
-| Transformaciones BrewBar | Conforme | — | `OutdatedPackage` y `BrewService` en Swift son DTOs de red con `CodingKeys` para mapear snake_case. `AppState` consume estos DTOs directamente. Al ser una app simple de solo lectura/actualizacion, la ausencia de capa de dominio separada es aceptable. | — |
+| `LemonSqueezyActivateResponse` y `LemonSqueezyValidateResponse` en `lib/license/types.ts` | Parcial | Baja | `src/lib/license/types.ts:24-49` — DTOs de respuesta de la API externa definidos en el mismo fichero que los tipos de dominio (`LicenseData`, `LicenseStatus`). Mezcla contratos externos con modelo interno. | Mover los response-types de LemonSqueezy/Polar a `polar-api.ts` donde se consumen. Sin impacto funcional. |
+| Logica de clasificacion formula/cask en `search.tsx` | Parcial | Baja | `src/views/search.tsx` — la distincion entre si un resultado de busqueda es formula o cask se infiere del contexto de resultados en la vista. Esta logica de clasificacion deberia vivir en `brew-api.ts` o en el store. | Mover la logica de clasificacion a `brew-api.ts`. La vista solo deberia consumir el tipo ya clasificado. |
+| `execBrew` usado directamente en `outdated.tsx` | No conforme | Media | `src/views/outdated.tsx:5` — la vista llama a la primitiva de CLI directamente, eludiendo la capa de API. El resultado no pasa por ningun parser y no se registra en el store ni en el historial. | Crear `pinPackage(name)`/`unpinPackage(name)` en `brew-api.ts` y usarlas desde el store o directamente desde la vista a traves de la API. |
+| Mapping explcito DTO → dominio en parsers | Conforme | — | `src/lib/parsers/json-parser.ts` y `text-parser.ts` — mappings explicitos con transformaciones seguras. Sin acceso directo a structs del JSON en la UI. | — |
+| `loadingState` ad-hoc en `package-info.tsx` | Parcial | Baja | `src/views/package-info.tsx:33-34` — usa `useState<boolean>` + `useState<string|null>` en lugar del patron tipado `loading[key]` del brew-store. Inconsistencia menor. | Unificar patron o crear un store de package-info. |
+| Sin reintentos en `scan()` de seguridad / fetches de brew | Parcial | Baja | `src/lib/security/osv-api.ts` — la llamada a OSV.dev no tiene logica de reintento. Si el servicio externo falla transitoriamente, el usuario debe refrescar manualmente. | Implementar retry con backoff exponencial (max 2-3 intentos) para llamadas a servicios externos. |
+| Cancelacion de stream correcta en `useBrewStream` | Conforme | — | `src/hooks/use-brew-stream.ts:84-88` — `cancel()` setea `cancelRef` y llama a `generatorRef.current?.return()`. El `streamBrew` llama a `proc.kill()` en su `finally`. | — |
+| Transformacion datos en BrewBar correctamente en Services | Conforme | — | `BrewChecker.swift` decodifica JSON en el servicio con `JSONDecoder`, `AppState` solo consume tipos tipados. Sin logica de parsing en Views. | — |
 
 ---
 
@@ -221,37 +210,36 @@ Brew-TUI tiene una arquitectura bien estratificada para ser un proyecto TUI de t
 
 ### Checklist
 
-* [ ] Estrategia de cache documentada — **Media**: no hay documentacion de la estrategia de cache en memoria
-* [ ] Invalidation policy definida — **Baja**: la invalidacion del brew-store depende de acciones del usuario, sin TTL
-* [ ] No hay stale state silencioso — **Media**: el dashboard muestra datos de `fetchAll()` que pueden ser minutos o sesiones desactualizados
-* [x] La UI reacciona bien a datos expirados (para la licencia si; para datos Homebrew, parcialmente)
+* [ ] Estrategia de cache documentada — **No conforme**: no hay documentacion de estrategia de cache para los datos de brew
+* [ ] Invalidation policy definida — **Parcial**: `lastFetchedAt` existe pero no se usa para invalidar
+* [ ] No hay stale state silencioso — **Parcial**: los datos de brew en el store pueden estar desactualizados sin indicacion visual
+* [ ] La UI reacciona bien a datos expirados — **Parcial**: no hay indicacion de "datos de hace X tiempo"
 
 ### Hallazgos
 
 | Elemento | Estado | Severidad | Evidencia | Accion |
 |----------|--------|-----------|-----------|--------|
-| Cache en memoria sin TTL | No conforme | Media | `brew-store.ts`: los datos de `formulae`, `casks`, `outdated`, `services` se cargan con `fetchAll()` al iniciar el dashboard y permanecen en memoria sin expiracion. Si el usuario deja la app abierta, navega a otras vistas y vuelve al dashboard horas despues, los datos mostrados pueden estar desactualizados sin indicacion visual. El store pre-inicializa `loading: { installed: true, outdated: true, services: true, config: true }` para evitar el flash, pero no hay TTL ni "last fetched at". | Agregar `lastFetchedAt: Record<string, number>` al store y mostrar un indicador de "ultima actualizacion hace X" en el dashboard o una opcion de refresco manual. |
-| Invalidacion del brew-store | No conforme | Baja | Cada vista llama a su propio fetch al montar (`fetchInstalled`, `fetchOutdated`, etc.) sin verificar si los datos ya son recientes. Esto provoca llamadas redundantes a brew CLI cuando el usuario navega entre vistas. | Agregar un threshold de frescura (ej. 30 segundos). Si los datos se cargaron hace menos del threshold, no refetchear. |
-| `SecurityAuditView` sin cache | Parcial | Baja | `src/views/security-audit.tsx:38`: `useEffect(() => { scan(); }, [])`. Cada vez que el usuario entra a la vista, se ejecuta un nuevo scan completo contra OSV.dev. No hay cache del resultado previo. Para instalaciones grandes (100+ paquetes), esto puede ser lento. | Almacenar el resultado en `security-store.ts` con un `scannedAt` timestamp y no re-escanear si fue hace menos de X minutos. El store ya tiene `summary` pero no tiene logica de frescura. |
-| Licencia con política de degradacion | Conforme | — | `src/lib/license/license-manager.ts`: degradacion gradual 0-7 dias (none), 7-14 (warning), 14-30 (limited), 30+ (expired). Revalidacion cada 24h con grace period de 7 dias. La UI en `account.tsx:55-63` muestra el warning de degradacion con dias transcurridos. | — |
-| BrewBar: sin cache de resultados | Parcial | Baja | `AppState.refresh()` en BrewBar ejecuta siempre las dos llamadas a brew (outdated + services). No hay cache entre refreshes del scheduler. Para una app de menubar que checkea cada hora esto es aceptable, pero el `badgeTimer` en `AppDelegate` corre cada 2 segundos leyendo del `AppState` en memoria (no re-ejecuta brew), lo que es correcto. | — |
-| `UserDefaults` en SchedulerService | Conforme | — | `interval` y `notificationsEnabled` se persisten en `UserDefaults` al cambiar (via `didSet`). Este es el uso correcto de `UserDefaults` para preferencias simples. | — |
+| `lastFetchedAt` definido pero no usado para invalidacion | Parcial | Media | `src/stores/brew-store.ts:17,40,57` — el campo `lastFetchedAt` fue introducido como correccion CON-003, pero ningun componente lo lee para mostrar "ultima actualizacion hace X" ni para decidir si los datos necesitan refresco. El tracking existe pero no cierra el ciclo. | Leer `lastFetchedAt` en `DashboardView` y en vistas de listas para mostrar "Actualizado hace X". Opcionalmente, implementar refresh automatico si `lastFetchedAt[key] > N_MINUTOS`. |
+| Sin cache de resultados de OSV.dev | No conforme | Media | `src/stores/security-store.ts` + `src/lib/security/audit-runner.ts` — cada llamada a `scan()` hace una peticion completa a `api.osv.dev`. Con muchos paquetes esto es lento y consume API. No hay TTL ni cache de resultados. | Introducir cache en memoria en `security-store` con TTL de 1h. Solo refrescar si `Date.now() - lastScanAt > TTL` o si el usuario lo pide explicitamente. |
+| Datos de brew en store sin indicacion de staleness | Parcial | Baja | `src/views/dashboard.tsx:15` — `fetchAll()` se llama al montar pero los datos permanecen en store sin timestamp visible. El usuario no sabe si esta mirando datos de hace 2 minutos o 2 horas. | Mostrar `lastFetchedAt.installed` como "Actualizado hace X" en el Dashboard y en la vista Installed. |
+| `lastChecked` de BrewBar visible en UI | Conforme | — | `menubar/BrewBar/Sources/Views/PopoverView.swift:105-109` — `appState.lastChecked` se muestra como texto relativo en la vista. El usuario sabe cuando fue la ultima comprobacion. | — |
+| Licencia cacheada en disco con invalidacion por TTL | Conforme | — | `src/lib/license/license-manager.ts:156-165` — `needsRevalidation()` usa `REVALIDATION_INTERVAL_MS` (24h) y `isWithinGracePeriod()` (7 dias). Politica documentada en codigo. | — |
 
 ### Registro de fuentes de verdad
 
 | Feature | Fuente de verdad | Estado derivado | Riesgo detectado | Accion |
 |---------|------------------|-----------------|------------------|--------|
-| Formulae instalados | `brew-store.formulae` | `PackageListItem[]` via `formulaeToListItems()` | Stale tras operaciones externas a la app | Agregar TTL o timestamp de ultima carga |
-| Casks instalados | `brew-store.casks` | `PackageListItem[]` via `casksToListItems()` | Idem | Idem |
-| Paquetes desactualizados | `brew-store.outdated` | Lista combinada formulae+casks en `OutdatedView` | Stale; no hay refresco automatico | TTL o mensaje de ultima actualizacion |
-| Servicios Homebrew | `brew-store.services` | `errorServices` filtrado en dashboard | Stale para servicios de larga vida | TTL o refresco periodico opcional |
-| Navegacion actual | `navigation-store.currentView` | Vista renderizada en `app.tsx` | Sin riesgo — estado efimero de sesion | — |
-| Paquete seleccionado | `navigation-store.selectedPackage` | Datos cargados en `PackageInfoView` | Desincronia si el paquete se modifica externamente | Refrescar al montar `PackageInfoView` (ya se hace) |
-| Licencia Pro | `license-store.{status, license, degradation}` | `isPro()`, gate en `app.tsx` | Acumulacion de intervals si `initialize()` se llama dos veces | Guardar ID del interval y cancelar el anterior |
-| Perfiles | `profile-store.profileNames` + archivos JSON en `~/.brew-tui/profiles/` | `selectedProfile` tras `loadProfile()` | Sin TTL; listado puede quedar stale si otro proceso modifica archivos | Aceptable para este caso de uso |
-| Historial | `history-store.entries` + `~/.brew-tui/history.json` | Filtrado en `HistoryView` | `appendEntry` en `use-brew-stream.ts` escribe directo al disco sin pasar por el store | `historyStore.logAction` existe pero no se usa en el hook |
-| Resultados de seguridad | `security-store.summary` | Lista de vulnerabilidades en `SecurityAuditView` | Sin cache: re-scan en cada mount | Agregar logica de frescura al store |
-| Outdated en BrewBar | `AppState.outdatedPackages` | `outdatedCount`, badge del statusItem | Stale entre checks del scheduler | Aceptable dado el intervalo de 1h+ |
+| Formulae/Casks instalados | `useBrewStore.formulae`, `useBrewStore.casks` | Listas filtradas en `InstalledView`, `PackageListItem[]` vía conversor | Sin TTL de invalidacion visible | Mostrar `lastFetchedAt.installed` en UI |
+| Paquetes desactualizados | `useBrewStore.outdated` | Lista unificada en `OutdatedView` | Igual que arriba | Mostrar timestamp |
+| Servicios brew | `useBrewStore.services` | `errorServiceList`, `runningServices` derivados con `useMemo` | Sin TTL de invalidacion visible | Idem |
+| Estado de licencia TUI | `useLicenseStore.{ status, license }` | `isPro()` derivado, `degradation` level | `_revalidating` flag no atomico | Usar Promise-mutex |
+| Historial de operaciones | Archivo `~/.brew-tui/history.json` | `useHistoryStore.entries` en memoria | Solo registra operaciones de Brew-TUI (no brew externo) | Documentado y aceptable |
+| Perfiles | Archivos `~/.brew-tui/profiles/*.json` | `useProfileStore.profileNames`, `selectedProfile` | Pro-guard via `useLicenseStore` directo | Refactorizar a parametro |
+| Resultado de auditoria de seguridad | `useSecurityStore.summary` | `results[]`, conteos por severidad | Sin cache — cada scan llama a OSV.dev | Implementar cache con TTL |
+| Candidatos de limpieza | `useCleanupStore.summary` | `selected: Set<string>` | Sin persistencia — se recalcula en cada sesion | Aceptable (analisis on-demand) |
+| Estado BrewBar (outdated, services) | `AppState.outdatedPackages`, `AppState.services` | `outdatedCount`, `errorServices` derivados | Sin indicacion de staleness en outliste (solo en "up to date" view) | Considerar mostrar `lastChecked` en OutdatedListView tambien |
+| Preferencias BrewBar | `UserDefaults` via `SchedulerService.interval`, `notificationsEnabled` | Estado UI en `SettingsView` | Sin conflicto detectado | — |
+| Navegacion TUI | `useNavigationStore.viewHistory` | `currentView`, `previousView` (redundante) | `previousView` puede divergir | Eliminar `previousView` |
 
 ---
 
@@ -260,33 +248,43 @@ Brew-TUI tiene una arquitectura bien estratificada para ser un proyecto TUI de t
 | Severidad | Cantidad |
 |-----------|----------|
 | Critica | 0 |
-| Alta | 0 |
-| Media | 9 |
-| Baja | 11 |
+| Alta | 1 |
+| Media | 7 |
+| Baja | 9 |
 
-**Total hallazgos no conformes o parciales:** 20
+**Total hallazgos no conformes o parciales:** 17
 
-### Distribucion por seccion
+### Tabla consolidada de hallazgos
 
-| Seccion | No conformes | Parciales |
-|---------|-------------|-----------|
-| 3.1 Composicion global | 1 | 0 |
-| 3.2 Separacion por capas | 4 | 2 |
-| 3.3 Cohesion y acoplamiento | 1 | 1 |
-| 3.4 Deuda estructural | 2 | 1 |
-| 4.1 Ownership del estado | 2 | 2 |
-| 4.2 Concurrencia | 4 | 3 |
-| 4.3 Flujo de datos | 3 | 0 |
-| 4.4 Cache | 3 | 2 |
+| ID | Elemento | Seccion | Estado | Severidad | Fichero(s) |
+|----|----------|---------|--------|-----------|------------|
+| ARQ-TS-001 | `lib/*` importa `useLicenseStore` (5 modulos) | 3.2 | No conforme | Alta | `history-logger.ts:5`, `audit-runner.ts:3`, `cleanup-analyzer.ts:6`, `profile-manager.ts:9`, `brewbar-installer.ts:9` |
+| ARQ-TS-002 | `outdated.tsx` importa `execBrew` directamente | 3.2 / 4.3 | No conforme | Media | `src/views/outdated.tsx:5` |
+| ARQ-TS-003 | `lib/license/types.ts` mezcla DTOs de red con tipos de dominio | 4.3 | Parcial | Baja | `src/lib/license/types.ts:24-49` |
+| ARQ-TS-004 | `previousView` redundante con `viewHistory[-1]` | 3.1 / 4.1 | Parcial | Baja | `src/stores/navigation-store.ts:6` |
+| ARQ-TS-005 | `_revalidating` flag no atomico | 4.2 | Parcial | Media | `src/stores/license-store.ts:12,58-70` |
+| ARQ-TS-006 | Patron `loading/error` sin abstraccion en vistas | 3.4 | Parcial | Baja | Multiple views, `doctor.tsx:9` (TODO existente) |
+| ARQ-TS-007 | `lastFetchedAt` sin uso para invalidacion/UI | 4.4 | Parcial | Media | `src/stores/brew-store.ts:17` |
+| ARQ-TS-008 | Sin cache de resultados OSV.dev en security-store | 4.4 | No conforme | Media | `src/stores/security-store.ts` |
+| ARQ-TS-009 | `streamBrew` usa polling de 100ms | 4.2 | Parcial | Baja | `src/lib/brew-cli.ts:65` |
+| ARQ-TS-010 | `installed.tsx`/`package-info.tsx`/`search.tsx` importan `brew-api` directamente | 3.2 | Parcial | Baja | `installed.tsx:7`, `package-info.tsx:14`, `search.tsx:12` |
+| ARQ-TS-011 | Estado local `loading/error` en `package-info.tsx` inconsistente con resto | 4.3 | Parcial | Baja | `src/views/package-info.tsx:33-34` |
+| ARQ-TS-012 | Sin reintentos en `scan()` de seguridad / fetches brew | 4.3 | Parcial | Baja | `src/lib/security/osv-api.ts` |
+| ARQ-TS-013 | `brewUpdate().catch(() => {})` swallows error sin feedback al usuario | 4.2 | No conforme | Media | `src/stores/brew-store.ts:147` |
+| ARQ-SW-001 | Tasks fire-and-forget en buttons SwiftUI Views | 4.2 | Parcial | Media | `PopoverView.swift:57,88`, `OutdatedListView.swift:26,75` |
+| ARQ-SW-002 | `DispatchQueue.global()` mezclado con Swift concurrency; `OnceGuard` es `@unchecked Sendable` | 4.2 | Parcial | Media | `BrewChecker.swift:78`, `BrewChecker.swift:27` |
+| ARQ-SW-003 | Datos de brew en store TUI sin indicacion de staleness en UI | 4.4 | Parcial | Baja | `src/views/dashboard.tsx`, `installed.tsx` |
+| ARQ-SW-004 | `profile-manager.ts` mezcla validacion, IO y watermark | 3.3 | Parcial | Baja | `src/lib/profiles/profile-manager.ts:23-42` |
 
-### Hallazgos de mayor prioridad (Media)
+> Nota: La clave AES-256-GCM hardcodeada en `LicenseChecker.swift:47` es el hallazgo de mayor gravedad del proyecto global, pero pertenece al dominio de Seguridad (seccion 13) y no a Arquitectura. Se menciona en la matriz de dependencias como riesgo de `LicenseChecker` pero el hallazgo formal debe registrarse por el agente de seguridad.
 
-1. **`lib/license/pro-guard.ts` importa `stores/`** — inversion de dependencias entre capa lib y capa de estado. Misma violacion en `anti-tamper.ts` y `watermark.ts`.
-2. **`OutdatedView` llama `execBrew` directamente** — unica vista que bypassa API y store para una accion de mutacion (pin/unpin).
-3. **Tipos DTO = Dominio = Presentacion** — `Formula`/`Cask` fluyen sin transformacion desde JSON hasta la vista.
-4. **`Task {}` fire-and-forget en BrewBar views** — tasks sin handle de cancelacion ni ligadas al ciclo de vida de la vista.
-5. **`setInterval` en `license-store` sin limpieza** — interval se acumula si `initialize()` se llama multiples veces.
-6. **`SmartCleanupView` parsea texto de CLI** — logica de negocio (deteccion de tipo de error) en la vista.
-7. **Sin `AbortController` en OSV.dev y Polar API** — requests HTTP no cancelables.
-8. **Brew-store sin TTL** — datos pueden estar obsoletos sin indicacion visual.
-9. **`PackageInfoView` duplica estado de formula** — fuente de verdad ambigua entre vista y store.
+### Verificacion de correcciones v0.2.0
+
+| Correccion reportada | Estado verificado | Evidencia |
+|----------------------|-------------------|-----------|
+| ARQ-001: pro-guard/anti-tamper/watermark no importan de stores | **Conforme** | `pro-guard.ts`, `anti-tamper.ts`, `watermark.ts` — ninguno importa de `stores/`. Aceptan parametros. |
+| CON-001: setInterval cleanup en license-store | **Conforme** | `license-store.ts:74` — `clearInterval(_revalidationInterval)` antes de crear nuevo. `unref()` en linea 93. |
+| CON-003: lastFetchedAt tracking en brew-store | **Conforme (parcial)** | Campo existe y se actualiza en cada fetch. No se lee en UI todavia (ver ARQ-TS-007). |
+| ARQ-006: detectAction movido a history-logger | **Conforme** | `history-logger.ts:11` — `detectAction` vive aqui. `use-brew-stream.ts:3` lo importa desde `history-logger`. |
+| ARQ-007: use-brew-command.ts eliminado | **Conforme** | Glob no encuentra el fichero. |
+| Navigation store goBack() pops history | **Conforme** | `navigation-store.ts:35-43` — implementacion correcta. |

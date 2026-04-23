@@ -36,9 +36,6 @@ bun add -g brew-tui
 brew tap MoLinesGitHub/tap
 brew install brew-tui
 
-# GitHub Packages
-npm install -g @MoLinesGitHub/brew-tui --registry https://npm.pkg.github.com
-
 # npx (run without installing)
 npx brew-tui
 ```

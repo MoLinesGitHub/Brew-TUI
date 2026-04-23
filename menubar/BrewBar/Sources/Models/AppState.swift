@@ -10,6 +10,7 @@ final class AppState {
     var isLoading = false
     var error: String?
     var servicesError: String?
+    var onRefreshComplete: (() -> Void)?
 
     private let checker = BrewChecker()
 
@@ -20,6 +21,10 @@ final class AppState {
         guard force || !isLoading else { return }
         isLoading = true
         error = nil
+        defer {
+            isLoading = false
+            onRefreshComplete?()
+        }
 
         // Run both checks in parallel using async let
         async let outdatedResult = checker.checkOutdated()
@@ -39,8 +44,6 @@ final class AppState {
         } catch {
             servicesError = error.localizedDescription
         }
-
-        isLoading = false
     }
 
     func upgrade(package name: String) async {

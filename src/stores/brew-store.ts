@@ -2,6 +2,12 @@ import { create } from 'zustand';
 import type { Formula, Cask, OutdatedPackage, BrewService, BrewConfig } from '../lib/types.js';
 import * as api from '../lib/brew-api.js';
 
+const BREW_UPDATE_COOLDOWN_MS = 5 * 60 * 1000;
+
+let fetchAllInFlight: Promise<void> | null = null;
+let brewUpdateInFlight: Promise<void> | null = null;
+let lastBrewUpdateStartedAt = 0;
+
 interface BrewState {
   formulae: Formula[];
   casks: Cask[];
@@ -40,7 +46,7 @@ function recordFetchTime(set: (fn: (s: BrewState) => Partial<BrewState>) => void
   set((s) => ({ lastFetchedAt: { ...s.lastFetchedAt, [key]: Date.now() } }));
 }
 
-export const useBrewStore = create<BrewState>((set) => ({
+export const useBrewStore = create<BrewState>((set, get) => ({
   formulae: [],
   casks: [],
   outdated: { formulae: [], casks: [] },
@@ -140,28 +146,44 @@ export const useBrewStore = create<BrewState>((set) => ({
     }
   },
 
-  fetchAll: async () => {
-    // Don't block on brew update — run in background.
-    // This is equivalent to the auto-update that `brew` does by default,
-    // which we disable per-command with HOMEBREW_NO_AUTO_UPDATE=1.
-    api.brewUpdate().catch(() => {});
+  fetchAll: async (): Promise<void> => {
+    if (fetchAllInFlight) {
+      return fetchAllInFlight;
+    }
 
-    // Start data fetches immediately
-    const store = useBrewStore.getState();
-    await Promise.all([
+    const now = Date.now();
+    if (!brewUpdateInFlight && now - lastBrewUpdateStartedAt > BREW_UPDATE_COOLDOWN_MS) {
+      lastBrewUpdateStartedAt = now;
+      // Don't block on brew update — run in background.
+      // This is equivalent to the auto-update that `brew` does by default,
+      // which we disable per-command with HOMEBREW_NO_AUTO_UPDATE=1.
+      brewUpdateInFlight = api.brewUpdate()
+        .catch(() => {})
+        .finally(() => {
+          brewUpdateInFlight = null;
+        });
+    }
+
+    const store = get();
+    fetchAllInFlight = Promise.all([
       store.fetchInstalled(),
       store.fetchOutdated(),
       store.fetchServices(),
       store.fetchConfig(),
       store.fetchLeaves(),
-    ]);
+    ]).then(() => undefined)
+      .finally(() => {
+        fetchAllInFlight = null;
+      });
+
+    return fetchAllInFlight;
   },
 
   uninstallPackage: async (name) => {
     setLoading(set, 'action', true);
     try {
       await api.uninstallPackage(name);
-      await useBrewStore.getState().fetchInstalled();
+      await get().fetchInstalled();
     } catch (err) {
       setError(set, 'action', err instanceof Error ? err.message : String(err));
     } finally {
@@ -173,7 +195,7 @@ export const useBrewStore = create<BrewState>((set) => ({
     setLoading(set, 'service-action', true);
     try {
       await api.serviceAction(name, action);
-      await useBrewStore.getState().fetchServices();
+      await get().fetchServices();
     } catch (err) {
       setError(set, 'service-action', err instanceof Error ? err.message : String(err));
     } finally {

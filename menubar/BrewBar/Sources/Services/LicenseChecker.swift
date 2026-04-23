@@ -51,6 +51,16 @@ struct LicenseChecker {
 
     /// Degradation thresholds (days since last validation)
     private static let expiredThreshold: Double = 30
+    private static let fractionalFormatter: ISO8601DateFormatter = {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return formatter
+    }()
+    private static let plainFormatter: ISO8601DateFormatter = {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime]
+        return formatter
+    }()
 
     // MARK: - Public API
 
@@ -87,18 +97,15 @@ struct LicenseChecker {
             return .expired
         }
 
-        let formatter = ISO8601DateFormatter()
-        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-
         // Check explicit expiration date
         if let expiresAt = license.expiresAt {
-            if let expDate = formatter.date(from: expiresAt), expDate < Date() {
+            if let expDate = parseDate(expiresAt), expDate < Date() {
                 return .expired
             }
         }
 
         // Check degradation: 30+ days since last validation = expired
-        if let lastValidated = formatter.date(from: license.lastValidatedAt) {
+        if let lastValidated = parseDate(license.lastValidatedAt) {
             let daysSince = Date().timeIntervalSince(lastValidated) / (24 * 60 * 60)
             if daysSince > expiredThreshold {
                 return .expired
@@ -129,6 +136,10 @@ struct LicenseChecker {
         } catch {
             return nil
         }
+    }
+
+    private static func parseDate(_ value: String) -> Date? {
+        fractionalFormatter.date(from: value) ?? plainFormatter.date(from: value)
     }
 }
 

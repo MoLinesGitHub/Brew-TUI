@@ -1,20 +1,20 @@
 # 16. Rendimiento
 
-> Auditor: performance-auditor | Fecha: 2026-04-22
+> Auditor: performance-auditor | Fecha: 2026-04-23
 
 ## Resumen ejecutivo
 
-Brew-TUI presenta una arquitectura de rendimiento generalmente solida para una aplicacion TUI, con patrones correctos de debounce, virtualizacion de listas y streaming acotado. Sin embargo, existen bottlenecks criticos en el arranque: la inicializacion de licencia bloquea el event loop con `scryptSync` e I/O sincrona al cargarse el modulo, y `fetchAll()` serializa `brew update` antes de cualquier dato de UI. En BrewBar, el timer de badge a 2 segundos y las llamadas secuenciales en `refresh()` representan desperdicios energeticos y de latencia evitables.
+Brew-TUI v0.2.0 incorpora mejoras de rendimiento significativas respecto a la version anterior: lazy initialization de la clave de cifrado, renderizado con ventana deslizante en todas las vistas de lista, paralelismo `async let` en BrewBar, memoizacion de `GradientText`, y `fetchWithTimeout` en todas las llamadas de red. Los principales problemas pendientes son el bucle de polling en `streamBrew` (100ms, marcado con TODO en el propio codigo), la ausencia de caching de resultados de auditoria de seguridad, y el patron de lectura/escritura total del archivo de historial en cada operacion. No existe backend propio: la seccion 16.3 no aplica en su totalidad.
 
 ## Metricas de analisis
 
-* **Total vistas TUI (React/Ink) analizadas:** 12
-* **Total vistas SwiftUI (BrewBar) analizadas:** 3
-* **Total listas/colecciones con scroll:** 5 (InstalledView, OutdatedView, HistoryView, SearchView, OutdatedListView)
-* **Total sitios de llamada de red detectados:** 7 (Polar activate, Polar validate, Polar deactivate, OSV batch, OSV fallback, GitHub download, Homebrew formulae index)
-* **Total queries backend detectadas:** 0 (no existe capa backend en el proyecto)
-* **Patrones de cache detectados:** 0
-* **Problemas de rendimiento potenciales:** 18
+* **Total vistas SwiftUI analizadas:** 5 (OutdatedListView, ServicesView, DashboardView, MenuBarView, SettingsView)
+* **Total vistas React/Ink analizadas:** 12 (dashboard, installed, outdated, package-info, services, security-audit, smart-cleanup, history, profiles, search, doctor, update)
+* **Total listas/colecciones:** 8 (todas con renderizado windowed via `slice()` en TUI; `LazyVStack` en BrewBar)
+* **Total llamadas de red detectadas:** 7 (Polar.sh activate, validate, deactivate x3; OSV.dev batch query; BrewBar installer download + checksum)
+* **Total queries backend detectadas:** 0 (no aplica — sin backend)
+* **Patrones de cache detectados:** 0 (no existe ninguna capa de cache HTTP ni de resultados)
+* **Problemas de rendimiento potenciales:** 11
 
 ---
 
@@ -22,33 +22,27 @@ Brew-TUI presenta una arquitectura de rendimiento generalmente solida para una a
 
 ### Checklist
 
-* [ ] **Launch time aceptable** — `scryptSync` bloquea el event loop en el import de `license-manager.ts` (linea 65); `readFileSync` ejecuta I/O sincrona en el import de `integrity.ts` (linea 23). Ambos ocurren antes de que se renderice el primer frame.
-* [ ] **First meaningful interaction aceptable** — `fetchAll()` en `brew-store.ts` serializa `brew update` (potencialmente 5-30 segundos de espera de red) antes de iniciar las cargas paralelas. La UI queda en estado loading hasta que `brew update` termina.
-* [x] **Scroll fluido** — InstalledView, HistoryView y SearchView implementan `MAX_VISIBLE_ROWS=20`. OutdatedView carece de virtualizacion; para instalaciones con muchos paquetes desactualizados podria causar render lento. BrewBar usa `LazyVStack` correctamente en `OutdatedListView`.
-* [ ] **Memoria controlada** — `GradientText` en `gradient.tsx` renderiza un elemento `<Text>` por caracter: el logo BREW (28 chars × 6 filas = 168 elementos) + logo TUI (15 × 6 = 90 elementos) = ~258 nodos React creados en cada render del Header. El Header se renderiza en cada vista del TUI. `history-logger.ts` carga el archivo completo en memoria en cada `appendEntry()`, aunque esta acotado a 1000 entradas.
-* [ ] **CPU controlada** — `streamBrew()` en `brew-cli.ts` linea 61 usa un bucle de busy-polling con `setTimeout(r, 50)` para detectar nuevas lineas del child process. Genera 20 wake cycles por segundo durante toda operacion de instalacion/upgrade. `verifyPro()` ejecuta `readFileSync` en cada invocacion desde `requirePro()`, llamado en cada operacion de cleanup, historial y perfiles.
-* [x] **Bateria razonable (TUI)** — El store de licencia usa `setInterval` con `.unref()` (intervalo 1h), lo que no impide la salida del proceso. No hay polling agresivo en el codebase TypeScript mas alla del busy-poll de `streamBrew` (activo solo durante operaciones).
-* [ ] **Bateria razonable (BrewBar)** — `AppDelegate.swift` linea 40: `Timer.scheduledTimer(withTimeInterval: 2, repeats: true)` ejecuta la comprobacion de badge cada 2 segundos de forma continua mientras la app esta en ejecucion.
-* [x] **Overdraw revisado** — Ink renderiza en terminal (no GPU), el concepto de overdraw no aplica directamente. En BrewBar las vistas SwiftUI son simples (listas, texto, botones) sin capas de fondo superpuestas problematicas.
-* [x] **Decodificacion de imagen optimizada** — No se usan imagenes en el TUI. BrewBar usa `Image(systemName:)` exclusivamente (SF Symbols, sin decodificacion de imagen externa).
-* [ ] **Lazy loading donde procede** — OutdatedView renderiza `allOutdated.map(...)` sin limite de filas visibles. Para usuarios con 50+ paquetes desactualizados, todos los elementos se renderizan inmediatamente. `AppState.refresh()` en BrewBar ejecuta `checkOutdated()` y `checkServices()` de forma secuencial en lugar de concurrente.
+* [x] **Launch time aceptable** — El punto de entrada `src/index.tsx` despacha subcomandos CLI de forma sincrona y luego invoca `render(<App />)`. La importacion de `brewbar-installer` es lazy (`await import`). El `App` component ejecuta `initLicense()` en un `useEffect`, lo que significa que no bloquea el render inicial. `fetchAll()` se ejecuta de forma no bloqueante. No se detectan operaciones sincronas pesadas en la ruta de arranque.
+* [x] **First meaningful interaction aceptable** — `brew-store.ts` pre-inicializa los flags de `loading` antes de las fetches, lo que evita un flash de contenido vacio. La UI es interactiva inmediatamente mientras los datos se cargan en background.
+* [x] **Scroll fluido** — Todas las vistas de lista implementan renderizado con ventana deslizante manual (`slice(start, start + MAX_VISIBLE_ROWS)` donde `MAX_VISIBLE_ROWS = Math.max(5, rows - 8)`). El terminal renderer de Ink no sufre jank de scroll al estar limitado el numero de nodos React activos. BrewBar usa `LazyVStack` en `OutdatedListView`.
+* [ ] **Memoria controlada** — `history-logger.ts` carga el archivo completo de historial en memoria en cada operacion de escritura (`appendEntry`). Con 1000 entradas el impacto es limitado pero el patron es ineficiente. `security-store.ts` no libera resultados de auditoria entre navegaciones ni limita el tamano del resultado en memoria.
+* [ ] **CPU controlada** — `streamBrew()` en `brew-cli.ts` usa un bucle de polling con `setTimeout(r, 100)` en lugar de eventos `stdout.on('data')`. El propio codigo tiene un comentario TODO al respecto (linea 65). Esto genera ciclos de CPU innecesarios durante operaciones largas (install, upgrade). `audit-runner.ts` ejecuta `packages.find()` dentro de un bucle sobre `vulnMap`, resultando en complejidad O(n*m).
+* [x] **Bateria razonable** — `SchedulerService` en BrewBar usa intervalos configurables (1h/4h/8h). El badge timer es de 30s con guard `count != lastBadgeCount` que evita actualizaciones innecesarias. No se detectan timers cortos, polling continuo, ni location tracking.
+* [x] **Overdraw revisado** — No aplica al renderizado de terminal (Ink/React). En BrewBar las vistas SwiftUI son simples, sin `ZStack` anidados con fondos opacos superpuestos.
+* [x] **Decodificacion de imagen optimizada** — No aplica al TUI (sin imagenes). BrewBar usa un unico icono de template `NSImage` (SF Symbol), sin carga de imagenes externas ni `AsyncImage`.
+* [ ] **Lazy loading donde procede** — `cleanup-store.ts` y `security-store.ts` re-ejecutan el analisis completo en cada montaje del componente via `useEffect(() => { analyze()/scan(); }, [])` sin verificar si los datos ya estan disponibles o son recientes. `package-info.tsx` llama a `getFormulaInfo()` en cada montaje sin cache de paquetes visitados recientemente.
 
 ### Hallazgos
 
 | Elemento | Estado | Severidad | Evidencia | Accion |
 |----------|--------|-----------|-----------|--------|
-| `scryptSync` al cargar modulo | No conforme | Alta | `src/lib/license/license-manager.ts:65` — `const _derivedKey = scryptSync(...)` ejecutado en tiempo de import, bloqueando el event loop con derivacion de clave CPU-bound (N=16384 iteraciones) | Mover a inicializacion lazy dentro de `deriveEncryptionKey()` con memoizacion: `if (!_key) _key = scryptSync(...); return _key;` — solo ejecuta la primera vez que se necesita, no en el import |
-| `readFileSync` al cargar modulo | No conforme | Alta | `src/lib/license/integrity.ts:23` — `_baselineHash = _captureBaseline()` ejecutado en tiempo de import; `_captureBaseline()` llama `readFileSync` sobre el bundle | Mover la captura de baseline a una funcion `initIntegrity()` llamada de forma asincrona al inicio, o usar `readFile` async dentro de una `Promise` que se resuelve antes de que se necesite el hash |
-| `fetchAll()` secuencial con `brew update` | No conforme | Alta | `src/stores/brew-store.ts:136-138` — `await api.brewUpdate()` bloquea todas las cargas de datos hasta que `brew update` completa (puede tardar 5-30s con red lenta) | Ejecutar `brew update` en background sin esperar su resultado para el renderizado inicial: `api.brewUpdate().catch(() => {})` y despues lanzar el `Promise.all` inmediatamente. Mostrar indicador de "actualizando indices" de forma no bloqueante |
-| `GradientText` por caracter en Header | No conforme | Media | `src/utils/gradient.tsx` — un `<Text>` por caracter; `src/components/layout/header.tsx:63-66` renderiza los logos en cada vista (~258 elementos React por render de Header) | Memoizar el componente del logo con `React.memo` y `useMemo` para el array de caracteres. Dado que el gradiente es estatico, calcularlo una sola vez fuera del componente o en un `useMemo` sin dependencias dinamicas |
-| Busy-polling en `streamBrew()` | No conforme | Media | `src/lib/brew-cli.ts:61` — `await new Promise((r) => setTimeout(r, 50))` en bucle activo durante todo el streaming de child process | Reemplazar el polling con eventos del readable stream: escuchar `process.stdout.on('data', ...)` y usar un `AsyncQueue` o `Readable.asyncIterator()` nativo de Node.js para eliminar los 20 wake cycles/segundo |
-| `verifyPro()` con I/O sincrona en cada operacion | No conforme | Media | `src/lib/license/pro-guard.ts` — `checkBundleIntegrity()` llama `readFileSync` en cada invocacion; `requirePro()` llama `verifyPro()` desde cleanup-analyzer, history-logger y profile-manager en cada operacion | Cachear el resultado de `checkBundleIntegrity()` con TTL de 60s o durante el tiempo de vida del proceso. El hash del bundle no cambia durante la ejecucion; re-leerlo en cada operacion es I/O innecesaria |
-| OutdatedView sin virtualizacion de filas | No conforme | Baja | `src/views/outdated.tsx` — `allOutdated.map(...)` sin `MAX_VISIBLE_ROWS`; contrasta con InstalledView y HistoryView que si lo implementan | Aplicar el mismo patron `MAX_VISIBLE_ROWS = 20` + `selectedIndex` + `slice(scrollOffset, scrollOffset + MAX_VISIBLE_ROWS)` ya implementado en InstalledView |
-| `AppState.refresh()` secuencial en BrewBar | No conforme | Media | `menubar/BrewBar/Sources/Models/AppState.swift:25,32` — `await checker.checkOutdated()` seguido de `await checker.checkServices()` en serie; cada uno spawn un `Process` | Usar `async let`: `async let outdated = checker.checkOutdated(); async let services = checker.checkServices(); self.outdatedPackages = try await outdated; self.services = try await services` |
-| Timer de badge a 2 segundos en BrewBar | No conforme | Media | `menubar/BrewBar/Sources/App/AppDelegate.swift:40` — `Timer.scheduledTimer(withTimeInterval: 2, repeats: true)` ejecutandose continuamente | Aumentar el intervalo a 30-60 segundos para actualizar el badge. El recuento de paquetes desactualizados no cambia con frecuencia de 2s; el usuario no percibiria diferencia |
-| Timeout leak en `BrewChecker` | No conforme | Baja | `menubar/BrewBar/Sources/Services/BrewChecker.swift:78` — el bloque `asyncAfter` del timeout NO se cancela cuando el proceso termina exitosamente; la closure queda en flight hasta que el timeout de 60s se dispara igualmente | Capturar el `DispatchWorkItem` del timeout y llamar `.cancel()` en los completion handlers del proceso: `let timeoutWork = DispatchWorkItem { ... }; process.terminationHandler = { _ in timeoutWork.cancel(); ... }` |
-| `history-logger.ts` lectura/escritura completa | No conforme | Baja | `src/lib/history/history-logger.ts` — `appendEntry()` lee todo el archivo JSON, modifica el array en memoria, escribe todo el archivo en cada llamada. Con 1000 entradas y escrituras frecuentes (cada install/upgrade/uninstall) genera I/O innecesaria | Considerar formato NDJSON (newline-delimited JSON) para poder hacer append sin leer el archivo completo. O mantener el archivo JSON pero limitar la escritura sincrona a operaciones que el usuario ya espera completar |
-| `NSHostingController` recreado en cada apertura de popover | No conforme | Baja | `menubar/BrewBar/Sources/App/AppDelegate.swift:175` — `NSHostingController(rootView: PopoverView(...))` se instancia de nuevo en cada apertura del popover; SwiftUI construye el arbol de vistas completo cada vez | Crear el `hostingController` como propiedad del `AppDelegate` en `applicationDidFinishLaunching` y reutilizarlo en cada apertura; actualizar solo el `AppState` observable |
+| `streamBrew()` polling 100ms | No conforme | Media | `src/lib/brew-cli.ts` linea 65: `await new Promise((r) => setTimeout(r, 100))` con TODO comment | Reemplazar el bucle por `stdout.on('data', ...)` / `stderr.on('data', ...)` con `readline.createInterface`. Elimina el polling completamente. |
+| `audit-runner.ts` O(n*m) lookup | No conforme | Baja | `src/lib/security/audit-runner.ts` linea 46: `packages.find((p) => p.name === name)` dentro de bucle sobre `vulnMap` | Construir un `Map<string, {name,version}>` antes del bucle para lookup O(1). |
+| `security-store.ts` sin cache | No conforme | Media | `src/stores/security-store.ts`: `scan()` re-consulta OSV en cada montaje de la vista; no hay timestamp de resultado ni TTL | Almacenar timestamp del ultimo scan; omitir re-scan si el resultado tiene menos de N minutos (p. ej. 15 min). |
+| `cleanup-store.ts` re-analiza en cada montaje | No conforme | Media | `src/stores/cleanup-store.ts`: `useEffect(() => { analyze(); }, [])` sin cache | Guardar `analyzedAt` en el store; comparar con Date.now() antes de re-lanzar; re-analizar solo si han pasado mas de 5 minutos. |
+| `history-logger.ts` read-all/write-all | Parcial | Baja | `src/lib/history/history-logger.ts`: `appendEntry()` lee todo el JSON, prepende, reescribe | Patron aceptable para MAX_ENTRIES=1000 (bajo volumen). A largo plazo, considerar escritura append-only con compactacion periodica. |
+| `package-info.tsx` sin cache de paquetes visitados | No conforme | Baja | `src/views/package-info.tsx`: `getFormulaInfo()` llamado en cada montaje | Cache LRU en memoria (p. ej. `Map` con max 20 entradas) en `brew-api.ts` para `getFormulaInfo`. |
+| `cleanup-analyzer.ts` N×2 spawns de proceso | Parcial | Baja | `src/lib/cleanup/cleanup-analyzer.ts`: 2 `execFile` por huerfano (getCellarPath + getDiskUsage), concurrencia=5 | Aceptable con pocos huerfanos. Con >50, considerar un unico `du -sk` sobre el directorio Cellar completo para reducir el numero de procesos. |
 
 ---
 
@@ -56,29 +50,28 @@ Brew-TUI presenta una arquitectura de rendimiento generalmente solida para una a
 
 ### Checklist
 
-* [x] **Payloads razonables** — Las peticiones a Polar.sh envian solo `key`, `organization_id`, `label`/`activation_id`. Las peticiones a OSV.dev envian batches de 100 paquetes con `name`/`version`/`ecosystem`. No hay over-fetching ni imagenes embebidas en JSON.
-* [ ] **Paginacion correcta** — OSV.dev no requiere paginacion (batch por diseno). Polar.sh no requiere paginacion (operaciones de un solo recurso). Sin embargo, la llamada a `queryOneByOne` en `osv-api.ts` ejecuta N peticiones secuenciales sin ninguna forma de limitar la tasa; para instalaciones grandes (200+ paquetes) puede generar cientos de peticiones en serie.
-* [x] **Compresion donde aplica** — `fetch()` nativo de Node.js 18+ negocia automaticamente `Accept-Encoding: gzip, deflate, br`. No se requiere configuracion manual.
-* [ ] **Cache HTTP** — No existe ningun mecanismo de cache para las respuestas de Polar.sh ni de OSV.dev. Cada montaje de `SecurityAuditView` dispara un escaneo completo contra OSV.dev sin verificar si los resultados recientes aun son validos. No hay `URLCache` equivalente configurado.
-* [x] **Reintentos controlados** — No existe logica de reintentos en ninguna capa de red. Esto evita el riesgo de reintentos agresivos o loops infinitos. El manejo de errores usa `try/catch` con propagacion directa al usuario. Aceptable para operaciones interactivas donde el usuario puede reintentar manualmente.
-* [ ] **Timeouts definidos** — Ningun `fetch()` en el codebase configura `signal: AbortController`. Afecta: `polar-api.ts:45` (activate), `polar-api.ts:79` (validate en activation), `polar-api.ts:107` (revalidate), `polar-api.ts:130` (deactivate), `osv-api.ts:64` (batch query), `osv-api.ts` (fallback one-by-one), `brewbar-installer.ts:42` (GitHub download). Una red congestionada o un servidor que no responde puede colgar la operacion indefinidamente.
+* [x] **Payloads razonables** — Las peticiones a Polar.sh son payloads JSON minimos (license key, instance name). Las consultas a OSV.dev son batches de hasta 100 paquetes en un unico POST. No se detectan payloads excesivos ni imagenes embebidas en JSON.
+* [x] **Paginacion correcta** — No aplica en sentido estricto: las APIs consumidas (Polar.sh, OSV.dev) no requieren paginacion para los volumenes de datos gestionados. La carga de formulae/casks usa `brew info --json=v2` que devuelve todos los paquetes instalados — el volumen depende del sistema del usuario, pero es una llamada unica necesaria.
+* [ ] **Compresion donde aplica** — No se detecta configuracion explicita de `Accept-Encoding: gzip` en `fetch-timeout.ts` ni en las llamadas a Polar.sh y OSV.dev. Node.js 18+ soporta compresion automatica en `fetch` nativo, pero no se verifica ni fuerza.
+* [ ] **Cache HTTP** — No existe ninguna capa de cache HTTP. Cada session re-descarga toda la informacion de Polar.sh (revalidacion) y OSV.dev (audit). No hay `URLCache`, `ETag`, ni `Cache-Control` processing. La unica excepcion es la revalidacion de licencia con ventana de 24h + grace period de 7 dias, que es un cache de nivel aplicacion en `license.json`.
+* [ ] **Reintentos controlados** — `license-manager.ts` implementa retry de 3 intentos con `sleep(1000)` solo en `deactivate()`. Las llamadas a `activate()` y `revalidate()` no tienen retry propio. `osv-api.ts` tiene fallback one-by-one en HTTP 400.
+* [ ] **Timeouts definidos** — `fetchWithTimeout` aplica un timeout de 15s (por defecto) a todas las llamadas HTTP. La descarga de BrewBar usa 120s explicito. Sin embargo, `execBrew()` en `brew-cli.ts` no tiene timeout configurado: las llamadas a `brew info`, `brew list`, `brew outdated`, etc. dependen del timeout del sistema operativo, lo cual puede bloquear indefinidamente si Homebrew se cuelga.
 
 ### Hallazgos
 
 | Elemento | Estado | Severidad | Evidencia | Accion |
 |----------|--------|-----------|-----------|--------|
-| Sin timeout en fetch() — Polar API | No conforme | Alta | `src/lib/license/polar-api.ts:45` — `fetch(url, { method: 'POST', headers, body })` sin `signal`. Afecta activacion, validacion y desactivacion de licencias | Crear un `AbortController` con `setTimeout(controller.abort, 15000)` y pasar `signal: controller.signal` a cada `fetch()`. Envolver en helper: `fetchWithTimeout(url, options, timeoutMs = 15000)` |
-| Sin timeout en fetch() — OSV.dev | No conforme | Alta | `src/lib/security/osv-api.ts:64` — `fetch(OSV_BATCH_URL, ...)` sin `signal`. Un escaneo de seguridad puede quedar colgado indefinidamente si OSV.dev no responde | Aplicar el mismo patron `AbortController` con timeout de 30s para queries batch (son payloads mas grandes) |
-| Sin timeout en fetch() — GitHub download | No conforme | Media | `src/lib/brewbar-installer.ts:42` — `fetch(DOWNLOAD_URL)` para descargar el binario de BrewBar sin timeout. Descarga de red lenta puede bloquear el CLI subcommand indefinidamente | Aplicar timeout de 120s (descarga de binario puede ser lenta en conexiones lentas) con feedback de progreso si la descarga supera N segundos |
-| Sin cache de resultados OSV | No conforme | Media | `src/views/security-audit.tsx` — `useEffect(() => { scan(); }, [])` dispara escaneo completo en cada montaje de la vista. `osv-api.ts` no cachea resultados. Con 200+ paquetes instalados cada navegacion a SecurityAudit genera 2+ peticiones batch a OSV.dev | Guardar los resultados del ultimo escaneo con timestamp en el store de seguridad. Mostrar resultados cacheados si tienen menos de 1 hora, con opcion de forzar rescan. Evitar re-escanear en cada navegacion a la vista |
-| `queryOneByOne` sin rate limiting | No conforme | Media | `src/lib/security/osv-api.ts` — el path de fallback hace peticiones secuenciales O(N) sin ninguna pausa entre ellas. Para N=200 paquetes son 200 peticiones HTTP consecutivas al mismo endpoint | Agregar un delay minimo entre peticiones en el fallback (50-100ms) o usar el batch endpoint exclusivamente con reintentos por sub-batch en caso de error parcial |
-| Activacion realiza 2 peticiones secuenciales | No conforme | Baja | `src/lib/license/polar-api.ts:79-88` — `activateLicense()` hace POST a `activate`, luego inmediatamente otro POST a `validate` para obtener `customerEmail`/`customerName`. Son dos round-trips en serie | Si la API de Polar no incluye datos del cliente en la respuesta de activate, documentarlo como limitacion conocida. Si Polar ofrece un endpoint unificado, usarlo. De lo contrario, el segundo request podria hacerse en background sin bloquear el flujo de activacion |
+| Sin cache HTTP para OSV.dev | No conforme | Media | `src/lib/security/osv-api.ts` + `src/stores/security-store.ts`: sin TTL ni persistencia de resultados | Persistir el resultado del ultimo scan en `~/.brew-tui/security-cache.json` con timestamp; reutilizar si tiene menos de 15 minutos. Reduccion de latencia de ~2s a 0 en navegaciones repetidas. |
+| Sin cache HTTP para Polar.sh | Parcial | Baja | `src/lib/license/license-manager.ts`: la revalidacion en disco (`license.json`) actua como cache de 24h; conforme a nivel funcional | Cache de aplicacion funcional. Aceptable. |
+| `Accept-Encoding` no forzado | No conforme | Baja | `src/lib/fetch-timeout.ts`: headers por defecto, sin `Accept-Encoding: gzip` explicito | Anadir `headers: { 'Accept-Encoding': 'gzip, deflate, br' }` en `fetchWithTimeout`. Node 18+ lo soporta nativamente. |
+| Retry ausente en `activate()` y `revalidate()` | Parcial | Baja | `src/lib/license/license-manager.ts`: solo `deactivate()` tiene retry de 3 intentos con sleep 1s | Anadir retry con backoff exponencial (max 2 intentos) en `revalidate()` para mejorar resiliencia ante fallos de red transitorios. |
+| `execBrew()` sin timeout | No conforme | Media | `src/lib/brew-cli.ts`: `execBrew()` no configura `timeout` en `execFile` ni usa `AbortSignal`; si `brew` se cuelga, el proceso TUI queda bloqueado indefinidamente | Anadir `{ timeout: 30_000 }` como opcion en `execFileAsync`, o envolver con `AbortSignal.timeout(30_000)` para todas las llamadas `execBrew`. |
 
 ---
 
 ## 16.3 Backend
 
-> No existe codigo de backend en este proyecto. Brew-TUI es una aplicacion cliente (TUI + menubar) que se comunica directamente con APIs externas (Polar.sh, OSV.dev) y con el binario local de Homebrew. No hay servidor Express, base de datos Prisma, jobs de cola ni infraestructura de backend propia.
+> No aplica. El proyecto Brew-TUI no incluye backend propio. Las unicas APIs externas consumidas son Polar.sh (SaaS de licencias) y OSV.dev (base de datos de vulnerabilidades publica). No existe codigo de servidor, base de datos propia, ORM, ni jobs de backend en el repositorio.
 
 ### Checklist
 
@@ -93,12 +86,7 @@ Brew-TUI presenta una arquitectura de rendimiento generalmente solida para una a
 
 | Elemento | Estado | Severidad | Evidencia | Accion |
 |----------|--------|-----------|-----------|--------|
-| Queries eficientes | No aplica | — | No existe capa de base de datos ni backend propio | — |
-| Indices correctos | No aplica | — | No existe schema de base de datos | — |
-| No N+1 queries | No aplica | — | No existe ORM ni acceso a base de datos | — |
-| Jobs dimensionados | No aplica | — | No existen workers ni sistemas de cola de mensajes | — |
-| Memoria servicio estable | No aplica | — | No existe proceso servidor de larga duracion | — |
-| Observabilidad hotspots | No aplica | — | No existe infraestructura de backend a monitorizar | — |
+| Backend inexistente | No aplica | — | Proyecto es TUI + menubar app. Sin servidor, sin BD, sin ORM. | — |
 
 ---
 
@@ -106,20 +94,30 @@ Brew-TUI presenta una arquitectura de rendimiento generalmente solida para una a
 
 | Zona | Metrica | Resultado | Umbral | Estado | Accion |
 |------|---------|-----------|--------|--------|--------|
-| Launch — TUI | Bloqueo sincrono en import | `scryptSync` (N=16384) + `readFileSync` ejecutados al cargar modulos `license-manager` e `integrity` | Cero I/O sincrona en el path critico de arranque | No conforme | Mover a inicializacion lazy con memoizacion; usar `readFile` async |
-| Launch — TUI | Serializacion de `brew update` | `fetchAll()` espera `brew update` (~5-30s) antes de iniciar cargas paralelas | `brew update` no debe bloquear el renderizado inicial de datos | No conforme | Ejecutar `brew update` en background; iniciar `Promise.all` de datos inmediatamente |
-| Render — TUI | Elementos React por frame de Header | ~258 nodos `<Text>` para logos ASCII degradados en cada render de Header | <50 nodos para elementos estaticos reutilizados | No conforme | `React.memo` + `useMemo` estatico para logos; calcular gradiente una sola vez |
-| Render — TUI | Virtualizacion de OutdatedView | `allOutdated.map(...)` sin limite; N filas renderizadas para N paquetes desactualizados | Max 20 filas visibles (patron ya establecido en InstalledView) | No conforme | Aplicar `MAX_VISIBLE_ROWS=20` + virtual scroll con `slice(offset, offset+20)` |
-| CPU — TUI | Busy-poll en streaming | 20 `setTimeout(50ms)` wake-ups por segundo durante cada operacion de install/upgrade | Cero wake cycles idle; usar eventos de stream | No conforme | Sustituir polling por `AsyncIterator` nativo del readable stream |
-| CPU — TUI | `readFileSync` en cada operacion Pro | `checkBundleIntegrity()` lee el bundle desde disco en cada `requirePro()` call | Una lectura por sesion (resultado cacheado) | No conforme | Cachear resultado con TTL de sesion (hash no cambia en runtime) |
-| Memoria — TUI | Carga completa de historial en `appendEntry` | Lee 1000 entradas JSON completas, modifica array, reescribe todo en cada append | Append O(1) sin leer el archivo completo | No conforme | Cambiar a NDJSON con append directo o limitar re-escrituras |
-| Bateria — BrewBar | Frecuencia del timer de badge | Timer de badge a 2 segundos, continuo, desde el inicio hasta el cierre de la app | Intervalo minimo 30s para contadores de estado que cambian raramente | No conforme | Aumentar `withTimeInterval` a 30-60s |
-| Latencia — BrewBar | Concurrencia en `AppState.refresh()` | `checkOutdated()` y `checkServices()` ejecutados secuencialmente (2 × latencia de spawn) | Latencia total = max(checkOutdated, checkServices) con ejecucion concurrente | No conforme | `async let` para paralelizar ambos checks |
-| Fiabilidad — BrewBar | Leak del bloque de timeout | El `DispatchQueue.asyncAfter` del timeout de 60s no se cancela cuando el proceso termina antes | El timeout debe cancelarse al completarse el proceso exitosamente | No conforme | Usar `DispatchWorkItem` cancelable |
-| Render — BrewBar | Recreacion de NSHostingController | `NSHostingController(rootView: PopoverView(...))` creado nuevo en cada apertura del popover | El hosting controller debe instanciarse una vez y reutilizarse | No conforme | Crear `hostingController` como propiedad del `AppDelegate`; reutilizar en cada apertura |
-| Red — Network | Timeout en fetch() | 0 de 7 sitios de `fetch()` tienen `AbortSignal` configurado | Todos los fetch() deben tener timeout explicito | No conforme | `fetchWithTimeout(url, opts, 15000)` helper aplicado en polar-api, osv-api, brewbar-installer |
-| Red — Cache | Cache de resultados OSV | 0 cache; cada navegacion a SecurityAudit dispara escaneo completo | Resultados validos por minimo 1 hora dado que los CVEs no cambian en segundos | No conforme | Store de seguridad con timestamp; mostrar cache si tiene <1h, opcion de rescan manual |
-| Red — Rate limit | `queryOneByOne` sin throttle | N peticiones HTTP consecutivas sin pausa en path de fallback OSV | Max 10 req/s con backoff entre peticiones | No conforme | Delay minimo 50ms entre peticiones o usar batch exclusivamente |
-| Red — Payloads | Double round-trip en activacion | Activacion de licencia realiza 2 POST secuenciales (activate + validate) | Idealmente 1 round-trip para obtener todos los datos necesarios | Parcial | Si Polar incluye datos de cliente en activate, consolidar; si no, ejecutar validate en background |
-| Backend — Queries | Queries de base de datos | No aplica — no existe backend propio | — | No aplica | — |
-| Backend — Cache HTTP | Cache del lado servidor | No aplica — no existe servidor propio | — | No aplica | — |
+| App — Launch | Operaciones sincronas en arranque | Ninguna detectada; `initLicense` en `useEffect`, `brewUpdate` no-blocking | Sin bloqueos sincronicos antes del primer render | Conforme | — |
+| App — First paint | Flash de contenido vacio | Loading flags pre-inicializados en `brew-store.ts` | UI interactiva antes de datos | Conforme | — |
+| App — Scroll | Renderizado de listas | Windowed rendering en 8 vistas TUI; `LazyVStack` en BrewBar | Max filas activas = `rows - 8` | Conforme | — |
+| App — CPU | `streamBrew()` polling | Bucle `setTimeout(100ms)` durante install/upgrade/update | Evento-driven (sin polling) | No conforme | Migrar a `stdout.on('data')` + `readline` |
+| App — CPU | `audit-runner.ts` lookup O(n*m) | `packages.find()` dentro de bucle sobre vulnMap | O(n) lookup con Map | No conforme | Map pre-construido antes del bucle |
+| App — Memoria | `history-logger.ts` | Lectura + escritura total del JSON en cada brew op | Append incremental | Parcial | Aceptable para 1000 entradas; revisar si el volumen crece |
+| App — Memoria | `security-store.ts` | Sin cache de resultados; re-scan en cada montaje | TTL de resultado en store | No conforme | Timestamp + TTL de 15min |
+| App — Lazy loading | `cleanup-store.ts` re-analiza en montaje | Sin verificacion de datos previos; spawna N*2 procesos | Re-analizar solo si datos > 5min de antiguedad | No conforme | Guard con `analyzedAt` en store |
+| App — Lazy loading | `package-info.tsx` | `getFormulaInfo()` en cada montaje sin cache | LRU cache de paquetes recientes | No conforme | Map LRU max 20 en `brew-api.ts` |
+| App — Bateria | SchedulerService intervalos | 1h/4h/8h configurable; badge 30s con guard | Intervalos razonables para menubar app | Conforme | — |
+| App — GradientText | Memoizacion | `React.memo` + `useMemo`; 258 nodos Text por header | Re-render solo en cambio de dimensiones | Conforme | — |
+| App — scryptSync | Lazy derivation | `_derivedKey` singleton con lazy init | Derivacion una sola vez por sesion | Conforme | — |
+| App — BrewBar NSHostingController | Reuso de controlador | Creado una vez en `AppDelegate`, reutilizado en cada apertura | Sin instanciacion repetida en cada click | Conforme | — |
+| App — BrewBar async let | Paralelismo en refresh | `async let outdatedResult` + `async let servicesResult` | Paralelo, no secuencial | Conforme | — |
+| Red — Cache HTTP | Cache de resultados OSV.dev | Sin persistencia de resultados; re-query en cada sesion | Cache con TTL de 15min | No conforme | Persistir en `~/.brew-tui/security-cache.json` |
+| Red — Cache HTTP | Cache de licencia Polar.sh | `license.json` con TTL 24h + grace 7d | Cache de aplicacion funcional | Conforme | — |
+| Red — Compression | `Accept-Encoding` | No forzado en `fetchWithTimeout` | Header explicito recomendado | No conforme | Anadir header en `fetch-timeout.ts` |
+| Red — Timeouts | `fetchWithTimeout` | 15s default; 120s para descarga binaria; 15s para checksum | Timeouts razonables por tipo de operacion | Conforme | — |
+| Red — Timeouts | `execBrew()` | Sin timeout; depende del SO | Timeout explicito de 30-60s | No conforme | Anadir `{ timeout: 30_000 }` en `execFileAsync` |
+| Red — Retry | `activate()` / `revalidate()` | Sin retry (solo `deactivate()` tiene 3 intentos) | Retry con backoff en operaciones criticas | Parcial | Anadir retry x2 con backoff en `revalidate()` |
+| Red — Payloads | OSV.dev batch | Max 100 paquetes por request; fallback one-by-one en HTTP 400 | Batch razonable | Conforme | — |
+| Backend — Queries | N/A | Sin backend propio | — | No aplica | — |
+| Backend — Indices | N/A | Sin backend propio | — | No aplica | — |
+| Backend — N+1 | N/A | Sin backend propio | — | No aplica | — |
+| Backend — Jobs | N/A | Sin backend propio | — | No aplica | — |
+| Backend — Memoria | N/A | Sin backend propio | — | No aplica | — |
+| Backend — Observabilidad | N/A | Sin backend propio | — | No aplica | — |

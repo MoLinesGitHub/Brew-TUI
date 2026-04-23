@@ -1,25 +1,30 @@
 # 0. Ficha de auditoria
 
-> Auditor: project-scanner | Fecha: 2026-04-22
+> Auditor: project-scanner | Fecha: 2026-04-23
 
 ## Datos del proyecto
 
 * **Nombre del proyecto:** Brew-TUI
-* **Version actual:** 0.1.0 (npm package), BrewBar sin version de marketing detectada
-* **Plataformas:** Terminal CLI/TUI (macOS, Linux, cualquier plataforma con Node.js >=18) + macOS menubar (macOS 14.0+)
-* **Stack principal:** TypeScript 5.8 / React 18 / Ink 5.x / Zustand 5 (TUI) + Swift 6 / SwiftUI / AppKit (BrewBar)
+* **Version actual:** 0.2.0
+* **Plataformas:** macOS CLI/Terminal (TUI), macOS Menu Bar (BrewBar companion app)
+* **Stack principal:** TypeScript 5.8 / React 18 / Ink 5.x / Zustand 5 / Node.js >=18 (TUI) + Swift 6 / SwiftUI / macOS 14+ (BrewBar)
 * **Repositorio:** https://github.com/MoLinesGitHub/Brew-TUI.git
-* **Commit auditado:** 8c919ef
-* **Fecha de auditoria:** 2026-04-22
+* **Commit auditado:** 65c7308
+* **Rama auditada:** main
+* **Fecha de auditoria:** 2026-04-23
 * **Auditor responsable:** super-audit (automated)
-* **Entorno auditado:** Node.js >=18, ESM-only; macOS 14.0+ para BrewBar; Homebrew requerido en runtime
+* **Entorno auditado:** Produccion (build Release para BrewBar, bundle ESM para TUI)
+
+## Contexto de re-auditoria
+
+Esta es una re-auditoria realizada tras la version 0.2.0. La version anterior acumulo 61 hallazgos que fueron corregidos antes de esta entrega. El objetivo es validar el estado actual del proyecto y detectar cualquier hallazgo residual o nuevo introducido durante el refactor.
 
 ## Objetivo de la auditoria
 
-* **Objetivo principal:** Auditoria exhaustiva 100% del proyecto — ambos codebases (TypeScript TUI + Swift BrewBar)
-* **Riesgo principal del producto:** Producto freemium con licencias de pago; la solidez del modelo de proteccion Pro y la ausencia total de tests automatizados representan los riesgos mas altos
-* **Areas prioritarias:** Todas las secciones (inventario, arquitectura, calidad de codigo, seguridad, tests, licencias, CI/CD)
-* **Alcance excluido:** Ninguno (auditoria completa)
+* **Objetivo principal:** Auditoria exhaustiva 100% del proyecto — ambas codebases (TypeScript TUI + Swift BrewBar)
+* **Riesgo principal del producto:** Integridad del modelo freemium (licencias Pro) y seguridad de la cadena de distribucion (BrewBar installer + CI/CD)
+* **Areas prioritarias:** Licencias y feature-gating, seguridad (anti-tamper, anti-debug, watermark), calidad del codigo (tests = 0), CI/CD, internacionalizacion, UX/navegacion
+* **Alcance excluido:** Ninguno (auditoria completa de ambas codebases)
 
 ## Escala de severidad
 
@@ -30,9 +35,10 @@
 
 ## Estado por hallazgo
 
+* Pendiente
+* Revisado
 * Conforme
 * No conforme
 * Parcial
-* Pendiente
 * Bloqueado
 * No aplica

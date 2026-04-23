@@ -1,138 +1,268 @@
 # 2. Gobierno del proyecto
 
-> Auditor: governance-auditor | Fecha: 2026-04-22
+> Auditor: governance-auditor | Fecha: 2026-04-23
 
 ## Resumen ejecutivo
 
-El proyecto Brew-TUI presenta una estructura de gobierno aceptable para un producto en etapa inicial, con configuraciones de build correctas en ambos codebases y ausencia de secretos de acceso a APIs de terceros en el codigo fuente. Sin embargo, existen tres hallazgos de impacto significativo: la clave de cifrado AES-256 del sistema de licencias Pro esta embebida como constante en el codigo Swift distribuido (lo que invalida la capa de proteccion que pretende ofrecer), existe un conflicto de workflows de CI que puede causar publicaciones npm duplicadas en cada release, y los source maps de produccion quedan incluidos en el bundle distribuido (exponiendo la estructura interna del codigo). La configuracion de Swift no activa `SWIFT_STRICT_CONCURRENCY = complete` pese a usar Swift 6, y la licencia MIT es incompatible con el modelo de negocio freemium del proyecto.
+El proyecto v0.2.0 presenta una base de gobierno sólida en ambas codebases: los targets son mínimos y claros, los build settings del lado Swift son mayoritariamente correctos y el pipeline CI/CD ha mejorado significativamente respecto a la versión anterior. Se detectan seis hallazgos que requieren atención: la clave de cifrado AES-256-GCM para licencias está embebida en texto claro en `LicenseChecker.swift` y `license-manager.ts` (Media, inherente al modelo client-side), `NSMainStoryboardFile = "Main"` aparece en el template del Info.plist de Tuist sin archivo storyboard correspondiente (Media), la version `CFBundleShortVersionString` no se define explicitamente en `Project.swift` y depende del default `1.0` del template (Media), `SWIFT_STRICT_CONCURRENCY` no se documenta explicitamente en `Project.swift` (Parcial/Media), la clave organizativa de Polar está embebida en codigo fuente (Baja), y el job `publish-github-packages` no ejecuta `typecheck` ni `test` de forma independiente (Baja).
 
 ---
 
 ## 2.1 Targets, schemes y configuracion
 
-### Alcance
-
-Esta seccion cubre ambos codebases: el TUI TypeScript (`package.json`, scripts npm, `tsup.config.ts`, CI/CD) y BrewBar Swift (`Project.swift`, `project.pbxproj`, schemes `.xcscheme`, workflows).
-
 ### Checklist
 
 * [x] Todos los targets tienen proposito claro
 * [x] No existen targets obsoletos
-* [ ] Los schemes estan alineados con los entornos reales — **Baja**: el scheme `Generate Project` contiene un `customWorkingDirectory` hardcodeado que apunta a una ruta local de desarrollador (`/Volumes/SSD/Projects/Brew/menubar`) distinta de la ruta real del proyecto
-* [ ] Debug, Release y Staging estan separados correctamente — **Media**: no existe configuracion de entorno Staging en ninguno de los dos codebases; la separacion de entornos en el TUI TypeScript es binaria (dev con `tsx` vs. build con `tsup`) sin diferenciacion entre staging y produccion
-* [x] No hay flags inconsistentes entre entornos (BrewBar: Debug usa `-Onone` y Release usa `-O`; TypeScript: mismo bundle en todos los entornos, sin flags divergentes)
+* [x] Los schemes estan alineados con los entornos reales
+* [x] Debug, Release y Staging estan separados correctamente
+* [x] No hay flags inconsistentes entre entornos
 * [x] La configuracion de testing no contamina produccion
 
 ### Hallazgos
 
+#### Codebase Swift (BrewBar — Tuist)
+
+El proyecto Swift tiene un unico target (`BrewBar`, `com.molinesdesigns.brewbar`, macOS 14+, `LSUIElement: true`). El target tiene proposito claro y bien delimitado. No existen targets de test ni targets obsoletos. Dos configuraciones de build: `Debug` y `Release`. No existe una configuracion `Staging` separada, lo cual es aceptable dado que el modelo de distribucion es direct-download desde GitHub Releases sin TestFlight ni entorno intermedio.
+
+La separacion Debug/Release es funcional: `GCC_PREPROCESSOR_DEFINITIONS = ("DEBUG=1", "$(inherited)")` en Debug, `SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited) DEBUG"` en Debug, `SWIFT_COMPILATION_MODE = wholemodule` y `SWIFT_OPTIMIZATION_LEVEL = "-O"` en Release vs `"-Onone"` en Debug. El `.xcodeproj` y `Derived/` no estan en control de versiones (gitignoreados); se generan via `tuist generate` en CI y en local.
+
+#### Codebase TypeScript (Brew-TUI)
+
+Los scripts npm cubren los "entornos" relevantes: `dev` (tsx directo, sin bundling), `build` (tsup, produccion), `test` (vitest), `lint` (eslint). El pipeline de release ejecuta `typecheck → test → build → lint` en el job `publish-npm`, lo que es correcto.
+
+No existe configuracion `Staging` explicita en TypeScript, lo cual es aceptable: el producto se distribuye como CLI npm y no existe backend propio ni entorno intermedio que requiera dicha separacion.
+
+**La configuracion de testing no contamina produccion**: `__TEST_MODE__` se inyecta como `false` en tsup, y `NODE_ENV` se fija a `"production"`. Conforme.
+
 | Elemento | Estado | Severidad | Evidencia | Accion |
 |----------|--------|-----------|-----------|--------|
-| Target `brew-tui` (TUI TypeScript) | Conforme | — | `package.json`: `bin.brew-tui`, `main: ./build/index.js`, proposito CLI/TUI claro | — |
-| Target `BrewBar` (Swift) | Conforme | — | `Project.swift:22-38`, `project.pbxproj`: un unico target `PBXNativeTarget "BrewBar"`, proposito menubar app claro | — |
-| Scheme `BrewBar` (xcodeproj) | Conforme | — | `BrewBar.xcscheme`: Debug para Run/Test/Analyze, Release para Archive/Profile; alineado con los dos entornos existentes | — |
-| Scheme `BrewBar-Workspace` (xcworkspace) | Conforme | — | `BrewBar-Workspace.xcscheme`: identico en estructura al anterior; `disableMainThreadChecker = "YES"` en TestAction de `BrewBar.xcscheme`, correcto para apps SwiftUI @main que no usan Main Thread Checker en tests | — |
-| Scheme `Generate Project` — `customWorkingDirectory` hardcodeado | No conforme | Baja | `BrewBar.xcworkspace/xcshareddata/xcschemes/Generate Project.xcscheme:26`: `customWorkingDirectory = "/Volumes/SSD/Projects/Brew/menubar"` — ruta del desarrollador original; el proyecto real esta en `/Volumes/SSD/Projects/Brew-TUI/menubar` | Corregir el `customWorkingDirectory` al path relativo o al path correcto del proyecto; este scheme no se rastrea en git (xcworkspace es gitignored) por lo que es un problema solo en el entorno local del desarrollador actual |
-| Ausencia de entorno Staging — TUI | No conforme | Media | `tsup.config.ts`: un unico bloque `defineConfig` sin variantes por entorno. `package.json` scripts: `dev` (tsx), `build` (tsup), sin `build:staging` ni `build:prod`. No hay variables de entorno diferenciadas en `release.yml` ni `publish.yml` | Definir al menos dos configs en `tsup.config.ts`: una para staging (con source maps, sin minificacion agresiva) y otra para production; o documentar explicitamente que el binario es identico en staging y production |
-| Ausencia de entorno Staging — BrewBar | No conforme | Media | `Project.swift:17-20`: solo configuraciones `Debug` y `Release`; ninguna configuracion `Staging` o `Beta` | Para un producto con licencias de pago, agregar una configuracion `Staging` con `BUNDLE_ID` diferente permite testear el flujo de licencias sin afectar produccion; valorar si aplica segun la madurez del producto |
-| Workflows CI/CD — `release.yml` y `publish.yml` duplican publicacion npm | No conforme | Alta | `release.yml:3-6`: trigger `push tags: v*`; `release.yml:77-90`: usa `softprops/action-gh-release@v2` que crea un GitHub Release; `publish.yml:3-5`: trigger `on release: published`; esto significa que un tag `v*` activa `release.yml` (que publica npm Y crea GitHub Release) lo que a su vez activa `publish.yml` (que vuelve a publicar npm) — doble publicacion que fallara la segunda vez con `409 Conflict` | Eliminar `publish.yml` completamente (sus responsabilidades estan cubiertas por `release.yml`) o cambiar su trigger para que solo se active manualmente; alternativamente agregar un check de version ya publicada |
-| `release.yml` — Node.js version inconsistente entre jobs | No conforme | Baja | `release.yml:20`: job `publish-npm` usa `node-version: '18'`; `release.yml:38`: job `publish-github-packages` usa `node-version: '18'`; `publish.yml:15,31`: usa `node-version: '20'`; el proyecto declara `engines: { node: ">=18" }` por lo que ambas versiones son validas, pero la inconsistencia entre workflows introduce riesgo de diferencias de comportamiento | Fijar una version LTS unica (recomendado: 20 LTS) en todos los workflows para garantizar reproducibilidad |
-| `release.yml` — build-brewbar sin firma de codigo | No conforme | Media | `release.yml:48-74`: el job `build-brewbar` construye y distribuye `BrewBar.app.zip` sin ninguna firma de codigo (`CODE_SIGN_IDENTITY = "-"` en Debug y Release del pbxproj). Cualquier usuario que descargue el zip recibira una app sin firmar que macOS Gatekeeper bloqueara por defecto | Configurar `CODE_SIGN_IDENTITY` con un Apple Developer certificate en CI (usando GitHub Secrets para el certificado y perfil), o documentar que el usuario debe ejecutar `xattr -cr BrewBar.app` para remover la cuarentena |
-| `release.yml` — `publish-github-packages` modifica `package.json` en runtime | Parcial | Baja | `release.yml:35-42`: el job `publish-github-packages` usa un script `node -e` inline que reescribe `package.json` cambiando el nombre del paquete y agregando `publishConfig`. Esta mutacion runtime es fragil y puede fallar si el JSON se formatea de forma inesperada; ademas `npm publish --access public` en GitHub Packages con scope `@molinesgithub` puede requerir que el scope este configurado en `.npmrc` | Mover la configuracion de GitHub Packages a un `.npmrc` separado o usar `npm pkg set` (mas robusto que modificacion manual de JSON) |
-| Licencia MIT vs. modelo freemium | No conforme | Alta | `LICENSE:1`: licencia MIT que permite a cualquier persona copiar, modificar, distribuir y sublicenciar el software sin restricciones; el codigo fuente del modelo de licencias Pro (`src/lib/license/`) esta incluido en el paquete npm distribuido bajo esta licencia MIT; cualquier usuario puede tomar el codigo, eliminar las verificaciones de licencia y redistribuirlo libremente | Cambiar la licencia a una que proteja el modelo freemium (por ejemplo: Commons Clause + MIT, o Business Source License 1.1 para la capa Pro), o mover el codigo Pro-gate a un modulo privado no incluido en el paquete npm publico |
+| Target BrewBar (Swift) | Conforme | — | `menubar/Project.swift:23-38` | — |
+| Separacion Debug/Release (Swift) | Conforme | — | Configuraciones en `Project.swift:18-22`; generadas correctamente en pbxproj local | — |
+| Ausencia de target de test (Swift) | No aplica | — | No existen tests Swift en el proyecto | Considerar agregar XCTest target en version futura |
+| Targets/scripts npm (TypeScript) | Conforme | — | `package.json:26-32` | — |
+| NODE_ENV inyectado en produccion | Conforme | — | `tsup.config.ts:17: 'process.env.NODE_ENV': '"production"'` | — |
+| __TEST_MODE__ en false en produccion | Conforme | — | `tsup.config.ts:18: '__TEST_MODE__': 'false'` | — |
+| publish.yml eliminado | Conforme | — | Solo existe `release.yml` en `.github/workflows/` | — |
 
 ---
 
 ## 2.2 Build settings
 
-### Alcance
-
-TypeScript: `tsconfig.json`, `tsup.config.ts`, `eslint.config.js`. Swift: `Project.swift`, `project.pbxproj` (configuraciones Debug y Release a nivel de proyecto y target).
-
 ### Checklist
 
-* [x] Swift language version correcta — SWIFT_VERSION = 6.0 en Project.swift y pbxproj (Debug y Release)
-* [ ] Strict concurrency activada segun politica del proyecto — **Media**: `SWIFT_STRICT_CONCURRENCY` ausente del proyecto; Swift 6 impone concurrencia estricta por defecto a nivel de compilacion pero la ausencia del flag explicito deja ambiguedad
-* [x] Warnings relevantes tratados como errores donde proceda — pbxproj: multiples `GCC_WARN_*_ERROR`, `CLANG_WARN_*_ERROR`; TypeScript: ESLint configurado con `@typescript-eslint/no-unused-vars: warn`; no se tratan warnings como errores en TypeScript (solo warnings, no `error`)
-* [x] Optimizacion de Release correcta — Release: `SWIFT_OPTIMIZATION_LEVEL = "-O"`, `SWIFT_COMPILATION_MODE = wholemodule`; Debug: `SWIFT_OPTIMIZATION_LEVEL = "-Onone"`, `GCC_OPTIMIZATION_LEVEL = 0`; TypeScript: `tsup` con `target: node18` sin `-Onone` equivalente
-* [x] No hay linker flags heredados innecesarios — `OTHER_LDFLAGS = ("$(inherited)", "-L$(DT_TOOLCHAIN_DIR)/usr/lib/swift/$(PLATFORM_NAME)")` en ambas configuraciones; el flag `-L$(DT_TOOLCHAIN_DIR)/...` es el linker path para Swift stdlib, justificado para macOS 14 sin embedido de Swift runtime
-* [x] No hay paths hardcodeados locales en build settings — pbxproj y Project.swift no contienen referencias absolutas a directorios locales de usuario (el path del scheme `Generate Project` es un scheme no build setting, analizado en 2.1)
-* [x] Arquitecturas configuradas correctamente — pbxproj: `SDKROOT = macosx`, `ONLY_ACTIVE_ARCH = YES` en Debug (correcto), no presente en Release (correcto — compila para todas las archs); TypeScript: `tsup target: node18` sin limitacion de arquitectura (correcto para CLI cross-platform)
+* [x] Swift language version correcta
+* [ ] Strict concurrency activada segun politica del proyecto — **Media**: `SWIFT_STRICT_CONCURRENCY` no esta declarado explicitamente en `Project.swift`; se depende del default del compilador Swift 6
+* [x] Warnings relevantes tratados como errores donde proceda
+* [x] Optimizacion de Release correcta
+* [x] No hay linker flags heredados innecesarios
+* [x] No hay paths hardcodeados locales
+* [x] Arquitecturas configuradas correctamente
 
 ### Hallazgos
 
+#### Swift — SWIFT_VERSION
+
+`SWIFT_VERSION: "6.0"` esta definido en los build settings base de `Project.swift` (linea 10). Conforme.
+
+#### Swift — SWIFT_STRICT_CONCURRENCY
+
+Con Swift 6, el compilador aplica comprobaciones de concurrencia estricta por defecto al compilar en modo Swift 6 (`complete`). Sin embargo, `SWIFT_STRICT_CONCURRENCY` no aparece explicitamente en `Project.swift`. Esto implica que se usa el default del compilador Swift 6, que es el valor correcto. El hallazgo es que la politica no esta documentada explicitamente como setting, y podria heredarse de forma distinta si Tuist o el toolchain cambian sus defaults. Estado: Parcial.
+
+#### Swift — Warnings como errores
+
+`GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR`, `CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR`, y multiples warnings CLANG activados en ambas configuraciones (verificados en el pbxproj generado localmente). Swift 6 convierte muchas verificaciones de concurrencia en errores de compilacion. Conforme.
+
+#### Swift — Optimizacion Release
+
+`SWIFT_OPTIMIZATION_LEVEL = "-O"` en Release, `"-Onone"` en Debug. `SWIFT_COMPILATION_MODE = wholemodule` en Release, `singlefile` en Debug. `DEAD_CODE_STRIPPING: "YES"` en base settings de `Project.swift` (linea 14). Conforme.
+
+#### Swift — OTHER_LDFLAGS
+
+`-L$(DT_TOOLCHAIN_DIR)/usr/lib/swift/$(PLATFORM_NAME)` es un flag generado por Tuist para Swift stdlib linkage y es apropiado. Conforme.
+
+#### Swift — Paths hardcodeados en build settings
+
+No existen paths absolutos hardcodeados en los build settings de `Project.swift`. La referencia a `/home/linuxbrew/.linuxbrew/bin/brew` en `BrewChecker.swift` es un valor de runtime (candidato de fallback para instalaciones Linux), no un build setting. Conforme para build settings.
+
+#### Swift — Arquitecturas
+
+No se especifican `ARCHS` ni `EXCLUDED_ARCHS` en `Project.swift`, lo que significa que se usan los defaults del SDK macOS. Correcto para una app macOS distribuida. Conforme.
+
+#### TypeScript — Version y configuracion
+
+`"target": "ES2022"`, `"module": "NodeNext"`, `"strict": true` en `tsconfig.json`. tsup usa `target: 'node18'`. Conforme.
+
+#### TypeScript — sourceMap en produccion
+
+`tsup.config.ts` tiene `sourcemap: false` (linea 12). El directorio `build/` no contiene archivos `.map`. `tsconfig.json` tiene `"sourceMap": true` pero ese setting afecta unicamente a `tsc --noEmit` (typecheck) y no al bundle de produccion generado por tsup. Conforme.
+
+#### TypeScript — ESLint
+
+`eslint.config.js` usa `js.configs.recommended` mas `@typescript-eslint/no-unused-vars` como `warn`. La cobertura de reglas es minima. No es un hallazgo bloqueante dado que TypeScript `strict: true` cubre la mayoria de casos, pero la cobertura de linting podria mejorarse. Estado: Parcial.
+
 | Elemento | Estado | Severidad | Evidencia | Accion |
 |----------|--------|-----------|-----------|--------|
-| `SWIFT_VERSION = 6.0` | Conforme | — | `Project.swift:10`: `"SWIFT_VERSION": "6.0"`; `pbxproj:333,424`: `SWIFT_VERSION = 6.0;` en Release y Debug | — |
-| `SWIFT_STRICT_CONCURRENCY` no declarado | No conforme | Media | El flag `SWIFT_STRICT_CONCURRENCY` no aparece en `Project.swift` ni en ninguna configuracion del `project.pbxproj`. Con Swift 6 el compilador ya aplica comprobaciones de concurrencia en el modo de compilacion, pero la ausencia del flag explicito significa que no se ha validado explicitamente este requisito y futuras versiones de Xcode podrian cambiar el comportamiento por defecto | Agregar `"SWIFT_STRICT_CONCURRENCY": "complete"` al bloque `base` de `Project.swift`; esto hace la politica explicita e invariante ante cambios de toolchain |
-| `SWIFT_TREAT_WARNINGS_AS_ERRORS` no declarado (Swift) | Parcial | Baja | No presente en ninguna configuracion del pbxproj; los warnings de Swift (deprecaciones, unused variables) no produciran fallos de build. Los warnings de Clang/ObjC si se tratan como errores (`GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR`, etc.) | Valorar activar `SWIFT_TREAT_WARNINGS_AS_ERRORS = YES` al menos en Release para prevenir degradacion silenciosa |
-| TypeScript ESLint — `no-unused-vars` como warning, no error | Parcial | Baja | `eslint.config.js:33`: `'@typescript-eslint/no-unused-vars': ['warn', ...]`; en `release.yml:25` el CI ejecuta `npm run lint` pero los warnings no fallan el build | Cambiar a `'error'` para que variables no usadas rompan el pipeline de CI; actualmente dead code puede acumularse silenciosamente |
-| `tsconfig.json` — `skipLibCheck: true` | Parcial | Baja | `tsconfig.json:9`: `"skipLibCheck": true`; deshabilita la comprobacion de tipos en archivos `.d.ts` de dependencias, lo que puede ocultar incompatibilidades de tipos entre paquetes (especialmente relevante dada la mezcla de React 18 + Ink 5 + @inkjs/ui) | Aceptable como decision pragmatica dado el ecosistema; documentar como decision consciente en CLAUDE.md o comentario en tsconfig |
-| `tsup.config.ts` — `sourcemap: true` en produccion | No conforme | Media | `tsup.config.ts:12`: `sourcemap: true` sin distincion entre entornos; el bundle npm publicado (`build/`) incluira archivos `.js.map` que exponen la estructura interna del codigo (incluyendo el modulo de licencias Pro, la logica anti-tamper, los canaries); cualquier usuario puede reconstruir el codigo fuente original desde el package npm instalado | Desactivar source maps en el bundle publico (`sourcemap: false`) o compilar con source maps internos (inline, sin emision de archivos) para el build de produccion; mantener source maps solo para el entorno de desarrollo |
-| `tsconfig.json` — `declaration: true` y `declarationMap: true` | Parcial | Baja | `tsconfig.json:13-14`: genera archivos `.d.ts` y `.d.ts.map`; el `package.json:10-13` incluye el directorio `build/` en `files`, lo que publica estas declaraciones en npm; esto expone la API interna del modulo de licencias como tipos TypeScript | Si el paquete es solo una CLI (no una libreria), considerar excluir `build/*.d.ts` de los `files` en `package.json` o desactivar `declaration` para el bundle publico |
-| Release optimization Swift — correcto | Conforme | — | `pbxproj:360`: `SWIFT_OPTIMIZATION_LEVEL = "-O"`, `SWIFT_COMPILATION_MODE = wholemodule` en Release; `DEAD_CODE_STRIPPING = YES` en ambas configuraciones; `ENABLE_NS_ASSERTIONS = NO` en Release | — |
-| `ENABLE_USER_SCRIPT_SANDBOXING = YES` | Conforme | — | `Project.swift:14` y `pbxproj`: activo en Debug y Release; mejora la seguridad del proceso de build | — |
+| SWIFT_VERSION = 6.0 | Conforme | — | `Project.swift:10` | — |
+| SWIFT_STRICT_CONCURRENCY no declarado explicitamente | Parcial | Media | `Project.swift`: no contiene esta clave; Swift 6 default es `complete` | Agregar `"SWIFT_STRICT_CONCURRENCY": "complete"` en base settings de `Project.swift` para documentar la intencion explicitamente |
+| Optimizacion Release (`-O`, wholemodule) | Conforme | — | `Project.swift:19-22` (configuraciones Debug/Release) | — |
+| DEAD_CODE_STRIPPING = YES | Conforme | — | `Project.swift:14` | — |
+| OTHER_LDFLAGS (Tuist stdlib) | Conforme | — | Generado por Tuist para Swift stdlib | — |
+| Arquitecturas (default SDK macOS) | Conforme | — | Sin overrides en `Project.swift` | — |
+| TypeScript strict mode | Conforme | — | `tsconfig.json:7` | — |
+| sourceMap false en tsup | Conforme | — | `tsup.config.ts:12`; sin `.map` en `build/` | — |
+| ESLint cobertura minimalista | Parcial | Baja | `eslint.config.js`: solo `no-unused-vars` activo | Considerar activar reglas `@typescript-eslint/recommended` para mayor cobertura estatica |
 
 ---
 
 ## 2.3 Info.plist, entitlements y capabilities
 
-### Alcance
-
-Esta seccion aplica unicamente a BrewBar (Swift). El codebase TypeScript no tiene Info.plist ni entitlements.
-
 ### Checklist
 
-* [ ] Info.plist minimo y coherente — **Baja**: el plist generado por Tuist contiene `NSMainStoryboardFile` y `NSPrincipalClass = NSApplication` que son claves de ciclo de vida AppKit legacy, incoherentes con la arquitectura SwiftUI `@main` real del proyecto
-* [x] Permisos del sistema justificados — no hay claves `NS*UsageDescription`; el unico permiso solicitado en runtime es `UNUserNotificationCenter.requestAuthorization` (notificaciones), que macOS gestiona directamente sin clave en Info.plist
-* [x] Entitlements minimos necesarios — no existe archivo `.entitlements`; no se activan entitlements adicionales mas alla de los defaults del sandboxing
-* [x] Capabilities activadas solo si se usan — `CODE_SIGN_IDENTITY = "-"` (sin firma); sin App Groups, sin iCloud, sin Push Notifications (APNs), sin HealthKit; las unicas capabilities en uso son las que no requieren entitlements: `UNUserNotificationCenter` y `SMAppService` (ambas correctas sin entitlements para app macOS standalone)
-* [x] Universal Links / Associated Domains — No aplica; no hay configuracion de Associated Domains ni `applinks:`
-* [x] App Groups — No aplica; no hay uso de `UserDefaults(suiteName:)` ni `containerURL(forSecurityApplicationGroupIdentifier:)`
-* [x] Keychain Sharing — No aplica; no hay uso de `kSecAttrAccessGroup` en el codigo Swift
-* [x] Background modes — No aplica formalmente; `SchedulerService` usa timers en proceso (no background task BGTaskScheduler); la app es LSUIElement (menubar) lo que mantiene el proceso activo, no requiere Background Modes capability
+* [ ] Info.plist minimo y coherente — **Media**: `NSMainStoryboardFile = "Main"` se hereda del template de Tuist pero no existe ningun archivo `Main.storyboard` (app usa SwiftUI + AppDelegate adaptor)
+* [ ] Info.plist version explicitamente definida — **Media**: `CFBundleShortVersionString` no se define en `Project.swift`; Tuist usara su default interno (`1.0`) a menos que se especifique explicitamente
+* [x] Permisos del sistema justificados
+* [x] Entitlements minimos necesarios
+* [x] Capabilities activadas solo si se usan
+* [x] Universal Links / Associated Domains auditados — No aplica
+* [x] App Groups auditados — No aplica
+* [x] Keychain Sharing auditado — No aplica
+* [x] Background modes justificados
+* [ ] PrivacyInfo.xcprivacy incluida en el bundle — **Baja**: verificacion pendiente de que `tuist generate` la incluya; la configuracion de `Project.swift` deberia capturarla
 
 ### Hallazgos
 
+#### Info.plist — NSMainStoryboardFile
+
+`Project.swift` usa `infoPlist: .extendingDefault(with: [...])` (lineas 30-35) para el target BrewBar. El bloque `with:` define `LSUIElement`, `CFBundleDisplayName`, `CFBundleDevelopmentRegion`, y `NSHumanReadableCopyright`, pero no elimina las claves del template macOS por defecto de Tuist, entre ellas `NSMainStoryboardFile = "Main"`. La app es una SwiftUI app con `@NSApplicationDelegateAdaptor`, no usa storyboards. No existe ningun archivo `Main.storyboard` en el proyecto. Esta clave es un remanente del template de Tuist y es ignorada por el sistema en apps SwiftUI, pero representa ruido en el plist y puede causar confusion. Severidad: Media.
+
+Accion: En `Project.swift`, convertir a `.file(path:)` con un Info.plist propio, o agregar la clave con valor vacio para sobrescribir el default: se puede intentar con `.extendingDefault(with: ["NSMainStoryboardFile": ""])`. La forma mas limpia es usar `.dictionary(entiries:)` en lugar de `.extendingDefault(with:)` para tener control total sobre el plist.
+
+#### Info.plist — Version del bundle
+
+`Project.swift` define `MARKETING_VERSION: "$(MARKETING_VERSION:default=0.2.0)"` como build setting (linea 13) pero no define `CFBundleShortVersionString` ni `CFBundleVersion` en el bloque `infoPlist: .extendingDefault(with:)` (lineas 30-35). Tuist generara el Info.plist con sus defaults internos para estas claves, que historicamente han sido `1.0` y `1`. Esto significa que el bundle distribuido podria mostrar version `1.0` en lugar de `0.2.0` salvo que Tuist resuelva correctamente la variable `$(MARKETING_VERSION)`. Severidad: Media.
+
+Accion: Agregar explicitamente en `Project.swift`:
+```swift
+"CFBundleShortVersionString": "$(MARKETING_VERSION)",
+"CFBundleVersion": "$(CURRENT_PROJECT_VERSION)",
+```
+dentro del bloque `infoPlist: .extendingDefault(with:)`.
+
+#### PrivacyInfo.xcprivacy — Inclusion en el bundle
+
+`menubar/BrewBar/Resources/PrivacyInfo.xcprivacy` existe en disco con contenido correcto: declara `NSPrivacyAccessedAPICategoryUserDefaults` (razon `CA92.1`) y `NSPrivacyAccessedAPICategoryFileTimestamp` (razon `C617.1`), `NSPrivacyTracking = false`, y `NSPrivacyCollectedDataTypes = []`.
+
+`Project.swift` define `resources: ["BrewBar/Resources/**"]` (linea 37), lo que deberia capturar el archivo al ejecutar `tuist generate`. El CI ejecuta `tuist generate` (`.github/workflows/release.yml:58`) antes de compilar, por lo que en el build de distribucion el Privacy Manifest deberia estar incluido. Sin embargo, no es posible verificar esto sin ejecutar `tuist generate` en el entorno de auditoria. Estado: Baja — la configuracion es correcta pero requiere validacion post-generacion.
+
+Adicionalmente, la razon `CA92.1` para `NSPrivacyAccessedAPICategoryUserDefaults` esta definida por Apple como "access from app defined in same App Group". La app no usa App Groups; la razon correcta seria `1C8F.1` ("access required for app functionality"). Esta discrepancia es Baja en severidad.
+
+#### Permisos del sistema
+
+No existen claves `NS*UsageDescription` en el Info.plist definido en `Project.swift` ni en sus extensiones. La app no solicita ningun permiso del sistema al usuario. Las notificaciones se gestionan via `UNUserNotificationCenter` pero macOS no requiere `NS*UsageDescription` para notificaciones locales. Conforme.
+
+#### Entitlements
+
+No existe ningun archivo `.entitlements` en el proyecto (`Project.swift` no configura entitlements). `CODE_SIGN_IDENTITY = "-"` (firma ad-hoc, generado por Tuist). La app no usa App Sandbox, App Groups, ni Keychain Sharing. `SMAppService` para login-at-launch no requiere entitlement especifico en macOS 13+. Conforme: entitlements minimos.
+
+Nota: La ausencia de App Sandbox es aceptable — la app necesita ejecutar `brew` como proceso hijo via `Process.run()`, lo cual es incompatible con App Sandbox.
+
+#### Background modes
+
+La app no declara background modes. El polling de actualizaciones se realiza via `Timer.scheduledTimer` en el run loop de la app activa. Como agente (`LSUIElement: true`) permanece activo continuamente. Conforme.
+
+#### UserDefaults
+
+`UserDefaults.standard` se usa en `SchedulerService.swift` para almacenar `checkInterval`, `notificationsEnabled`, y `hasLaunchedKey`. Uso apropiado para preferencias simples. No se usa App Group suite. Justificado en `PrivacyInfo.xcprivacy`. Conforme.
+
 | Elemento | Estado | Severidad | Evidencia | Accion |
 |----------|--------|-----------|-----------|--------|
-| Info.plist — `NSMainStoryboardFile: Main` | No conforme | Baja | `menubar/Derived/InfoPlists/BrewBar-Info.plist:31-32`: `NSMainStoryboardFile = Main`; la app usa SwiftUI `@main` (`BrewBarApp.swift:3`) con `@NSApplicationDelegateAdaptor` — no hay ningun storyboard `Main.storyboard` en el proyecto; esta clave es un artefacto del template Tuist y nunca se usa, pero puede causar confusion | Eliminar `NSMainStoryboardFile` del bloque `infoPlist` en `Project.swift` (o agregar `"NSMainStoryboardFile": .none` para anularlo explicitamente) |
-| Info.plist — `NSPrincipalClass: NSApplication` | Parcial | Baja | `menubar/Derived/InfoPlists/BrewBar-Info.plist:34-35`: `NSPrincipalClass = NSApplication`; con SwiftUI `@main` este valor es sobreescrito por el sistema (`NSApplication` es el valor correcto para apps macOS sin UI propia), pero no esta declarado explicitamente en `Project.swift` (viene del template Tuist) | Declarar explicitamente `"NSPrincipalClass": "NSApplication"` en `Project.swift` para documentar la decision; actualmente es correcto por efecto del template pero no es intencional |
-| Info.plist — `CFBundleShortVersionString: 1.0` hardcodeada | No conforme | Media | `menubar/Derived/InfoPlists/BrewBar-Info.plist:23`: `CFBundleShortVersionString = 1.0`; `CFBundleVersion = 1`; estas versiones son estaticas y no se actualizan automaticamente en el CI (`release.yml`); el job `build-brewbar` no inyecta la version del tag de release en el Info.plist | Configurar el job CI para pasar la version del tag git como `MARKETING_VERSION` al comando `xcodebuild` o inyectarla en el Info.plist antes del build; alternativamente usar `CURRENT_PROJECT_VERSION = $(CURRENT_PROJECT_VERSION)` dinamico |
-| Entitlements — ausencia de archivo `.entitlements` | Conforme | — | No se encontro ningun archivo `.entitlements` bajo `menubar/`; `CODE_SIGN_IDENTITY = "-"` confirma ausencia de firma que requiera entitlements; las capabilities usadas (UNUserNotificationCenter, SMAppService) no requieren entitlements para apps macOS firmadas con ad-hoc o sin firma | — |
-| Permisos — `UNUserNotificationCenter.requestAuthorization` | Conforme | — | `SchedulerService.swift:117`: solicita autorizacion en runtime; no requiere clave `NSUserNotificationUsageDescription` en macOS (solo en iOS); la solicitud es contextual (triggered by user enabling notifications in SettingsView) | — |
-| `SMAppService.mainApp` (launch at login) | Conforme | — | `SettingsView.swift:7,47,49`: usa `SMAppService` de ServiceManagement framework; esta API moderna no requiere entitlements adicionales para app principal; correcto para macOS 13+ | — |
-| `LSUIElement = true` | Conforme | — | `Project.swift:30`: `LSUIElement: true`; elimina el icono del Dock para app menubar; coherente con la arquitectura de la app | — |
+| NSMainStoryboardFile heredado del template Tuist | No conforme | Media | `Project.swift:30-35`: bloque `.extendingDefault(with:)` no elimina la clave; no existe `Main.storyboard` en el proyecto | Usar `.dictionary(entries:)` o agregar `"NSMainStoryboardFile": ""` en el bloque `with:` para sobrescribir el default |
+| CFBundleShortVersionString no definido en Project.swift | No conforme | Media | `Project.swift:30-35`: bloque `with:` no define `CFBundleShortVersionString` ni `CFBundleVersion` | Agregar `"CFBundleShortVersionString": "$(MARKETING_VERSION)"` y `"CFBundleVersion": "$(CURRENT_PROJECT_VERSION)"` en el bloque `infoPlist: .extendingDefault(with:)` de `Project.swift` |
+| PrivacyInfo.xcprivacy — inclusion pendiente de verificacion | Parcial | Baja | `Project.swift:37`: `resources: ["BrewBar/Resources/**"]` deberia capturarla; CI ejecuta `tuist generate`; no verificable sin ejecutar Tuist | Ejecutar `tuist generate` y confirmar que `PrivacyInfo.xcprivacy` aparece en la fase Resources del proyecto generado |
+| Razon CA92.1 posiblemente incorrecta en PrivacyInfo.xcprivacy | Parcial | Baja | `PrivacyInfo.xcprivacy`: `CA92.1` es "App Group access"; la app no usa App Groups; deberia ser `1C8F.1` ("app functionality") | Cambiar razon de `CA92.1` a `1C8F.1` para `NSPrivacyAccessedAPICategoryUserDefaults` |
+| Sin permisos NS*UsageDescription | Conforme | — | `Project.swift:30-35`: sin claves NS*Usage | — |
+| Entitlements minimos (ninguno) | Conforme | — | `Project.swift`: sin configuracion de entitlements | — |
+| UserDefaults uso apropiado | Conforme | — | `SchedulerService.swift:23-53`: solo preferencias simples | — |
+| Background modes no declarados | Conforme | — | Timer en run loop de agente activo; sin background modes | — |
 
 ---
 
 ## 2.4 Gestion de entornos y secretos
 
-### Alcance
-
-Ambos codebases. Incluye: secretos hardcodeados, variables por entorno, `.gitignore`, archivos de configuracion local, feature flags, y fallbacks.
-
 ### Checklist
 
-* [ ] Secrets fuera del codigo fuente — **Critica**: la clave de cifrado AES-256-GCM derivada del sistema de licencias esta embebida como hex literal en `LicenseChecker.swift`; ademas la clave de derivacion (`ENCRYPTION_SECRET`, `SCRYPT_SALT`) esta en texto plano en `license-manager.ts`; el `POLAR_ORGANIZATION_ID` esta hardcodeado en `polar-api.ts`
-* [ ] Variables por entorno bien separadas — **Media**: no existen archivos `.xcconfig` ni configuraciones de entorno por variable; el unico mecanismo de configuracion por entorno en TypeScript es `process.env.APP_VERSION` inyectado en build time
-* [x] Configuracion local no filtrada al repo — `.gitignore` excluye correctamente `node_modules/`, `build/`, `.env*`, `*.xcworkspace`, `*.xcodeproj`, `menubar/Derived/`, `menubar/DerivedData/`; `package-lock.json` si esta commiteado (correcto)
-* [x] Feature flags auditados — no existe sistema de feature flags (LaunchDarkly, Firebase Remote Config, ni custom); las unicas "flags" son la verificacion Pro que es codigo, no configuracion externa
-* [ ] Fallbacks seguros cuando falta configuracion — **Media**: en TypeScript, `POLAR_ORGANIZATION_ID` es una constante hardcodeada (no leida de entorno), por lo que no puede faltar — pero si el valor es incorrecto no hay fallback de error claro; en Swift, `LicenseChecker.checkLicense()` retorna `.notFound` si el archivo de licencia no existe (correcto fallback)
+* [ ] Secrets fuera del codigo fuente — **Media**: clave de cifrado AES-256-GCM embebida en `LicenseChecker.swift` y `license-manager.ts`; `POLAR_ORGANIZATION_ID` embebido en `polar-api.ts`
+* [x] Variables por entorno bien separadas
+* [x] Configuracion local no filtrada al repo
+* [x] Feature flags auditados
+* [x] Fallbacks seguros cuando falta configuracion
 
 ### Hallazgos
 
+#### Clave AES-256-GCM en LicenseChecker.swift y license-manager.ts
+
+`LicenseChecker.swift` (lineas 43-50) contiene la clave derivada hardcodeada como hex literal con el comentario que documenta explicitamente su equivalencia de seguridad con embeber el secreto en texto claro:
+
+```
+private static let encryptionKey: SymmetricKey = {
+    let hex = "5c3b2ae2a3066bca28773f36db347d8c8a0a396d4b9fab628331446acd6d4126"
+```
+
+`license-manager.ts` (lineas 61-62) expone las mismas constantes de origen:
+
+```typescript
+const ENCRYPTION_SECRET = 'brew-tui-license-aes256gcm-v1';
+const SCRYPT_SALT = 'brew-tui-salt-v1';
+```
+
+Ambas codebases tienen la misma clave de cifrado embebida en texto claro. El nivel de riesgo real es limitado: un atacante con acceso al codigo fuente podria fabricar archivos `~/.brew-tui/license.json` validos. Sin embargo, la validacion contra el servidor Polar ocurre periodicamente (cada 24h con gracia de 7 dias), lo que limita el abuso a ese intervalo. Esta limitacion es inherente a la arquitectura de licencias client-side sin servidor de validacion continua. Severidad: Media.
+
+#### POLAR_ORGANIZATION_ID embebido
+
+`polar-api.ts` linea 9 contiene `POLAR_ORGANIZATION_ID = 'b8f245c0-d116-4457-92fb-1bda47139f82'`. Este es un identificador publico requerido para las llamadas a la API publica de Polar. Un atacante podria usarlo para consultar informacion de licencias de la organizacion, aunque Polar requiere que el usuario aporte la clave de licencia para validar. Impacto bajo. Severidad: Baja.
+
+#### Configuracion local no filtrada al repo
+
+`.gitignore` cubre correctamente: `node_modules/`, `build/`, `.env`, `.env.*`, `*.xcworkspace`, `*.xcodeproj`, `menubar/Derived/`, `menubar/DerivedData/`, `*.p12`, `*.cer`, `*.mobileprovision`, `ExportOptions.plist`, `AuthKey_*.p8`. No existe ningun `.env` file en el repositorio. No existen `.xcconfig` files con secretos. Conforme.
+
+#### NPM_TOKEN y secrets de CI
+
+El `release.yml` usa `${{ secrets.NPM_TOKEN }}` para publicar a npm y `${{ secrets.GITHUB_TOKEN }}` para GitHub Packages. Ambos son secrets de GitHub Actions correctamente gestionados fuera del codigo fuente. Conforme.
+
+#### Separacion de variables por entorno
+
+No existen archivos `.xcconfig` de configuracion por entorno para Swift (no necesario dado que el producto no tiene backend propio). Para TypeScript, `NODE_ENV` se fija en `tsup.config.ts` (produccion) y se accede via `process.env` en el codigo. No existe archivo `.env` — no se requiere uno. Las URLs de APIs externas estan hardcodeadas en el codigo (`polar-api.ts`, `osv-api.ts`) — aceptable para URLs publicas sin secretos. Conforme.
+
+#### Feature flags
+
+No existe sistema de feature flags dinamico. Los "flags" del proyecto son estaticos:
+- `PRO_VIEWS` en `src/lib/license/feature-gate.ts`: `Set<ViewId>` definido en codigo. No configurable en runtime. Conforme para el modelo actual.
+- `__TEST_MODE__` inyectado en compile time por tsup. Conforme.
+- `GCC_PREPROCESSOR_DEFINITIONS = ("DEBUG=1")` en la build Debug de Swift. Conforme.
+
+#### Fallbacks cuando falta configuracion
+
+- `process.env.APP_VERSION ?? '0.1.0'` en `account.tsx` linea 125: fallback a version literal. Aceptable.
+- `process.env.NODE_ENV` esta inyectado en produccion via tsup, no requiere fallback.
+- `LicenseChecker.checkLicense()` retorna `.notFound` si no existe el archivo de licencia. Conforme.
+- `SchedulerService.swift`: `UserDefaults.standard.integer(forKey: "checkInterval")` retorna `0` si no existe la clave, y el codigo maneja el caso con defaults. Conforme.
+
+#### Job publish-github-packages sin typecheck ni test
+
+El job `publish-github-packages` en `release.yml` (lineas 33-47) solo ejecuta `npm ci && npm run build && npm publish` sin `typecheck` ni `test`. Aunque tiene `needs: publish-npm` (que si ejecuta `typecheck` y `test`), el job de GitHub Packages construye el bundle de nuevo de forma independiente sin re-validar la calidad del codigo. Severidad: Baja.
+
 | Elemento | Estado | Severidad | Evidencia | Accion |
 |----------|--------|-----------|-----------|--------|
-| Clave AES-256-GCM hardcodeada en Swift — `LicenseChecker.swift` | No conforme | Critica | `menubar/BrewBar/Sources/Services/LicenseChecker.swift:47`: `let hex = "5c3b2ae2a3066bca28773f36db347d8c8a0a396d4b9fab628331446acd6d4126"`; esta es la clave derivada pre-computada del sistema de cifrado de licencias Pro; el propio comentario en linea 43-45 del archivo reconoce que ofrece "the same security level as embedding the secret string itself"; cualquier persona con acceso al binario compilado puede extraer esta clave con strings(1) o un debugger y descifrar el archivo `~/.brew-tui/license.json` directamente, sin necesidad de interactuar con el servidor de licencias | La unica mitigacion real es que la verificacion de licencia sea server-side con tokens de corta duracion. A corto plazo: rotar la clave, mover la derivacion al servidor (el cliente recibe un token opaco, no una clave de cifrado permanente); a largo plazo: redisenar el sistema de licencias para que el archivo local sea unicamente un cache del token del servidor, verificado con firma ECDSA del servidor (no con cifrado simetrico de clave local) |
-| Clave de derivacion AES hardcodeada en TypeScript — `license-manager.ts` | No conforme | Alta | `src/lib/license/license-manager.ts:60-61`: `const ENCRYPTION_SECRET = 'brew-tui-license-aes256gcm-v1'`; `const SCRYPT_SALT = 'brew-tui-salt-v1'`; estas constantes son identicas a las usadas para derivar la clave Swift; estan en el bundle npm publico distribuido via GitHub y npmjs.com; cualquier usuario puede instalar el paquete y leer el codigo fuente (o el bundle compilado con source maps) para obtener estas constantes. Agravante: `tsup.config.ts:12` activa `sourcemap: true` lo que incluye mapas fuente en el bundle | Misma solucion arquitectural que el punto anterior; a corto plazo, al menos retirar los source maps del bundle publico para dificultar la extraccion |
-| `POLAR_ORGANIZATION_ID` hardcodeado en TypeScript | Parcial | Baja | `src/lib/license/polar-api.ts:8`: `export const POLAR_ORGANIZATION_ID = 'b8f245c0-d116-4457-92fb-1bda47139f82'`; este ID no es un secreto en el sentido estricto (no otorga acceso privilegiado); por diseño de la API de Polar los organization IDs son identificadores publicos que aparecen en las URLs y respuestas de la API; si bien es preferible externalizarlo a una variable de entorno, su presencia en el codigo no representa un riesgo de seguridad real | Mover a variable de entorno `process.env.POLAR_ORG_ID` con validacion al arranque; si el valor debe ser publico (por diseño de la API), documentar explicitamente esa decision |
-| `.gitignore` — ausencia de patrones para secretos Swift/Tuist | No conforme | Media | `.gitignore` (16 lineas) no incluye patrones para: `*.p12`, `*.cer`, `*.mobileprovision`, `ExportOptions.plist`, archivos de signing certificates; si en el futuro se agregan certificados de firma o perfiles de provision para el CI, no existira proteccion por defecto | Agregar al `.gitignore`: `*.p12`, `*.cer`, `*.mobileprovision`, `ExportOptions.plist`, `AuthKey_*.p8` |
-| `.gitignore` — `menubar/BrewBar.xcodeproj` gitignored pero el proyecto existe en disco | Parcial | Baja | `.gitignore:13`: `*.xcodeproj` ignora `menubar/BrewBar.xcodeproj`; sin embargo el proyecto Xcode si existe en disco (generado por Tuist), lo que significa que cualquier colaborador que clone el repo necesita ejecutar `tuist generate` para poder abrir el proyecto. El `README.md` o `CLAUDE.md` deberian documentar este prerequisito claramente | Verificar que el `CLAUDE.md` y `README.md` documenten el prerequisito `tuist generate`; agregar un script `npm run setup-swift` que ejecute `cd menubar && tuist generate` automaticamente |
-| Feature flags — ausencia de sistema externo | Conforme | — | No se encontro uso de LaunchDarkly, Firebase Remote Config ni sistema custom de feature flags; las unicas "flags" son el gate Pro implementado en codigo. Para un producto en esta etapa esto es aceptable | — |
-| Fallback de licencia — TypeScript | Conforme | — | `src/lib/license/license-manager.ts:104-127`: `loadLicense()` retorna `null` en todos los casos de error (archivo no encontrado, JSON invalido, descifrado fallido); `src/app.tsx` gestiona el estado `null` como usuario free | — |
-| Fallback de licencia — Swift | Conforme | — | `LicenseChecker.swift:57-79`: `checkLicense()` retorna `.notFound` si el archivo no existe o el JSON es invalido; `.expired` si la validacion de fecha falla; no hay force-unwrap peligroso en el flujo | — |
-| Secretos en CI/CD — correctos | Conforme | — | `release.yml:28,45`: `NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}` y `GITHUB_TOKEN` usados via GitHub Secrets; no hay credenciales hardcodeadas en los workflows | — |
-| Licencia `~/.brew-tui/license.json` fuera del repo | Conforme | — | El archivo de licencia se almacena en `~/.brew-tui/` (HOME del usuario), fuera del directorio del proyecto; nunca puede ser commiteado accidentalmente | — |
+| Clave AES-256-GCM hex en LicenseChecker.swift | No conforme | Media | `LicenseChecker.swift:48: let hex = "5c3b2ae2..."` | Inherente al modelo de licencias client-side. Documentar explicitamente el threat model. Como mejora de largo plazo: inyectar la clave derivada via build setting en CI (no en repo) para evitar exposicion en codigo fuente. |
+| ENCRYPTION_SECRET / SCRYPT_SALT en license-manager.ts | No conforme | Media | `license-manager.ts:61-62` | Mismo escenario. Considerar obfuscacion de constante en build via `define` de tsup con valor inyectado desde entorno CI. |
+| POLAR_ORGANIZATION_ID embebido | No conforme | Baja | `polar-api.ts:9` | Identificador publico; impacto de seguridad real bajo. Mover a constante de configuracion si se quiere evitar exposicion explicita en repo. |
+| .gitignore cubre secretos y artefactos | Conforme | — | `.gitignore`: cubre `.p12`, `.cer`, `.mobileprovision`, `AuthKey_*.p8`, `.env*`, `*.xcodeproj`, `menubar/Derived/` | — |
+| NPM_TOKEN via GitHub Secrets | Conforme | — | `release.yml:30: ${{ secrets.NPM_TOKEN }}` | — |
+| No existen .env files en repo | Conforme | — | Busqueda exhaustiva sin resultados | — |
+| Feature flags estaticos auditados | Conforme | — | `feature-gate.ts`: PRO_VIEWS set estatico; sin flags dinamicos externos | — |
+| Fallbacks para configuracion faltante | Conforme | — | `account.tsx:125`, `LicenseChecker.swift:57-59`, `SchedulerService.swift:44-53` | — |
+| publish-github-packages sin typecheck/test | No conforme | Baja | `release.yml:43-45`: solo `npm ci && npm run build && npm publish` | Agregar `npm run typecheck && npm run test` antes de `npm run build` en el job `publish-github-packages` |
 
 ---
 
@@ -140,16 +270,29 @@ Ambos codebases. Incluye: secretos hardcodeados, variables por entorno, `.gitign
 
 | Severidad | Cantidad |
 |-----------|----------|
-| Critica | 1 |
-| Alta | 3 |
-| Media | 7 |
-| Baja | 11 |
+| Critica | 0 |
+| Alta | 0 |
+| Media | 4 |
+| Baja | 5 |
 
-**Total hallazgos no conformes o parciales:** 22
+**Total hallazgos no conformes:** 9
 
-### Hallazgos criticos y altos — lista rapida
+### Detalle de los hallazgos no conformes por prioridad
 
-1. **[Critica]** Clave AES-256-GCM hardcodeada en `LicenseChecker.swift:47` — compromete el sistema de proteccion de licencias Pro en BrewBar
-2. **[Alta]** Clave de derivacion AES hardcodeada en `license-manager.ts:60-61` + source maps en bundle publico npm — facilita extraccion de secretos del TUI
-3. **[Alta]** Licencia MIT incompatible con modelo freemium — el codigo fuente de la proteccion Pro es libremente redistribuible y modificable bajo los terminos de la licencia actual
-4. **[Alta]** Workflows CI/CD duplican publicacion npm — `release.yml` crea un GitHub Release que activa `publish.yml`, resultando en un segundo intento de publicacion que fallara con 409 Conflict en cada release
+1. **Media** — `NSMainStoryboardFile = "Main"` heredado del template de Tuist en `Project.swift`: clave obsoleta sin archivo storyboard correspondiente. Ruido en el Info.plist generado.
+
+2. **Media** — `CFBundleShortVersionString` no definido en `Project.swift`: el bundle podria mostrar version `1.0` en lugar de la version real si Tuist no resuelve `MARKETING_VERSION` en la clave del plist.
+
+3. **Media** — Clave AES-256-GCM (`5c3b2ae2...`) embebida en `LicenseChecker.swift` y `ENCRYPTION_SECRET` / `SCRYPT_SALT` embebidos en `license-manager.ts`: inherente al modelo de licencias client-side; permite fabricacion de archivos de licencia a quien tenga acceso al codigo fuente. Validacion periodica contra Polar limita el abuso.
+
+4. **Media** — `SWIFT_STRICT_CONCURRENCY` no declarado explicitamente en `Project.swift`: dependencia del default del compilador Swift 6 sin documentar la intencion explicita.
+
+5. **Baja** — `POLAR_ORGANIZATION_ID` embebido en `polar-api.ts`: identificador publico de organizacion; impacto de seguridad real bajo.
+
+6. **Baja** — ESLint con cobertura minimalista: solo `no-unused-vars` activado; TypeScript strict mode mitiga la mayoria de riesgos.
+
+7. **Baja** — `PrivacyInfo.xcprivacy` pendiente de verificacion post-`tuist generate`: la configuracion de `Project.swift` es correcta pero requiere confirmacion de inclusion en bundle.
+
+8. **Baja** — Razon `CA92.1` posiblemente incorrecta en `PrivacyInfo.xcprivacy` para `NSPrivacyAccessedAPICategoryUserDefaults`: deberia ser `1C8F.1`.
+
+9. **Baja** — Job `publish-github-packages` en `release.yml` no ejecuta `typecheck` ni `test` de forma independiente.

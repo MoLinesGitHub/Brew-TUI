@@ -34,9 +34,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
             setupStatusItem()
             setupPopover()
+            appState.onRefreshComplete = { [weak self] in
+                self?.updateBadge()
+            }
 
             scheduler.start(state: appState)
             await appState.refresh()
+            updateBadge()
 
             badgeTimer = Timer.scheduledTimer(withTimeInterval: 30, repeats: true) { [weak self] _ in
                 Task { @MainActor in self?.updateBadge() }
@@ -47,6 +51,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationWillTerminate(_ notification: Notification) {
         launchTask?.cancel()
         launchTask = nil
+        appState.onRefreshComplete = nil
         badgeTimer?.invalidate()
         badgeTimer = nil
         scheduler.stop()

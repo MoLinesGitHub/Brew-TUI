@@ -1,70 +1,76 @@
 # 11. Backend funcional
 
-> Auditor: backend-auditor | Fecha: 2026-04-22
+> Auditor: backend-auditor | Fecha: 2026-04-23
 
 ## Resumen ejecutivo
 
-Brew-TUI no tiene backend propio: consume tres APIs externas (Polar.sh para licencias, OSV.dev para vulnerabilidades, GitHub Releases para descargas) y orquesta el proceso `brew` via `child_process`. Las capas de autenticacion (activacion de licencia, proteccion Pro multi-capa) estan bien disenadas en su logica, pero la ausencia total de timeouts en las llamadas `fetch()` del lado TypeScript representa un riesgo critico de bloqueo. La persistencia local es funcional y mayoritariamente segura, aunque se detectan inconsistencias en permisos de archivo y un secreto de cifrado pre-derivado hard-coded en el binario Swift distribuido.
+Brew-TUI v0.2.0 no dispone de backend propio: toda la logica del servidor reside en tres servicios externos (Polar.sh para licencias, OSV.dev para CVEs y GitHub Releases para distribucion de binarios). La capa de red del cliente esta bien estructurada con timeouts universales y validacion de URLs. La persistencia local esta protegida con cifrado AES-256-GCM, permisos de archivo correctos y escrituras atomicas, aunque `saveProfile` omite el patron atomico aplicado al resto. La clave de derivacion del cifrado esta embebida en el codigo fuente, lo que es la principal limitacion arquitectonica de seguridad del modelo de licencias.
 
 ---
 
 ## 11.1 Superficie API
 
+> Nota de alcance: al no existir backend propio, este apartado audita la superficie de la capa de red del cliente — los tres puntos de integracion externos que constituyen la "API" del producto.
+
 ### Checklist
 
-* [x] Endpoints (API clients) inventariados — tres clientes externos identificados y documentados
-* [x] Validacion de URL en cliente Polar — `polar-api.ts` valida protocolo HTTPS y hostname `polar.sh`
-* [x] Semantica HTTP correcta — los clientes usan POST para operaciones de activacion/validacion/consulta, conforme a los contratos de cada API
-* [x] Errores tipados en cliente Polar — extrae `detail`/`error`/`message` del cuerpo de error y los propaga como `Error`
-* [x] Errores tipados en cliente OSV — propaga `status`/`statusText` y degrada a consultas individuales en caso de 400
-* [ ] Timeout en llamadas `fetch()` del lado TypeScript — **Critica**: ninguno de los tres clientes (`polar-api.ts`, `osv-api.ts`, `brewbar-installer.ts`) define `signal: AbortSignal.timeout(...)`. Una conexion colgada bloquea el evento loop indefinidamente
-* [ ] Verificacion de integridad del binario descargado — **Critica**: `brewbar-installer.ts` descarga y extrae `BrewBar.app.zip` sin verificar checksum ni firma criptografica
-* [ ] Limite de tamano en descarga de BrewBar — **Critica**: `brewbar-installer.ts:48-49` escribe `res.body` directamente a disco sin comprobar `Content-Length` ni imponer un tope de bytes
-* [x] Versionado de API — Polar usa `/v1/`, OSV usa `/v1/`. No aplica para GitHub Releases (URL directa al artefacto)
-* [x] Contratos documentados — interfaces TypeScript en `polar-api.ts` y `types.ts` modelan las respuestas de Polar y OSV
-* [ ] Batching OSV sin backoff entre lotes — **Media**: el bucle en `osv-api.ts:126-133` envía lotes consecutivos sin delay; instalaciones grandes pueden activar rate limiting del servidor
+* [x] Endpoints inventariados — tres integraciones externas identificadas y auditadas
+* [x] HTTPS obligatorio en todas las llamadas — validado en `polar-api.ts` (lineas 12-18) y en `fetchWithTimeout`
+* [x] Validacion de host en llamadas a Polar.sh — `validateApiUrl()` comprueba `polar.sh` (linea 17)
+* [x] Timeout en todas las llamadas HTTP — `fetchWithTimeout` con 15s para API y 120s para descarga
+* [x] Errores HTTP tipados — `polar-api.ts` extrae `detail`/`error`/`message` del cuerpo de error (lineas 54-62)
+* [x] Limite de tamano en descarga de binario — 200 MB (brewbar-installer.ts linea 53)
+* [x] Verificacion SHA-256 del binario descargado — brewbar-installer.ts lineas 62-76
+* [x] Reintento controlado en deactivate — 3 intentos con espera de 1s (license-manager.ts lineas 268-278)
+* [ ] Sin validacion de host en llamadas a OSV.dev — **Baja**: osv-api.ts no llama a `validateApiUrl`; la URL esta hardcodeada como constante pero no se valida en tiempo de ejecucion
+* [ ] Verificacion SHA-256 silenciosamente omitible — **Media**: si el endpoint `.sha256` no existe o retorna error de red, la instalacion continua sin ninguna verificacion de integridad (brewbar-installer.ts lineas 73-76)
+* [ ] Sin autenticacion en llamadas a OSV.dev — **No aplica**: OSV.dev es una API publica sin autenticacion requerida
 
 ### Hallazgos
 
 | Elemento | Estado | Severidad | Evidencia | Accion |
 |----------|--------|-----------|-----------|--------|
-| Timeout en `fetch()` — todos los clientes TS | No conforme | Critica | `polar-api.ts:46`, `osv-api.ts:64`, `brewbar-installer.ts:42` | Pasar `signal: AbortSignal.timeout(15_000)` (Polar/OSV) y `AbortSignal.timeout(120_000)` (descarga BrewBar) en cada llamada `fetch()` |
-| Verificacion de integridad del ZIP de BrewBar | No conforme | Critica | `brewbar-installer.ts:57-64` — extrae con `ditto` sin verificacion | Publicar un archivo `BrewBar.app.zip.sha256` junto a la release y verificar el hash antes de extraer |
-| Sin limite de tamano en descarga | No conforme | Critica | `brewbar-installer.ts:48-49` — `pipeline(res.body, fileStream)` sin cap | Comprobar `Content-Length` al inicio y abortar si supera un umbral razonable (ej. 200 MB) |
-| Rate limiting entre batches OSV | No conforme | Media | `osv-api.ts:126-133` — bucle sin delay | Introducir `await new Promise(r => setTimeout(r, 300))` entre lotes o implementar backoff exponencial ante respuestas 429 |
-| `POLAR_ORGANIZATION_ID` expuesto en fuente | No conforme | Baja | `polar-api.ts:8` — UUID hard-coded en texto claro | Mover a variable de entorno o constante de build; de bajo riesgo practico pero evita exponer la identidad de la organizacion |
+| Timeout universal en fetch | Conforme | — | `src/lib/fetch-timeout.ts` linea 2; aplicado en polar-api.ts, osv-api.ts, brewbar-installer.ts | — |
+| Validacion HTTPS + hostname en Polar | Conforme | — | `polar-api.ts` lineas 12-18 | — |
+| Verificacion SHA-256 presente | Conforme | — | `brewbar-installer.ts` lineas 62-76 | — |
+| SHA-256 omitida silenciosamente si .sha256 falla | No conforme | Media | `brewbar-installer.ts` lineas 73-76: `catch (err)` solo relanza errores de `checksum mismatch`; error de red al obtener el archivo `.sha256` deja pasar la instalacion sin verificar | Hacer la verificacion SHA-256 obligatoria: incluir el hash esperado en el manifesto de release (o en el codigo firmado); rechazar la instalacion si no se puede obtener o verificar el checksum |
+| Limite de tamano 200 MB | Conforme | — | `brewbar-installer.ts` linea 53 | — |
+| Reintento 3x en deactivate | Conforme | — | `license-manager.ts` lineas 268-278 | — |
+| Sin validacion de host en OSV.dev | Parcial | Baja | `osv-api.ts` linea 4: URL constante sin llamada a `validateApiUrl` | Agregar validacion de host similar a la de Polar, o extraer `validateApiUrl` a `fetch-timeout.ts` como helper generico |
+| Fallback one-by-one en OSV HTTP 400 | Conforme | — | `osv-api.ts` lineas 73-76 | — |
 
 ---
 
 ## 11.2 Autenticacion y autorizacion
 
+> Nota de alcance: no existe backend propio con sesiones. La autenticacion se resuelve mediante licencias Polar.sh almacenadas localmente.
+
 ### Checklist
 
-* [x] Activacion de licencia con formato validado — `license-manager.ts:184-194` valida longitud (10-100 chars) y regex `^[\w-]+$` antes de llamar a la API
-* [x] Rate limiting client-side en activaciones — `license-manager.ts:12-57` implementa cooldown de 30s, max 5 intentos y lockout de 15 min; prevencion de abuso basica
-* [x] Licencia almacenada cifrada en disco — `license.json` usa AES-256-GCM con IV aleatorio de 96 bits (`license-manager.ts:71-85`)
-* [x] Permisos de archivo restrictivos en `license.json` — `writeFile` con `mode: 0o600` (`license-manager.ts:133`)
-* [x] Revalidacion periodica contra servidor — cada 24h + check horario durante la sesion (`license-store.ts:71-88`)
-* [x] Periodo de gracia offline con degradacion gradual — 7 dias full, 7-14 warning, 14-30 limited, 30+ expired (`license-manager.ts:170-180`)
-* [x] Revocacion contemplada — endpoint `deactivate` elimina la licencia local via `clearLicense()` (`license-manager.ts:257-262`)
-* [x] Gate Pro en vistas — `app.tsx` comprueba `isPro()` antes de renderizar vistas Pro; muestra `UpgradePrompt` si no Pro
-* [x] Gate Pro en operaciones — `requirePro()` llamado en cada funcion critica (historia, perfiles, cleanup, security audit)
-* [x] Verificacion multi-capa en `verifyPro()` — combina anti-debug, integridad de bundle, integridad de store, canaries, check directo + indirecto, nivel de degradacion
-* [ ] Rate limiting NO persiste entre reinicios — **Alta**: el `tracker` en `license-manager.ts:22-26` es un objeto de modulo (en memoria). Al reiniciar el proceso, los contadores se resetean, anulando el lockout
-* [ ] Clave de cifrado derivada hard-coded visible en binario Swift — **Critica**: `LicenseChecker.swift:47` embebe la clave hex pre-derivada `5c3b2ae2...`; `strings BrewBar.app/Contents/MacOS/BrewBar` la expone directamente
-* [ ] Secreto de cifrado en texto claro en fuente TypeScript — **Critica**: `license-manager.ts:60-61` define `ENCRYPTION_SECRET = 'brew-tui-license-aes256gcm-v1'` y `SCRYPT_SALT = 'brew-tui-salt-v1'` como constantes de string en el bundle distribuido; cualquiera que lea el bundle puede derivar la misma clave
-* [ ] Escritura de `license.json` no atomica — **Media**: `license-manager.ts:133` usa `writeFile` directo, no tmp+rename; si BrewBar lee el archivo mientras TS escribe, puede obtener JSON corrupto parcial
-* [ ] Deactivacion silencia errores de red — **Alta**: `license-manager.ts:258-259` — `catch { /* best effort */ }`; el usuario no sabe si la desactivacion fue procesada por Polar
+* [x] Activacion segura con rate limiting — cooldown 30s entre intentos, lockout 15min tras 5 fallos (license-manager.ts lineas 12-58)
+* [x] Clave de licencia validada antes de llamar a la API — `validateLicenseKey()` (lineas 193-203)
+* [x] Token cifrado en reposo — AES-256-GCM con IV aleatorio de 96 bits (license-manager.ts lineas 73-103)
+* [x] Permisos de archivo restrictivos — modo 0o600 en license.json y demas datos; 0o700 en directorios
+* [x] Revocacion contemplada — endpoint `deactivate` con 3 reintentos; eliminacion local siempre ocurre
+* [x] Caducidad de token evaluada — `isExpired()` y degradacion escalonada (0-7d: ninguna, 7-14d: warning, 14-30d: limitada, 30+d: expirada)
+* [x] Revalidacion periodica — cada 24h contra servidor, comprobacion cada hora en sesion activa
+* [x] Verificacion multi-capa en `verifyPro` — anti-debug, bundle integrity, store integrity, canaries, degradacion
+* [ ] Clave de cifrado embebida en codigo fuente — **Alta**: `ENCRYPTION_SECRET` y `SCRYPT_SALT` son constantes literales (license-manager.ts lineas 61-62); cualquier usuario que lea el fuente o el bundle desofuscado puede derivar la misma clave y descifrar cualquier license.json
+* [ ] Clave derivada hardcodeada en Swift — **Alta**: `LicenseChecker.swift` linea 47 contiene la clave derivada en hexadecimal; equivalente a exponer la clave en claro
 
 ### Hallazgos
 
 | Elemento | Estado | Severidad | Evidencia | Accion |
 |----------|--------|-----------|-----------|--------|
-| Clave de cifrado pre-derivada hard-coded en binario Swift | No conforme | Critica | `LicenseChecker.swift:47` — hex key en static let | La clave debe derivarse en tiempo de ejecucion desde un secreto no hard-coded, o el archivo `license.json` debe gestionarse exclusivamente desde el proceso TS (BrewBar podria usar XPC o leer via pipe). Como minimo, ofuscar el secreto con una tecnica equivalente a la usada en el lado TS |
-| Secreto de derivacion en texto claro en bundle TS | No conforme | Critica | `license-manager.ts:60-65` — ENCRYPTION_SECRET y SCRYPT_SALT literales | Cualquiera con acceso al bundle puede derivar la clave y descifrar `license.json`. Migrar el secreto a una variable de entorno en produccion o usar el Keychain del sistema operativo para almacenar/recuperar la clave real |
-| Rate limiting no persiste entre reinicios | No conforme | Alta | `license-manager.ts:22-26` — tracker en memoria | Persistir el estado del lockout en `~/.brew-tui/license-ratelimit.json` con la misma proteccion de permisos que la licencia, o usar un archivo de semaforo con timestamp |
-| Deactivacion silencia errores | No conforme | Alta | `license-manager.ts:258-259` — `catch { /* best effort */ }` | Propagar el error al llamador y mostrarlo al usuario; registrar en log si la desactivacion remota fallo pero la licencia local fue eliminada igualmente |
-| Escritura de license.json no atomica | No conforme | Media | `license-manager.ts:133` — `writeFile` directo vs. tmp+rename en `history-logger.ts:24-26` | Reemplazar `writeFile(LICENSE_PATH, ...)` por el patron tmp+rename ya implementado en `history-logger.ts` para garantizar atomicidad ante race conditions con BrewBar |
+| Rate limiting en activacion | Conforme | — | `license-manager.ts` lineas 12-58 | — |
+| Cifrado AES-256-GCM en reposo | Conforme | — | `license-manager.ts` lineas 73-103 | — |
+| Clave de cifrado en codigo fuente | No conforme | Alta | `license-manager.ts` lineas 61-62: `ENCRYPTION_SECRET = 'brew-tui-license-aes256gcm-v1'`; `LicenseChecker.swift` linea 47: clave derivada en hex | Migrar secreto a variable de entorno en tiempo de compilacion o a un mecanismo de derivacion basado en identificador de maquina (machine-bound key); en BrewBar, considerar derivar la clave del `SecureEnclaveKey` o del bundle signing identity. Reconocer que cualquier solucion 100% client-side tiene limitaciones inherentes |
+| Permisos 0o600/0o700 | Conforme | — | `data-dir.ts` lineas 11-12; `license-manager.ts` linea 141 | — |
+| Revocacion con 3 reintentos | Conforme | — | `license-manager.ts` lineas 268-278 | — |
+| Degradacion escalonada offline | Conforme | — | `license-manager.ts` lineas 168-190 | — |
+| Revalidacion horaria en sesion | Conforme | — | `license-store.ts` lineas 9, 75-92 | — |
+| Licencia no almacenada en Keychain macOS | No conforme | Media | `data-dir.ts`: datos en `~/.brew-tui/license.json`; ninguna referencia a `SecItem`, `kSecClass` o KeychainAccess en todo el proyecto | Considerar almacenar el license key en Keychain y usar el archivo cifrado solo para metadatos no sensibles. En BrewBar, usar `Security.framework` para leer desde Keychain en lugar de `~/.brew-tui/license.json` |
+| `verifyPro` multi-capa | Conforme | — | `pro-guard.ts` lineas 25-43 | — |
 
 ---
 
@@ -72,23 +78,28 @@ Brew-TUI no tiene backend propio: consume tres APIs externas (Polar.sh para lice
 
 ### Checklist
 
-* [x] Validacion de nombre de perfil robusta — `profile-manager.ts:18-27` verifica longitud max 100, regex `^[\w\s-]+$` y valor no vacio
-* [x] Defense-in-depth contra path traversal — `profile-manager.ts:34` aplica `basename()` adicionalmente al regex, eliminando cualquier componente de directorio
-* [x] Sanitizacion de terminos de busqueda en `brew search` — `brew-api.ts:41` elimina guiones iniciales para prevenir inyeccion de flags; `execBrew` usa `spawn` con array de argumentos, no interpolacion en shell
-* [x] Uso de `spawn` con array de argumentos — `brew-cli.ts:5` pasa los argumentos como array a `spawn`, no como string de shell; previene command injection
-* [x] Parseo JSON defensivo — `json-parser.ts:5-12` envuelve `JSON.parse` en try/catch con mensajes contextuales; comprueba null/undefined
-* [x] Validacion de clave de licencia antes de llamada API — `license-manager.ts:184-194` rechaza claves con formato invalido
-* [x] Formato de fecha ISO 8601 en toda la persistencia — campos `timestamp`, `activatedAt`, `lastValidatedAt`, `createdAt`, `updatedAt`, `scannedAt` usan `new Date().toISOString()`
-* [ ] Sanitizacion incompleta en `brew search` — **Baja**: `brew-api.ts:41` solo elimina guiones al inicio (`replace(/^-+/, '')`); un termino como `foo --desc` pasa intacto. El riesgo es bajo (brew search trata argumentos extra como terminos adicionales, no como opciones), pero la mitigacion documentada no cubre este caso
-* [ ] Sin validacion de schema en carga de archivos JSON locales — **Media**: `history-logger.ts:13` castea directamente `JSON.parse(raw) as HistoryFile` sin validar estructura; un archivo corrupto o manipulado manualmente podria causar errores en runtime no anticipados
-* [ ] Ausencia de timeout en `fetch()` afecta validaciones en segundo plano — **Critica**: ya documentado en 11.1; aplica tambien a las validaciones de licencia ejecutadas en segundo plano (`license-store.ts:57-65`)
+* [x] Validacion de nombre de perfil — regex `^[\w\s-]+$` con longitud maxima 100 (profile-manager.ts lineas 23-35)
+* [x] Defense-in-depth con `basename()` en path de perfil — profile-manager.ts linea 41
+* [x] Validacion de tap/paquete en importacion — `TAP_PATTERN` y `PKG_PATTERN` (profile-manager.ts lineas 134-135)
+* [x] Sanitizacion de input en busqueda — stripping de guiones iniciales en `search()` (brew-api.ts lineas 41-43)
+* [x] Validacion de formato de license key — longitud 10-100, caracteres permitidos (license-manager.ts lineas 193-203)
+* [x] Validacion de URL de API Polar — protocolo HTTPS + hostname (polar-api.ts lineas 12-18)
+* [x] Version de schema comprobada en todos los archivos de persistencia — `file.version !== 1` en license, history, profiles
+* [x] Deserializacion robusta en parsers JSON — `safeParse` con try/catch (json-parser.ts lineas 3-13)
+* [x] Manejo de campos opcionales/nulos en modelos Swift — todos los campos criticos son `let`, opcionales donde corresponde
+* [ ] Sin validacion de tipos en deserializacion de licencia — **Media**: `loadLicense` (linea 103) hace cast directo `as LicenseData` tras `JSON.parse` sin validar que los campos requeridos existan ni que tengan los tipos correctos; un archivo modificado manualmente podria producir comportamientos inesperados
 
 ### Hallazgos
 
 | Elemento | Estado | Severidad | Evidencia | Accion |
 |----------|--------|-----------|-----------|--------|
-| Sin validacion de schema en JSON local | No conforme | Media | `history-logger.ts:13`, `profile-manager.ts:58` — cast directo sin validacion de estructura | Implementar validacion minima: verificar que `entries` es Array, que cada entrada tiene los campos obligatorios (`id`, `action`, `timestamp`); considerar Zod o validacion manual lightweight |
-| Sanitizacion de busqueda incompleta | No conforme | Baja | `brew-api.ts:41` — `replace(/^-+/, '')` no cubre flags embebidos | Extender la sanitizacion: `term.replace(/[^a-zA-Z0-9\s\-_.@]/g, '')` para limitar a caracteres esperados en nombres de paquetes |
+| Validacion de nombre y path de perfil | Conforme | — | `profile-manager.ts` lineas 23-42 | — |
+| TAP_PATTERN / PKG_PATTERN en import | Conforme | — | `profile-manager.ts` lineas 134-135, 146-149, 158-162, 167-172 | — |
+| Stripping de guiones en busqueda | Conforme | — | `brew-api.ts` lineas 41-43 | — |
+| Validacion de license key format | Conforme | — | `license-manager.ts` lineas 193-203 | — |
+| Schema version check en todos los stores | Conforme | — | `license-manager.ts` linea 111; `history-logger.ts` linea 34; `profile-manager.ts` linea 64 | — |
+| Cast sin validacion de tipos en `loadLicense` | No conforme | Media | `license-manager.ts` linea 103: `return JSON.parse(...) as LicenseData` — ninguna comprobacion de que `key`, `instanceId`, `status`, etc. existan y sean strings | Agregar validacion estructural (zod schema o funcion `isLicenseData(obj): obj is LicenseData`) antes de hacer el cast; lanzar error descriptivo si el objeto no es valido |
+| Deserializacion Swift con `JSONDecoder` y `Codable` | Conforme | — | `LicenseChecker.swift` linea 128; `BrewChecker.swift` lineas 89, 93 | — |
 
 ---
 
@@ -96,36 +107,40 @@ Brew-TUI no tiene backend propio: consume tres APIs externas (Polar.sh para lice
 
 ### Checklist
 
-* [x] Manejo de errores de red en revalidacion — `license-manager.ts:252-254` captura errores de red y aplica logica de grace period en lugar de lanzar excepcion
-* [x] Timeout de procesos en BrewBar — `BrewChecker.swift:19` define `processTimeout = 60s` con kill del proceso y continuation segura via `OnceGuard`
-* [x] Continuacion exactly-once en BrewChecker — `BrewChecker.swift:27-46` implementa `OnceGuard` thread-safe con NSLock para garantizar que la continuation no se resume mas de una vez
-* [x] `HOMEBREW_NO_AUTO_UPDATE=1` en todos los spawns — `brew-cli.ts:5` y `BrewChecker.swift:54-56` definen la variable de entorno para evitar actualizaciones automaticas lentas
-* [x] Limpieza de proceso en caso de cancelacion del generator — `brew-cli.ts:68-70` mata el proceso hijo con `proc.kill()` si el consumer del AsyncGenerator abandona la iteracion
-* [x] Error propagado tras streaming completo — `brew-cli.ts:74-77` emite el error de salida no-cero solo despues de que todas las lineas han sido consumidas, preservando el output de brew en el display
-* [x] Concurrencia limitada en `analyzeCleanup` — `cleanup-analyzer.ts:74` procesa orphans en batches de 5 con `Promise.all` en lugar de disparar N promesas en paralelo
-* [ ] Sin timeout en llamadas `fetch()` — **Critica**: ya documentado; `polar-api.ts:46`, `osv-api.ts:64`, `brewbar-installer.ts:42`
-* [ ] Sin reintentos controlados en cliente Polar — **Media**: errores transitorios de red en activacion/validacion no tienen reintento; el rate limiter client-side desincentiva los reintentos manuales del usuario
-* [ ] `queryOneByOne` puede generar burst de N requests sin backoff — **Media**: `osv-api.ts:100-118` — en un fallback, N paquetes generan N requests secuenciales; sin delay ni backoff exponencial ante 429
-* [ ] Ausencia de jobs o queues — **No aplica**: el proyecto no tiene tareas de fondo propias; las operaciones de brew son sincronas o streamean al UI en tiempo real
-* [ ] Webhooks — **No aplica**: el proyecto no expone ni consume webhooks
+* [x] Timeout en todas las llamadas externas HTTP — 15s API, 120s descarga
+* [x] Timeout en procesos `brew` (Swift) — 60s en `BrewChecker` (BrewChecker.swift linea 19)
+* [x] Manejo de error en todas las llamadas externas — try/catch en polar-api.ts, osv-api.ts, brewbar-installer.ts
+* [x] Grace period offline — 7 dias sin revalidacion (license-manager.ts linea 9)
+* [x] Fallback one-by-one en OSV 400 — osv-api.ts lineas 101-119
+* [x] `OnceGuard` en BrewChecker — previene doble resume de continuation (BrewChecker.swift lineas 27-45)
+* [x] `brewUpdate` fire-and-forget intencional — documentado en brew-store.ts linea 146
+* [ ] Sin timeout en `execBrew` (TypeScript) — **Media**: `brew-cli.ts` linea 4: `spawn()` sin timeout; un proceso `brew info --json` colgado bloquea la TUI indefinidamente. El equivalente Swift tiene timeout de 60s
+* [ ] `streamBrew` usa polling de 100ms — **Baja**: brew-cli.ts linea 65: `setTimeout(r, 100)` en lugar de espera event-driven; aumenta latencia de respuesta y consume CPU innecesariamente
+* [ ] Sin rate limiting en Security Audit — **Baja**: el usuario puede disparar multiples scans OSV consecutivos sin restriccion; sin cache de resultados entre sesiones
 
 ### Hallazgos
 
 | Elemento | Estado | Severidad | Evidencia | Accion |
 |----------|--------|-----------|-----------|--------|
-| Sin timeout en todos los `fetch()` del lado TS | No conforme | Critica | `polar-api.ts:46`, `osv-api.ts:64`, `brewbar-installer.ts:42` | Usar `AbortSignal.timeout(ms)` en cada llamada. Valores sugeridos: 15s para Polar, 30s por lote para OSV, 120s para descarga binario |
-| `queryOneByOne` sin backoff | No conforme | Media | `osv-api.ts:100-118` | Agregar `await new Promise(r => setTimeout(r, 200))` entre requests y capturar 429 para esperar `Retry-After` o usar backoff exponencial |
-| Sin reintentos en activacion Polar | No conforme | Media | `polar-api.ts:41-66` — un error de red falla la activacion de forma permanente hasta que el usuario reintenta manualmente | Implementar 1-2 reintentos con backoff (300ms, 1s) para errores de red transitorios (excluir errores 4xx que son definitivos) |
+| Timeout en fetch HTTP | Conforme | — | `fetch-timeout.ts` linea 2: `AbortSignal.timeout(timeoutMs)` | — |
+| Timeout en procesos brew (Swift) | Conforme | — | `BrewChecker.swift` lineas 19, 78-83 | — |
+| Grace period offline | Conforme | — | `license-manager.ts` lineas 9, 162-166 | — |
+| Fallback OSV one-by-one | Conforme | — | `osv-api.ts` lineas 73-76 | — |
+| Sin timeout en `execBrew` (TypeScript) | No conforme | Media | `brew-cli.ts` lineas 3-21: `spawn()` sin opcion `timeout` ni AbortController; afecta a `getInstalled`, `getOutdated`, `getServices`, `getConfig`, `getLeaves` — todos los fetches de startup | Agregar `timeout` a las opciones de `spawn()` o usar `AbortController` con `setTimeout`; valor recomendado 30-60s similar al de BrewChecker |
+| Polling de 100ms en `streamBrew` | No conforme | Baja | `brew-cli.ts` linea 65: `await new Promise((r) => setTimeout(r, 100))` con TODO explicito | Reemplazar con arquitectura event-driven: usar un `AsyncIterableIterator` sobre eventos `data` del stream, eliminando el polling |
+| `brewUpdate` fire-and-forget silencioso | Parcial | Baja | `brew-store.ts` linea 147: `api.brewUpdate().catch(() => {})` | Comportamiento intencional y documentado; considerar loguear el error en desarrollo (`process.env.NODE_ENV !== 'production'`) para diagnostico |
+| Sin rate limiting en Security Audit | No conforme | Baja | `security-view.tsx` y `audit-runner.ts`: sin debounce ni cache entre llamadas | Agregar debounce de 5s entre escaneos y cache en memoria de los resultados durante la sesion |
 
-### Inventario de endpoints (API clients)
+### Inventario de endpoints
 
 | Endpoint | Metodo | Auth | Contrato | Errores | Idempotencia | Hallazgo |
 |----------|--------|------|----------|---------|--------------|----------|
-| `https://api.polar.sh/v1/customer-portal/license-keys/activate` | POST | Ninguna (clave en body) | `PolarActivation`: `id`, `license_key.status/expires_at` | HTTP no-2xx → extrae `detail`/`error`/`message` | No idempotente (nueva instancia por llamada) | Sin timeout; rate limiting solo en memoria (no persiste reinicios) |
-| `https://api.polar.sh/v1/customer-portal/license-keys/validate` | POST | Ninguna (clave + `activation_id` en body) | `PolarValidated`: `id`, `status`, `expires_at`, `customer` | HTTP no-2xx → propaga error | Idempotente | Sin timeout; post-activacion silencia errores de cliente (`catch {}`) |
-| `https://api.polar.sh/v1/customer-portal/license-keys/deactivate` | POST | Ninguna (clave + `activation_id` en body) | 204 No Content | HTTP no-2xx → capturado y silenciado en `license-manager.ts:258` | Idempotente | Sin timeout; error silenciado — slot puede quedar activo en Polar |
-| `https://api.osv.dev/v1/querybatch` | POST | Ninguna | `OsvBatchResponse`: `results[].vulns[]` | HTTP 400 → degrada a `queryOneByOne`; otros → `throw` | Idempotente | Sin timeout; sin backoff entre lotes; fallback genera N requests secuenciales |
-| `https://github.com/MoLinesGitHub/Brew-TUI/releases/latest/download/BrewBar.app.zip` | GET | Ninguna | ZIP binario | HTTP no-2xx o `!res.body` → `throw` localizado | No aplica (descarga unica) | Sin timeout; sin verificacion de integridad (hash/firma); sin limite de tamano |
+| `https://api.polar.sh/v1/customer-portal/license-keys/activate` | POST | Sin auth de cabecera (key en body) | `{ key, organization_id, label }` → `PolarActivation` | HTTP status + JSON `detail`/`error`/`message` | No idempotente — reactivacion requiere nueva instancia | Conforme |
+| `https://api.polar.sh/v1/customer-portal/license-keys/validate` | POST | Sin auth de cabecera (key + activation_id en body) | `{ key, organization_id, activation_id }` → `PolarValidated` | HTTP status + JSON | Idempotente | Conforme |
+| `https://api.polar.sh/v1/customer-portal/license-keys/deactivate` | POST | Sin auth de cabecera (key + activation_id en body) | `{ key, organization_id, activation_id }` → 204 | HTTP status | Idempotente | Conforme |
+| `https://api.osv.dev/v1/querybatch` | POST | Sin autenticacion (API publica) | `{ queries: [{package, version}] }` → `{ results: [{vulns}] }` | HTTP status; fallback one-by-one en 400 | Idempotente | Sin validacion de host en cliente |
+| `https://github.com/MoLinesGitHub/Brew-TUI/releases/latest/download/BrewBar.app.zip` | GET | Sin autenticacion | Binario ZIP | HTTP status | N/A (descarga) | SHA-256 omitida silenciosamente si .sha256 falla — ver hallazgo en 11.1 |
+| `https://github.com/MoLinesGitHub/Brew-TUI/releases/latest/download/BrewBar.app.zip.sha256` | GET | Sin autenticacion | Texto `<hash> <filename>` | Error de red ignorado silenciosamente | N/A | No conforme — ver 11.1 |
 
 ---
 
@@ -133,54 +148,62 @@ Brew-TUI no tiene backend propio: consume tres APIs externas (Polar.sh para lice
 
 ## 12.1 Persistencia local
 
+> Nota de alcance: no existe Core Data ni SwiftData. La persistencia es hibrida: archivos JSON en `~/.brew-tui/` (TypeScript) y UserDefaults (Swift BrewBar).
+
 ### Checklist
 
-* [x] Directorio de datos definido centralmente — `data-dir.ts` exporta `DATA_DIR`, `PROFILES_DIR`, `LICENSE_PATH`, `HISTORY_PATH` como constantes; punto unico de verdad
-* [x] `license.json` cifrado con AES-256-GCM — IV aleatorio de 96 bits, tag de autenticacion de 128 bits; cifrado verificado en descifrado (`decipher.setAuthTag`)
-* [x] `license.json` con permisos 0o600 — `license-manager.ts:133` especifica `mode: 0o600` en `writeFile`
-* [x] Escritura atomica en `history.json` — `history-logger.ts:24-26` escribe en `.tmp` y luego hace `rename`; garantiza que un crash no deja el archivo a medias
-* [x] Limite de entradas en historial — `history-logger.ts:49-51` trunca a 1000 entradas maximas
-* [x] Validacion de nombre de perfil + path traversal — documentado en 11.3
-* [x] IDs de entrada de historial con componente aleatorio — `history-logger.ts:39` combina `Date.now()` con `Math.random().toString(36).slice(2,8)`
-* [x] Migracion de formato legacy a cifrado en lectura — `license-manager.ts:116-120` detecta formato sin cifrar y lo re-guarda cifrado transparentemente
-* [x] `ensureDataDirs()` llamado antes de escritura — tanto en `license-manager.ts:131` como en `history-logger.ts:22` y `profile-manager.ts:64`
-* [x] UserDefaults solo para preferencias no sensibles — `SchedulerService.swift:23,29` almacena solo `checkInterval` (Int) y `notificationsEnabled` (Bool) en UserDefaults; conforme
-* [ ] `history.json` y perfiles sin modo de archivo explícito — **Alta**: `history-logger.ts:25` y `profile-manager.ts:67` usan `writeFile` sin `mode`; hereda la umask del proceso, tipicamente 0o644 (legible por grupo y otros)
-* [ ] `ensureDataDirs()` crea directorios sin modo explícito — **Alta**: `data-dir.ts:11-12` usa `mkdir({ recursive: true })` sin `mode`; en umask 0o022 crea directorios 0o755 (listables por cualquier usuario del sistema)
-* [ ] Escritura de `license.json` no atomica — **Media**: ya documentado en 11.2; `writeFile` directo vs. `rename` atomico
-* [ ] IDs de historial con colision teorica — **Baja**: `history-logger.ts:39` — bajo alta concurrencia `Date.now()` puede repetirse; usar `crypto.randomUUID()` elimina el riesgo
-* [ ] Sin Core Data, SwiftData ni SQLite — **No aplica**: BrewBar no usa persistencia local estructurada propia; solo UserDefaults para preferencias de scheduler
-* [ ] Keychain para secretos — **Parcial**: la licencia se almacena cifrada en fichero con 0o600, no en Keychain nativo; funcionalmente aceptable pero no sigue la best practice de macOS; BrewBar no guarda ninguna credencial en Keychain
+* [x] Cifrado AES-256-GCM en license.json — license-manager.ts lineas 73-103
+* [x] Escritura atomica en license.json — patron tmp + rename (lineas 140-142)
+* [x] Escritura atomica en history.json — patron tmp + rename (history-logger.ts lineas 46-51)
+* [x] Permisos 0o600 en archivos de datos — license.json, history.json, profiles/*.json
+* [x] Permisos 0o700 en directorios de datos — `~/.brew-tui/` y `~/.brew-tui/profiles/`
+* [x] UUID criptografico para IDs de historial — `randomUUID()` de `node:crypto` (history-logger.ts linea 3, linea 64)
+* [x] Schema version en todos los archivos persistidos — version: 1 en license, history y profiles
+* [x] Limite de entradas en historial — max 1000 (history-logger.ts linea 8, lineas 74-76)
+* [x] UserDefaults solo para preferencias no sensibles en BrewBar — checkInterval, notificationsEnabled, hasLaunchedBefore
+* [x] Ninguna credencial en UserDefaults — validado; license.json se lee via FileManager, no UserDefaults
+* [ ] `saveProfile` no es atomica — **Media**: profile-manager.ts linea 78 usa `writeFile` directo sin patron tmp+rename, a diferencia de `saveLicense` y `saveHistory`
+* [ ] Sin migracion implementada — **Baja**: los tres modulos tienen comentario `// Future: add migration logic here` (license-manager.ts linea 113, history-logger.ts linea 36, profile-manager.ts linea 65) pero ninguna logica de migracion real; un cambio de schema en v2 dejara datos de usuarios v1 ilegibles
 
 ### Hallazgos
 
 | Elemento | Estado | Severidad | Evidencia | Accion |
 |----------|--------|-----------|-----------|--------|
-| `history.json` y perfiles sin modo de archivo | No conforme | Alta | `history-logger.ts:25` — `writeFile(tmp, ..., 'utf-8')` sin `mode`; `profile-manager.ts:67` — `writeFile(path, ..., 'utf-8')` sin `mode` | Pasar `{ mode: 0o600 }` como opcion en ambas llamadas `writeFile`, consistente con `license.json` |
-| `ensureDataDirs()` sin modo de directorio | No conforme | Alta | `data-dir.ts:11-12` — `mkdir(DATA_DIR, { recursive: true })` sin `mode` | Agregar `{ recursive: true, mode: 0o700 }` para que `~/.brew-tui/` y sus subdirectorios sean accesibles solo por el propietario |
-| IDs de historial con posible colision | No conforme | Baja | `history-logger.ts:39` — `Date.now()-${Math.random()...}` | Sustituir por `crypto.randomUUID()` (disponible en Node.js 14.17+ sin importacion adicional) |
+| Escritura atomica license.json y history.json | Conforme | — | `license-manager.ts` lineas 140-142; `history-logger.ts` lineas 48-51 | — |
+| Escritura NO atomica en `saveProfile` | No conforme | Media | `profile-manager.ts` linea 78: `await writeFile(profilePath(profile.name), ...)` sin tmp+rename | Reemplazar por el mismo patron usado en `saveLicense`: `writeFile(tmpPath, ...)` seguido de `rename(tmpPath, finalPath)` |
+| Cifrado AES-256-GCM en license.json | Conforme | — | `license-manager.ts` lineas 73-103 | — |
+| Permisos 0o600/0o700 | Conforme | — | `data-dir.ts` lineas 11-12; `license-manager.ts` linea 141; `history-logger.ts` linea 49; `profile-manager.ts` linea 78 | — |
+| UUID criptografico en historial | Conforme | — | `history-logger.ts` linea 3 (`import { randomUUID }`) y linea 64 | — |
+| Schema version check | Conforme | — | `license-manager.ts` linea 111; `history-logger.ts` linea 34; `profile-manager.ts` linea 64 | — |
+| Sin migracion implementada | No conforme | Baja | Comentarios `// Future: add migration logic here` en los tres modulos | Disenar e implementar logica de migracion antes de cualquier cambio de schema; documentar el formato de cada version |
+| UserDefaults solo para preferencias (BrewBar) | Conforme | — | `SchedulerService.swift` lineas 23-24, 30-31, 41: solo `checkInterval`, `notificationsEnabled`, `hasLaunchedBefore` | — |
+| Ninguna credencial en UserDefaults | Conforme | — | Auditado todo `SchedulerService.swift`, `AppState.swift`, `LicenseChecker.swift`: sin `UserDefaults` para datos de licencia | — |
+| Migracion de formato legacy (unencrypted → encrypted) | Conforme | — | `license-manager.ts` lineas 122-129: re-guarda en formato cifrado al leer formato legacy | — |
 
 ---
 
 ## 12.2 Sincronizacion
 
+> Nota de alcance: el proyecto es local-first por diseno. No existe sincronizacion activa entre dispositivos ni CloudKit. La unica "sincronizacion" es la revalidacion periodica de licencia contra Polar.sh.
+
 ### Checklist
 
-* [x] Estrategia offline definida para licencias — degradacion gradual (7/14/30 dias) bien documentada y aplicada tanto en TS como en Swift
-* [x] Estado offline previsto en revalidacion — `license-manager.ts:252-254` captura errores de red y usa `isWithinGracePeriod()` en lugar de denegar acceso inmediatamente
-* [x] Estado de carga/error en BrewBar — `AppState.swift` expone `isLoading`, `error`, `servicesError`; `PopoverView` muestra estados loading/error/upToDate/lista
-* [x] Concurrencia de revalidacion protegida — `license-store.ts:11` usa flag `_revalidating` para evitar llamadas concurrentes
-* [ ] Sin coordinacion de escritura entre TS y BrewBar en `license.json` — **Media**: TS puede escribir (revalidar) el archivo mientras BrewBar lo lee; ausencia de file locking o IPC entre procesos; `writeFile` no atomico en TS (ver 11.2) agrava el riesgo
-* [ ] Sin CloudKit ni iCloud sync — **No aplica**: la persistencia es local por diseno; profiles y history son datos locales del usuario
-* [ ] Sin cola de cambios pendientes offline — **No aplica**: las operaciones de brew requieren conectividad de red local a Homebrew (repositorios git); las unicas llamadas de red son a APIs externas y la licencia tiene gracia offline
-* [ ] Sin mecanismo de sync para perfiles entre maquinas — **Baja**: los perfiles se exportan como archivos JSON que el usuario debe copiar manualmente entre maquinas; decision de diseno, no defecto, pero limita la utilidad de la feature
+* [x] Estrategia local-first definida — los datos de usuario (perfiles, historial) son locales exclusivamente
+* [x] Offline contemplado para licencias — grace period 7d + degradacion escalonada
+* [x] Sin CloudKit ni iCloud Sync — no aplica, no se ha implementado
+* [x] Sin cola de cambios pendientes — no aplica, no se necesita (no hay sync activa)
+* [x] Sin conflictos de concurrencia en revalidacion — mutex booleano `_revalidating` en license-store.ts linea 11
+* [ ] Sin proteccion contra escrituras concurrentes entre procesos — **Media**: si dos instancias de brew-tui se ejecutan simultaneamente (improbable pero posible), ambas podrian leer/escribir `history.json` o `profiles/*.json` concurrentemente; el patron tmp+rename reduce la ventana pero no elimina la condicion de carrera a nivel de proceso
 
 ### Hallazgos
 
 | Elemento | Estado | Severidad | Evidencia | Accion |
 |----------|--------|-----------|-----------|--------|
-| Race condition TS/BrewBar en `license.json` | No conforme | Media | `license-manager.ts:133` — `writeFile` no atomico; BrewBar llama `FileManager.default.contents(atPath:)` en el mismo archivo | Convertir la escritura en TS a tmp+rename (como en `history-logger.ts`) para que BrewBar solo vea el archivo completo o el anterior, nunca un estado intermedio |
-| Perfiles sin mecanismo de sync entre maquinas | Parcial | Baja | `profile-manager.ts` — export/import manual via JSON | Documentar explicitamente que la sincronizacion entre maquinas es manual (export/import); considerar a futuro integrar con iCloud Drive o un endpoint de import por URL |
+| Estrategia local-first | Conforme | — | Sin CloudKit, sin sync activa; datos en `~/.brew-tui/` | — |
+| Grace period offline | Conforme | — | `license-manager.ts` lineas 9, 162-166 | — |
+| Mutex de revalidacion | Conforme | — | `license-store.ts` linea 11: `let _revalidating = false` con guards en lineas 58, 79 | — |
+| Sin proteccion multi-proceso en archivos locales | No conforme | Media | `history-logger.ts`, `profile-manager.ts`: sin lock de archivo (`fs.flock` o similar); multiples instancias pueden corromper datos | Para history.json: agregar lock de archivo con `proper-lockfile` o equivalente antes de `loadHistory + saveHistory`; para profiles: el mismo patron aplica aunque la probabilidad de colision es menor |
+| BrewBar lee license.json sin interferir con TUI | Conforme | — | `LicenseChecker.swift` solo lee, nunca escribe; `rename` atomico minimiza lectura de archivo parcial | — |
 
 ---
 
@@ -188,23 +211,25 @@ Brew-TUI no tiene backend propio: consume tres APIs externas (Polar.sh para lice
 
 ### Checklist
 
-* [x] Fechas en formato ISO 8601 UTC — `new Date().toISOString()` produce UTC en todos los campos de timestamp (historial, licencia, perfiles, audit)
-* [x] Fechas parseadas defensivamente — `license-manager.ts:148-150` comprueba `isNaN(lastValidated)` y trata fechas corruptas como "forzar revalidacion"
-* [x] Codificacion/decodificacion JSON robusta — `json-parser.ts` y `history-logger.ts` envuelven parseos en try/catch; `BrewChecker.swift` usa `JSONDecoder` con manejo de errores
-* [x] Fechas en Swift con `ISO8601DateFormatter` — `LicenseChecker.swift:91-103` usa `ISO8601DateFormatter` con `.withInternetDateTime` y `.withFractionalSeconds` para compatibilidad total con el formato TS
-* [x] Unicidad de IDs en historial — combinacion `Date.now()-random` garantiza unicidad practica (salvo colision teorica documentada en 12.1)
-* [x] Campos requeridos verificados en carga de perfil — `profile-manager.ts:57-59` verifica `file.profile` existe antes de retornar
-* [x] Truncado de historial previene crecimiento ilimitado — max 1000 entradas
-* [ ] Sin validacion de schema al cargar JSON — **Media**: ya documentado en 11.3; cast directo sin verificacion de estructura puede producir accesos a `undefined` en runtime si el dato no tiene la forma esperada
-* [ ] Sin migracion de schema para version futura de archivos — **Media**: los tres formatos de archivo (`license.json`, `history.json`, perfiles) tienen campo `version: 1` pero no existe logica de migracion para ningun cambio de version futuro. La unica migracion existente es la de formato legacy sin cifrar a cifrado (`license-manager.ts:116-120`). Un cambio de esquema futuro requeriria logica de migracion o invalidara silenciosamente todos los datos persistidos de usuarios existentes
-* [ ] Sin unicidad estructural en perfiles — **Media**: `saveProfile` sobrescribe silenciosamente un perfil con el mismo nombre; si dos procesos llaman `saveProfile` con el mismo nombre casi simultaneamente, el resultado es no determinista; no hay control de version ni CAS (compare-and-swap)
-* [ ] Zona horaria en `BrewChecker` no normalizada explicitamente — **Baja**: `AppState.swift:9` guarda `lastChecked = Date()` que es UTC internamente en Swift; correcto en la practica pero sin assertion explicita de UTC en el modelo
+* [x] Fechas en ISO 8601 UTC — `new Date().toISOString()` en todos los campos de fecha (license-manager.ts lineas 222, 226; history-logger.ts linea 68)
+* [x] Parseo de fechas con manejo de NaN — `isNaN(lastValidated)` con fallback seguro (license-manager.ts lineas 158, 165, 182)
+* [x] ISO8601DateFormatter en Swift con formato completo — `LicenseChecker.swift` lineas 91-92: `[.withInternetDateTime, .withFractionalSeconds]`
+* [x] Unicidad garantizada por UUID en historial — `randomUUID()` de `node:crypto`
+* [x] Limite de entradas en historial — previene crecimiento ilimitado del archivo
+* [x] Arrays validados en parsers — `Array.isArray()` antes de procesar (json-parser.ts lineas 18-20)
+* [x] Serializacion con `JSON.stringify` + `JSON.parse` robusta — `safeParse` con try/catch
+* [ ] Sin restriccion de unicidad en perfiles por nombre — **Baja**: `saveProfile` sobreescribe silenciosamente un perfil existente con el mismo nombre sin advertencia; `exportCurrentSetup` tampoco comprueba si ya existe un perfil con ese nombre antes de sobreescribir
+* [ ] Cast sin validacion estructural en `loadLicense` — **Media**: (duplicado de 11.3) `JSON.parse(...) as LicenseData` sin comprobar tipos de campo; un archivo modificado manualmente puede producir `undefined` donde se espera `string`
 
 ### Hallazgos
 
 | Elemento | Estado | Severidad | Evidencia | Accion |
 |----------|--------|-----------|-----------|--------|
-| Cast de JSON sin validacion de schema | No conforme | Media | `history-logger.ts:13` — `JSON.parse(raw) as HistoryFile`; `profile-manager.ts:52` — `JSON.parse(raw) as ProfileFile` | Agregar validacion minima: verificar tipos de campos criticos antes de usar (`Array.isArray(file.entries)`, `typeof entry.id === 'string'`, etc.); considerar una funcion `parseHistoryFile(raw)` con validacion explicita |
-| Sin migracion de schema ante version futura | No conforme | Media | `history-logger.ts:23` — `{ version: 1, entries }`; `profile-manager.ts:66` — `{ version: 1, profile }`; `license-manager.ts:131` — `{ version: 1, encrypted, iv, tag }` — campo `version` escrito pero nunca leido para ramificar logica | Implementar un `switch (file.version)` en cada funcion de carga que maneje explicitamente la version actual y arroje un error descriptivo para versiones desconocidas; documentar el proceso de migracion antes de cualquier cambio de esquema |
-| Sin control de sobreescritura concurrente en perfiles | No conforme | Media | `profile-manager.ts:63-68` — `writeFile` sin check de version previa | Usar escritura atomica (tmp+rename) y agregar un campo `updatedAt` que el llamador debe proveer para detectar conflictos de edicion |
-| `lastChecked` sin assertion de UTC | Conforme | Baja | `AppState.swift:9` — `Date()` es UTC en Swift por convencion del framework | No requiere accion inmediata; documentar en comentario que `Date()` en Swift es siempre UTC internamente |
+| Fechas ISO 8601 UTC en todos los registros | Conforme | — | `.toISOString()` en license-manager.ts lineas 222, 226; history-logger.ts linea 68; profile-manager.ts lineas 105-106 | — |
+| Manejo de NaN en fechas | Conforme | — | `license-manager.ts` lineas 158, 165, 182: `isNaN(lastValidated)` con fallback explicito | — |
+| ISO8601DateFormatter con fraccion de segundos (Swift) | Conforme | — | `LicenseChecker.swift` lineas 91-92 | — |
+| UUID v4 criptografico en historial | Conforme | — | `history-logger.ts` linea 3 + linea 64 | — |
+| Sin unicidad garantizada en perfiles | No conforme | Baja | `profile-manager.ts` linea 78: `writeFile` sobreescribe sin verificar existencia previa | Agregar comprobacion de existencia en `saveProfile` y lanzar error descriptivo si el perfil ya existe (salvo en operaciones de actualizacion explicita como `updateProfile`) |
+| Cast sin validacion en `loadLicense` | No conforme | Media | `license-manager.ts` linea 103: `return JSON.parse(plaintext.toString('utf-8')) as LicenseData` — TypeScript no valida en runtime | Agregar type guard `isLicenseData(obj): obj is LicenseData` que verifique que `key`, `instanceId`, `status`, `plan`, `activatedAt`, `lastValidatedAt` sean strings no vacios |
+| Arrays validados con `Array.isArray` en parsers | Conforme | — | `json-parser.ts` lineas 18-20, 26-29, 32-33 | — |
+| Codable con campos opcionales en Swift | Conforme | — | `LicenseData.swift`: `expiresAt: String?`; `OutdatedPackage`: `pinnedVersion: String?`; `BrewService`: `user`, `file`, `exitCode` todos opcionales | — |

@@ -1,10 +1,10 @@
 # 5. Auditoria UI estructural
 
-> Auditor: frontend-auditor | Fecha: 2026-04-22
+> Auditor: frontend-auditor | Fecha: 2026-04-23
 
 ## Resumen ejecutivo
 
-El proyecto tiene dos codebases con filosofias de UI radicalmente distintas: la TUI en TypeScript/React/Ink es una aplicacion de terminal sin DOM ni CSS, y BrewBar es una app SwiftUI convencional para macOS. La arquitectura TUI es solida en su mayor parte — routing por switch, gate de features Pro centralizado, modal-store con conteo de referencias — pero presenta deuda tecnica relevante en navegacion hacia atras (historial inutilizado), hardcoding de dimensiones de layout, identidades inestables en ForEach/map, y una vista de busqueda que silencia errores. BrewBar es pequeña, bien estructurada y con buena cobertura de previews, pero hardcodea el nombre de la aplicacion de terminal, limitando compatibilidad.
+Brew-TUI v0.2.0 presenta una codebase de UI saludable en lo estructural: los fixes del ciclo anterior estan verificados (navegacion por historial, tamaños dinamicos, memoizacion de GradientText, errores visibles, claves React estables). Los hallazgos pendientes son de severidad media o baja y no bloquean ninguna funcionalidad critica. El riesgo mayor residual es de deuda tecnica acumulada — el archivo `COLORS.ts` creado como fix no tiene ninguna importacion (189 literales hex permanecen inline), y `ProfilesView` concentra 7 modos de interaccion sin descomposicion. BrewBar mantiene una estructura Swift ejemplar con cobertura de previews excelente y separacion limpia de responsabilidades.
 
 ---
 
@@ -14,19 +14,18 @@ El proyecto tiene dos codebases con filosofias de UI radicalmente distintas: la 
 
 * [x] Root views identificadas
 * [x] Contenedores claros
-* [x] Navegacion consistente
-* [ ] Separacion entre layout y comportamiento
-* [x] Subvistas extraidas por intencion de dominio
-* [ ] No hay vistas gigantes dificiles de mantener
+* [ ] Navegacion consistente *(ver hallazgo FE-01)*
+* [x] Separacion entre layout y comportamiento
+* [ ] Subvistas extraidas por intencion de dominio *(ver hallazgo FE-02)*
+* [ ] No hay vistas gigantes dificiles de mantener *(ver hallazgo FE-02)*
 
 ### Hallazgos
 
 | Elemento | Estado | Severidad | Evidencia | Accion |
 |----------|--------|-----------|-----------|--------|
-| Root view TUI (`app.tsx`) mezcla routing, Pro gate, y efecto de inicializacion de licencia | No conforme | Media | `src/app.tsx:10-20` — `useEffect(() => { initLicense(); }, [])` con dep array incompleto, `renderView()` con switch de 12 casos, y logica Pro gate, todo en el mismo componente | Extraer `<LicenseInitializer>` como componente separado; extraer `renderView` a un `ViewRouter` independiente |
-| `ProfilesView` supera 300 lineas y contiene una maquina de estados de 7 modos dentro del `body` del componente | No conforme | Media | `src/views/profiles.tsx` — ~320 LOC con estados `list \| detail \| create \| edit \| apply \| confirm-delete \| import` gestionados con condicionales anidados | Extraer cada modo como subcomponente (`ProfileList`, `ProfileDetail`, `ProfileForm`, `ProfileImport`) |
-| `SmartCleanupView` (~270 LOC) concentra logica de recuperacion de dependencias fallidas, dos fases de confirmacion, y streaming en el mismo cuerpo | Parcial | Baja | `src/views/smart-cleanup.tsx` — `failedNames`, `showForceConfirm`, `showConfirm`, `stream` gestionados sin separacion | Extraer logica de recuperacion de dependencias a hook `useCleanupFlow` |
-| BrewBar: vistas Swift bien separadas por dominio (PopoverView, OutdatedListView, SettingsView) | Conforme | — | `menubar/BrewBar/Sources/Views/` | — |
+| FE-01: `package-info` en VIEWS pero ausente de TAB_VIEWS en header | No conforme | Baja | `src/stores/navigation-store.ts` incluye `'package-info'` en `VIEWS`; `src/components/layout/header.tsx` lo excluye de `TAB_VIEWS`. Tab cycling puede llegar a esta vista sin que aparezca destacada en el nav bar. | Agregar `package-info` a `TAB_VIEWS` en `header.tsx`, o sacarlo de `VIEWS` si debe ser solo accesible por navegacion directa desde otra vista. |
+| FE-02: `ProfilesView` con 7 modos inline y 267 lineas | No conforme | Media | `src/views/profiles.tsx` — FSM con `mode: 'list' \| 'detail' \| 'create-name' \| 'create-desc' \| 'importing' \| 'edit-name' \| 'edit-desc'`, cada rama renderiza un arbol JSX completamente diferente dentro del mismo componente. | Extraer subcomponentes con nombres de dominio: `<ProfileListMode>`, `<ProfileDetailMode>`, `<ProfileCreateFlow>`, `<ProfileEditFlow>`. El componente padre solo orquesta la maquina de estados. |
+| FE-03: `app.tsx` mezcla inicializacion de licencia con routing de vistas | No conforme | Baja | `src/app.tsx:8` — `useEffect(()=>{ initLicense(); }, [])` y el switch de routing conviven en el mismo componente. Comentario TODO presente en linea 5. | Extraer `<LicenseInitializer>` y `<ViewRouter>` como se indica en el TODO. Mejora legibilidad y testabilidad sin cambio de comportamiento. |
 
 ---
 
@@ -35,21 +34,19 @@ El proyecto tiene dos codebases con filosofias de UI radicalmente distintas: la 
 ### Checklist
 
 * [x] NavigationStack / Tabs / Sheets coherentes
-* [ ] Rutas reproducibles
-* [ ] Deep links contemplados
-* [ ] Estados de navegacion restaurables si aplica
-* [ ] No hay doble presentacion de sheets/alerts
-* [ ] Back navigation coherente
+* [x] Rutas reproducibles
+* [ ] Deep links contemplados *(No aplica — CLI app sin URL scheme)*
+* [ ] Estados de navegacion restaurables *(No aplica — sesion efimera por naturaleza de TUI)*
+* [x] No hay doble presentacion de sheets/alerts
+* [x] Back navigation coherente
 
 ### Hallazgos
 
 | Elemento | Estado | Severidad | Evidencia | Accion |
 |----------|--------|-----------|-----------|--------|
-| `goBack()` solo vuelve 1 nivel aunque `viewHistory` acumula hasta 20 entradas — el historial nunca se consume | No conforme | Alta | `src/stores/navigation-store.ts` — `goBack()` intercambia `currentView` y `previousView` sin hacer pop de `viewHistory`; `viewHistory.push()` es letra muerta | Reemplazar la logica de `goBack()` por `viewHistory.pop()`: `const prev = viewHistory.at(-1); set({ currentView: prev, viewHistory: viewHistory.slice(0,-1) })` |
-| Rutas por string ad-hoc: `ViewId` es una union de strings literales sin tipado de parametros de ruta | Parcial | Baja | `src/lib/types.ts` — `type ViewId = 'dashboard' \| 'installed' \| ...` — funcional pero sin soporte para parametros tipados (p.ej. navegar a `package-info` requiere set separado de `selectedPackage`) | Aceptable para el alcance actual; documentar el patron en CLAUDE.md como convencion consciente |
-| Deep links: no contemplados — la TUI es una CLI sin URL scheme; BrewBar tampoco registra URL scheme | No aplica | — | Producto terminal/menubar — no hay URL scheme esperado | — |
-| `package-info` requiere que `selectedPackage` este pre-cargado en el navigation store antes de navegar — acoplamiento fragil | Parcial | Media | `src/stores/navigation-store.ts` `setSelectedPackage()` + `src/views/package-info.tsx:12` `const { packageName }` | Incluir el nombre del paquete como payload de navegacion en `navigate('package-info', { packageName })` en lugar de estado lateral |
-| BrewBar: `.sheet(isPresented: $showSettings)` — unica sheet, sin conflicto | Conforme | — | `menubar/BrewBar/Sources/Views/PopoverView.swift:30` | — |
+| Todos los items: Conforme | Conforme | — | `src/stores/navigation-store.ts` — `goBack()` hace `pop()` correcto del historial (fix v0.2.0 verificado). Historia acotada a 20 entradas con `.slice(-19)`. Modalidad de supresion de teclado usa contador de referencia (`modal-store._count`) para evitar desbloqueo prematuro cuando supresores se anidan. | Sin accion requerida. |
+
+**Nota:** Deep links y restauracion de estado de navegacion no aplican a una TUI en terminal donde cada sesion es efimera y no existe mecanismo de URL scheme.
 
 ---
 
@@ -60,264 +57,262 @@ El proyecto tiene dos codebases con filosofias de UI radicalmente distintas: la 
 #### DashboardView
 
 * **Ruta:** `src/views/dashboard.tsx`
-* [x] Estado inicial — loading guard con `<Loading>`
-* [x] Cargando — `Loading` component renderizado
-* [x] Vacio — 0 stats se muestra correctamente (valores numericos en cero)
-* [x] Error recuperable — `<ErrorMessage>` + hint `r` para refresh
-* [ ] Error fatal — no distingue errores fatales de recuperables
-* [ ] Sin conexion — no detectado; brew offline pasa como error generico
-* [x] Datos parciales — stats individuales con su propio loading por key
-* [ ] Permiso denegado — No aplica (brew no requiere permisos especiales)
-* [ ] Modo edicion — No aplica
-* [ ] Confirmacion — No aplica
+* [x] Estado inicial — loading pre-inicializado en store (`loading.installed: true`) evita flash
+* [x] Cargando — `if (loading.installed) return <Loading>`
+* [x] Vacio — seccion outdated muestra "All up to date" cuando lista vacia
+* [x] Error recuperable — `if (errors.installed) return <ErrorMessage>`
+* [ ] Error fatal — No aplica (sin errores irrecuperables en este contexto)
+* [ ] Sin conexion — No aplica (brew es herramienta local)
+* [ ] Datos parciales — No conforme: el bloque de configuracion se renderiza condicionalmente con `{config && (...)}` sin indicador de carga separado para config; si `config` tarda, la seccion simplemente no aparece sin feedback.
+* [ ] Permiso denegado — No aplica
+* [ ] Modo edicion — No aplica (vista de solo lectura)
+* [ ] Confirmacion — No aplica (sin acciones destructivas en dashboard)
 * [ ] Destructivo — No aplica
-* [ ] Accesibilidad validada — No aplica (terminal, sin VoiceOver)
-* [ ] Dark mode validado — No aplica (terminal)
-* [ ] Dynamic Type validado — No aplica (terminal)
+* [x] Accesibilidad validada — Ink TUI no usa accessibility tree nativo; las etiquetas de texto son el mecanismo principal
+* [x] Dark mode validado — No aplica (terminal, hereda colores del emulador)
+* [x] Dynamic Type validado — No aplica (terminal)
 
 #### InstalledView
 
 * **Ruta:** `src/views/installed.tsx`
-* [x] Estado inicial — pre-loading flags en brew-store evitan flash
-* [x] Cargando — `<Loading>` guard
-* [x] Vacio — empty state renderizado ("No packages installed")
-* [x] Error recuperable — `<ErrorMessage>` mostrado
-* [ ] Error fatal — no distingue
-* [ ] Sin conexion — no aplica a paquetes instalados (datos locales)
-* [x] Datos parciales — lista parcial funcional
+* [x] Estado inicial — `loading.installed` pre-inicializado
+* [x] Cargando — `<Loading>` mientras carga
+* [x] Vacio — Muestra texto informativo cuando la lista filtrada esta vacia
+* [x] Error recuperable — `<ErrorMessage>` con hint de reintento (`r` key)
+* [ ] Error fatal — No aplica
+* [ ] Sin conexion — No aplica
+* [x] Datos parciales — Tabs formulae/casks independientes, cada uno con su propio estado
 * [ ] Permiso denegado — No aplica
-* [ ] Modo edicion — No aplica (uninstall in-place con confirmacion)
-* [x] Confirmacion — confirmacion de uninstall presente
-* [x] Destructivo — uninstall visualmente separado, con confirmacion
-* [ ] Accesibilidad validada — No aplica
-* [ ] Dark mode validado — No aplica
-* [ ] Dynamic Type validado — No aplica
+* [x] Modo edicion — Confirm dialog para uninstall con `y/n`
+* [x] Confirmacion — `ConfirmDialog` presente antes de uninstall
+* [x] Destructivo — Uninstall marcado como accion destructiva con dialog
+* [x] Accesibilidad validada — Labels descriptivos en Text elements
+* [x] Dark mode validado — No aplica (terminal)
+* [x] Dynamic Type validado — No aplica (terminal)
 
 #### SearchView
 
 * **Ruta:** `src/views/search.tsx`
-* [x] Estado inicial — campo de busqueda vacio, sin resultados
-* [x] Cargando — `isSearching` flag con `<Loading>`
-* [x] Vacio — "No results found" cuando resultados vacios
-* [ ] Error recuperable — **CRITICO**: errores de `doSearch` silenciados con `void err`; usuario ve "No results" en lugar de mensaje de error
-* [ ] Error fatal — no distingue
-* [ ] Sin conexion — error silenciado, indistinguible de busqueda sin resultados
-* [x] Datos parciales — formulae/casks mostrados independientemente
+* [x] Estado inicial — TextInput visible inmediatamente
+* [x] Cargando — Spinner durante busqueda
+* [x] Vacio — Mensaje cuando no hay resultados
+* [x] Error recuperable — `{searchError && <Text color="#EF4444">{searchError}</Text>}` (fix v0.2.0 verificado)
+* [ ] Error fatal — No aplica
+* [ ] Sin conexion — No aplica
+* [ ] Datos parciales — No aplica
 * [ ] Permiso denegado — No aplica
-* [ ] Modo edicion — No aplica
-* [ ] Confirmacion — No aplica
-* [ ] Destructivo — No aplica
-* [ ] Accesibilidad validada — No aplica
-* [ ] Dark mode validado — No aplica
-* [ ] Dynamic Type validado — No aplica
+* [ ] Modo edicion — No aplica (busqueda, no edicion)
+* [x] Confirmacion — Confirm dialog antes de install
+* [x] Destructivo — No aplica (install no es destructivo)
+* [x] Accesibilidad validada — Texto descriptivo
+* [x] Dark mode validado — No aplica
+* [x] Dynamic Type validado — No aplica
 
 #### OutdatedView
 
 * **Ruta:** `src/views/outdated.tsx`
-* [x] Estado inicial — loading guard
-* [x] Cargando — `<Loading>`
-* [x] Vacio — "All packages up to date" con borde verde
-* [x] Error recuperable — `<ErrorMessage>`
-* [ ] Error fatal — no distingue
-* [x] Sin conexion — brew offline resulta en error que se muestra
-* [x] Datos parciales — lista parcial funcional
+* [x] Estado inicial — Pre-cargado con `loading.outdated: true`
+* [x] Cargando — `<Loading>` hasta datos disponibles
+* [x] Vacio — "All packages up to date" cuando lista vacia
+* [x] Error recuperable — `<ErrorMessage>` con `r` key
+* [ ] Error fatal — No aplica
+* [ ] Sin conexion — No aplica
+* [x] Datos parciales — Cada paquete renderizado individualmente
 * [ ] Permiso denegado — No aplica
 * [ ] Modo edicion — No aplica
-* [x] Confirmacion — upgrade individual y upgrade-all con confirmacion
+* [x] Confirmacion — Confirm para upgrade individual y para "upgrade all"
 * [x] Destructivo — No aplica (upgrade no es destructivo)
-* [ ] Accesibilidad validada — No aplica
-* [ ] Dark mode validado — No aplica
-* [ ] Dynamic Type validado — No aplica
-
-#### PackageInfoView
-
-* **Ruta:** `src/views/package-info.tsx`
-* [x] Estado inicial — guard para `packageName` ausente
-* [x] Cargando — loading guard con `<Loading>`
-* [x] Vacio — "Package not found" cuando formula/cask no existe
-* [x] Error recuperable — `<ErrorMessage>`
-* [ ] Error fatal — no distingue
-* [ ] Sin conexion — error generico
-* [x] Datos parciales — muestra campos disponibles aunque otros fallen
-* [ ] Permiso denegado — No aplica
-* [ ] Modo edicion — No aplica
-* [x] Confirmacion — install/uninstall/upgrade con confirmacion
-* [x] Destructivo — uninstall visualmente separado
-* [ ] Accesibilidad validada — No aplica
-* [ ] Dark mode validado — No aplica
-* [ ] Dynamic Type validado — No aplica
+* [x] Accesibilidad validada — Texto descriptivo
+* [x] Dark mode validado — No aplica
+* [x] Dynamic Type validado — No aplica
 
 #### ServicesView
 
 * **Ruta:** `src/views/services.tsx`
-* [x] Estado inicial — loading guard
-* [x] Cargando — `<Loading>`
-* [x] Vacio — empty state renderizado
-* [x] Error recuperable — `<ErrorMessage>`
-* [ ] Error fatal — no distingue
-* [ ] Sin conexion — No aplica (servicios locales)
-* [x] Datos parciales — servicios individuales con estado propio
+* [x] Estado inicial — Pre-cargado con `loading.services: true`
+* [x] Cargando — `<Loading>` mientras carga
+* [x] Vacio — Mensaje cuando no hay servicios
+* [x] Error recuperable — `serviceActionError` visible en UI (fix v0.2.0 verificado)
+* [ ] Error fatal — No aplica
+* [ ] Sin conexion — No aplica
+* [ ] Datos parciales — No conforme: lista de servicios se renderiza con `.map()` sin paginacion; en sistemas con muchos servicios la lista puede exceder el viewport sin scroll accesible
 * [ ] Permiso denegado — No aplica
 * [ ] Modo edicion — No aplica
-* [ ] Confirmacion — **stop y restart tienen confirmacion; start NO tiene confirmacion**
-* [x] Destructivo — stop es destructivo y tiene confirmacion
-* [ ] Accesibilidad validada — No aplica
-* [ ] Dark mode validado — No aplica
-* [ ] Dynamic Type validado — No aplica
+* [x] Confirmacion — Confirm para `stop` y `restart`; `start` es accion directa sin confirmacion (aceptable por ser no destructiva)
+* [x] Destructivo — `stop`/`restart` tienen confirmacion
+* [x] Accesibilidad validada — Labels descriptivos
+* [x] Dark mode validado — No aplica
+* [x] Dynamic Type validado — No aplica
 
 #### DoctorView
 
 * **Ruta:** `src/views/doctor.tsx`
-* [x] Estado inicial — loading guard
-* [x] Cargando — `<Loading>` con mensaje de espera
-* [x] Vacio — "All checks passed" cuando sin warnings
-* [x] Error recuperable — `<ErrorMessage>`
-* [ ] Error fatal — no distingue
-* [ ] Sin conexion — error generico
-* [ ] Datos parciales — No aplica (doctor es atomico)
+* [x] Estado inicial — `loading.doctor: false` inicial (sin flash)
+* [x] Cargando — `<Loading>` con `t('loading_doctor')`
+* [x] Vacio — `doctorClean === true` muestra banner verde de "limpio"
+* [x] Error recuperable — `<ErrorMessage>` con `r` key
+* [ ] Error fatal — No aplica
+* [ ] Sin conexion — No aplica
+* [x] Datos parciales — `doctorClean === false && warnings.length === 0` muestra aviso de "warnings not captured"
 * [ ] Permiso denegado — No aplica
-* [ ] Modo edicion — No aplica
-* [ ] Confirmacion — No aplica (solo lectura)
+* [ ] Modo edicion — No aplica (vista de solo lectura)
+* [ ] Confirmacion — No aplica
 * [ ] Destructivo — No aplica
-* [ ] Accesibilidad validada — No aplica
-* [ ] Dark mode validado — No aplica
-* [ ] Dynamic Type validado — No aplica
+* [x] Accesibilidad validada — Texto descriptivo
+* [x] Dark mode validado — No aplica
+* [x] Dynamic Type validado — No aplica
 
 #### ProfilesView (Pro)
 
 * **Ruta:** `src/views/profiles.tsx`
-* [x] Estado inicial — loading guard
-* [x] Cargando — `<Loading>`
-* [x] Vacio — empty state "No profiles yet"
-* [x] Error recuperable — `<ErrorMessage>` para loadError
-* [ ] Error fatal — no distingue
-* [ ] Sin conexion — No aplica (datos locales)
-* [ ] Datos parciales — No aplica
-* [ ] Permiso denegado — gated por Pro, no por permisos de sistema
-* [x] Modo edicion — modo `edit` implementado
-* [x] Confirmacion — confirm-delete implementado
-* [x] Destructivo — delete con doble confirmacion
-* [ ] Accesibilidad validada — No aplica
-* [ ] Dark mode validado — No aplica
-* [ ] Dynamic Type validado — No aplica
+* [x] Estado inicial — Lista de perfiles o estado vacio visible
+* [x] Cargando — Estado de carga durante import con generador async
+* [x] Vacio — Mensaje de "no profiles yet" visible
+* [x] Error recuperable — Errores de operacion mostrados en UI
+* [ ] Error fatal — No aplica
+* [ ] Sin conexion — No aplica
+* [x] Datos parciales — Detalle de perfil muestra datos disponibles
+* [ ] Permiso denegado — No aplica (gateado en app.tsx antes de llegar aqui)
+* [x] Modo edicion — Modos `edit-name` y `edit-desc` implementados
+* [x] Confirmacion — Confirm antes de delete de perfil
+* [x] Destructivo — Delete con confirmacion
+* [x] Accesibilidad validada — Labels descriptivos
+* [x] Dark mode validado — No aplica
+* [x] Dynamic Type validado — No aplica
 
 #### SmartCleanupView (Pro)
 
 * **Ruta:** `src/views/smart-cleanup.tsx`
-* [x] Estado inicial — loading guard
-* [x] Cargando — `<Loading>`
-* [x] Vacio — "Nothing to clean up"
-* [x] Error recuperable — `<ErrorMessage>`
-* [ ] Error fatal — no distingue
-* [ ] Sin conexion — No aplica (brew local)
-* [x] Datos parciales — lista parcial de paquetes a limpiar
-* [ ] Permiso denegado — No aplica
+* [x] Estado inicial — Loading spinner durante analisis
+* [x] Cargando — `<Loading>` / `isRunning` durante operacion
+* [x] Vacio — Mensaje cuando no hay candidatos a limpiar
+* [x] Error recuperable — Error de dependencia detectado en stream output con path alternativo de `--ignore-dependencies`
+* [ ] Error fatal — No aplica
+* [ ] Sin conexion — No aplica
+* [x] Datos parciales — Lista de candidatos con informacion por paquete
+* [ ] Permiso denegado — No aplica (gateado)
 * [ ] Modo edicion — No aplica
-* [x] Confirmacion — cleanup con confirmacion
-* [x] Destructivo — force uninstall con doble confirmacion
-* [ ] Accesibilidad validada — No aplica
-* [ ] Dark mode validado — No aplica
-* [ ] Dynamic Type validado — No aplica
+* [x] Confirmacion — Confirm dialog para uninstall, segundo dialog para force uninstall
+* [x] Destructivo — Confirmacion doble para path de `--ignore-dependencies`
+* [x] Accesibilidad validada — Labels descriptivos
+* [x] Dark mode validado — No aplica
+* [x] Dynamic Type validado — No aplica
 
 #### HistoryView (Pro)
 
 * **Ruta:** `src/views/history.tsx`
-* [x] Estado inicial — loading guard
-* [x] Cargando — `<Loading>`
-* [x] Vacio — "No history yet"
-* [x] Error recuperable — `<ErrorMessage>`
-* [ ] Error fatal — no distingue
-* [ ] Sin conexion — No aplica (datos locales)
-* [x] Datos parciales — entradas parciales visibles
-* [ ] Permiso denegado — No aplica
+* [x] Estado inicial — Historia cargada al montar
+* [x] Cargando — Estado de carga del stream durante replay
+* [x] Vacio — Mensaje cuando historial vacio o filtro sin resultados
+* [x] Error recuperable — `stream.error` visible cuando replay falla
+* [ ] Error fatal — No aplica
+* [ ] Sin conexion — No aplica
+* [x] Datos parciales — Filtros aplicados sobre datos disponibles
+* [ ] Permiso denegado — No aplica (gateado)
 * [ ] Modo edicion — No aplica
-* [x] Confirmacion — clear history con confirmacion
-* [x] Destructivo — clear all con confirmacion
-* [ ] Accesibilidad validada — No aplica
-* [ ] Dark mode validado — No aplica
-* [ ] Dynamic Type validado — No aplica
+* [ ] Confirmacion — No aplica (replay es operacion no destructiva)
+* [ ] Destructivo — No aplica
+* [x] Accesibilidad validada — Labels descriptivos, IDs UUID en keys
+* [x] Dark mode validado — No aplica
+* [x] Dynamic Type validado — No aplica
 
 #### SecurityAuditView (Pro)
 
 * **Ruta:** `src/views/security-audit.tsx`
-* [x] Estado inicial — auto-scan al montar
-* [x] Cargando — `<Loading>` durante scan
-* [x] Vacio — "No vulnerabilities found"
-* [x] Error recuperable — `<ErrorMessage>` + hint `r` para re-scan manual
-* [ ] Error fatal — no distingue
-* [ ] Sin conexion — error generico de OSV.dev API
-* [x] Datos parciales — vulnerabilidades parciales mostradas
-* [ ] Permiso denegado — No aplica
+* [x] Estado inicial — Loading durante analisis de vulnerabilidades
+* [x] Cargando — `<Loading>` con mensaje descriptivo
+* [x] Vacio — Mensaje "no vulnerabilities found" cuando limpio
+* [x] Error recuperable — Errores de API OSV.dev visibles
+* [ ] Error fatal — No aplica
+* [ ] Sin conexion — No aplica (la app sigue funcionando pero el audit requiere red)
+* [x] Datos parciales — Vista expand/collapse por paquete con detalles de CVE
+* [ ] Permiso denegado — No aplica (gateado)
 * [ ] Modo edicion — No aplica
-* [ ] Confirmacion — upgrade individual sin confirmacion previa al streaming
-* [x] Destructivo — No aplica
-* [ ] Accesibilidad validada — No aplica
-* [ ] Dark mode validado — No aplica
-* [ ] Dynamic Type validado — No aplica
+* [ ] Confirmacion — No aplica (audit es solo lectura)
+* [ ] Destructivo — No aplica
+* [x] Accesibilidad validada — Labels descriptivos
+* [x] Dark mode validado — No aplica
+* [x] Dynamic Type validado — No aplica
 
 #### AccountView
 
 * **Ruta:** `src/views/account.tsx`
-* [ ] Estado inicial — **status arranca como `'free'` antes de validacion; no hay estado "checking"** — usuario puede ver "Free" brevemente aunque sea Pro
-* [x] Cargando — estado `validating` renderizado con color cyan
-* [ ] Vacio — No aplica
-* [ ] Error recuperable — no hay estado de error de licencia en esta vista
-* [ ] Error fatal — no aplica
-* [ ] Sin conexion — degradation warning presente (offline grace)
-* [ ] Datos parciales — sin `license` object, solo muestra status
+* [ ] Estado inicial — No conforme: mientras `status === 'validating'` la seccion de licencia renderiza el label pero sin indicador de carga; el usuario ve contenido vacio sin explicacion durante el tiempo de validacion inicial
+* [ ] Cargando — No conforme: no hay `<Loading>` / spinner durante validacion de licencia
+* [x] Vacio — Estado free/expirado con CTA de upgrade
+* [x] Error recuperable — `error` string del store visible en UI
+* [ ] Error fatal — No aplica
+* [ ] Sin conexion — No aplica (manejo de offline en license-manager)
+* [x] Datos parciales — Detalles de licencia Pro mostrados cuando disponibles
 * [ ] Permiso denegado — No aplica
-* [ ] Modo edicion — No aplica
-* [x] Confirmacion — deactivation con confirmacion
-* [x] Destructivo — deactivation con confirmacion
-* [ ] Accesibilidad validada — No aplica
-* [ ] Dark mode validado — No aplica
-* [ ] Dynamic Type validado — No aplica
+* [ ] Modo edicion — Activacion/desactivacion de licencia como operaciones inline
+* [x] Confirmacion — Confirm antes de deactivate
+* [x] Destructivo — Deactivate con confirmacion
+* [x] Accesibilidad validada — Labels descriptivos
+* [x] Dark mode validado — No aplica
+* [x] Dynamic Type validado — No aplica
 
-#### BrewBar: PopoverView
+#### PackageInfoView
+
+* **Ruta:** `src/views/package-info.tsx`
+* [x] Estado inicial — Loading al entrar con `packageName`
+* [x] Cargando — `<Loading>` mientras fetch de info
+* [ ] Vacio — No aplica (siempre se navega desde un paquete seleccionado)
+* [x] Error recuperable — `<ErrorMessage>` cuando falla fetch
+* [ ] Error fatal — No aplica
+* [ ] Sin conexion — No aplica
+* [x] Datos parciales — Dependencias y caveats renderizados condicionalmente si existen
+* [ ] Permiso denegado — No aplica
+* [ ] Modo edicion — No aplica (vista de solo lectura)
+* [ ] Confirmacion — No aplica
+* [ ] Destructivo — No aplica
+* [x] Accesibilidad validada — Labels descriptivos
+* [x] Dark mode validado — No aplica
+* [x] Dynamic Type validado — No aplica
+
+#### BrewBar — PopoverView (SwiftUI)
 
 * **Ruta:** `menubar/BrewBar/Sources/Views/PopoverView.swift`
-* [x] Estado inicial — estado `loading` renderizado
-* [x] Cargando — `ProgressView` en estado loading
-* [x] Vacio — "All packages up to date" con checkmark
-* [x] Error recuperable — estado `error` con mensaje + boton Retry
-* [ ] Error fatal — no distingue fatal de recuperable
-* [ ] Sin conexion — error generico (brew offline = error)
-* [x] Datos parciales — lista de outdated parcial visible
-* [ ] Permiso denegado — No aplica
+* [x] Estado inicial — `ProgressView` mientras carga estado inicial
+* [x] Cargando — `ProgressView` con etiqueta descriptiva
+* [x] Vacio — Estado "up to date" con icono y mensaje positivo
+* [x] Error recuperable — Vista de error con boton "Retry"
+* [ ] Error fatal — No aplica
+* [ ] Sin conexion — No aplica (brew es local)
+* [x] Datos parciales — `servicesErrorView` condicional dentro de `OutdatedListView`
+* [ ] Permiso denegado — Manejado via `notificationsDenied` en `SettingsView`
 * [ ] Modo edicion — No aplica
-* [ ] Confirmacion — upgrade-all presente
-* [x] Destructivo — No aplica (upgrade no es destructivo)
-* [x] Accesibilidad validada — SwiftUI infiere labels de Text/Button
-* [x] Dark mode validado — usa colores semanticos de SwiftUI
-* [x] Dynamic Type validado — Text sin tamaños fijos
+* [x] Confirmacion — `confirmationDialog` para upgrade-all
+* [x] Destructivo — Upgrade-all con rol `.destructive` en confirmacion
+* [x] Accesibilidad validada — SwiftUI labels automaticos + `Label` con iconos semanticos
+* [x] Dark mode validado — `Color.primary`/`Color.secondary` semantic colors usadas
+* [x] Dynamic Type validado — SwiftUI escala automaticamente; frame fijo 340×420 podria truncar texto en sizes extremos (anotacion)
 
-#### BrewBar: SettingsView
+#### BrewBar — SettingsView (SwiftUI)
 
 * **Ruta:** `menubar/BrewBar/Sources/Views/SettingsView.swift`
-* [x] Estado inicial — valores del AppState cargados
-* [ ] Cargando — No aplica (settings sincrono)
+* [x] Estado inicial — Configuracion actual cargada del UserDefaults
+* [ ] Cargando — No aplica (datos sincrónicos del UserDefaults)
 * [ ] Vacio — No aplica
-* [ ] Error recuperable — notificaciones denegadas: caption informativo presente
+* [ ] Error recuperable — No aplica
 * [ ] Error fatal — No aplica
 * [ ] Sin conexion — No aplica
 * [ ] Datos parciales — No aplica
-* [x] Permiso denegado — estado "notifications denied" con caption
-* [x] Modo edicion — Form editable directamente
+* [x] Permiso denegado — `notificationsDenied` flag con feedback al usuario
+* [ ] Modo edicion — No aplica (toggle directo en settings)
 * [ ] Confirmacion — No aplica
 * [ ] Destructivo — No aplica
-* [x] Accesibilidad validada — Form + Picker + Toggle con labels semanticos
-* [x] Dark mode validado — colores semanticos
-* [x] Dynamic Type validado — Form nativo
+* [x] Accesibilidad validada — SwiftUI automatico
+* [x] Dark mode validado — Colors semanticos
+* [x] Dynamic Type validado — SwiftUI automatico
 
 ### Hallazgos
 
 | Elemento | Estado | Severidad | Evidencia | Accion |
 |----------|--------|-----------|-----------|--------|
-| `SearchView`: errores de `doSearch` silenciados con `void err` | No conforme | Alta | `src/views/search.tsx` bloque catch — `setResults({ formulae: [], casks: [] }); void err;` | Reemplazar `void err` por `setError(err instanceof Error ? err.message : String(err))` y renderizar `<ErrorMessage>` cuando `error !== null` |
-| `AccountView`: estado inicial muestra `'free'` antes de que se complete la validacion de licencia | No conforme | Media | `src/stores/license-store.ts` — estado inicial `status: 'free'` antes de `initialize()`; `src/views/account.tsx:49-51` | Inicializar `status` como `'validating'` en el store hasta que `initialize()` complete la primera verificacion |
-| `ServicesView`: accion `start` sin dialogo de confirmacion (stop y restart si tienen confirmacion) | No conforme | Media | `src/views/services.tsx` — handler de `Enter` para `start` llama directamente a `startService()` sin `<ConfirmDialog>` | Agregar confirmacion para `start` con el mismo patron que `stop`/`restart` |
-| `SecurityAuditView`: upgrade individual ejecuta streaming sin confirmacion previa | Parcial | Baja | `src/views/security-audit.tsx` — `Enter` en vuln seleccionada lanza `stream.run(['upgrade', pkg])` sin confirm | Agregar `<ConfirmDialog>` antes de iniciar el upgrade desde security-audit |
-| Ninguna vista distingue errores fatales de errores recuperables — siempre se usa el mismo `<ErrorMessage>` | Parcial | Baja | Patron uniforme en todas las vistas `src/views/*.tsx` | Clasificar errores en brew-store con `isFatal` flag; renderizar mensaje diferenciado en vistas criticas |
+| FE-04: `AccountView` sin indicador de carga durante `status === 'validating'` | No conforme | Baja | `src/views/account.tsx` — el estado `validating` no tiene rama de `<Loading>`. El usuario ve la seccion de licencia vacia durante el tiempo de inicializacion del store. | Agregar `if (status === 'validating') return <Loading message={t('loading_license')} />` o un placeholder de skeleton antes del switch de estados. |
+| FE-05: `DashboardView` sin loading guard para `config` | No conforme | Baja | `src/views/dashboard.tsx` — `{config && (...)}` renderiza la seccion de configuracion sin feedback si `config` esta pendiente. | Agregar `{loading.config ? <Text dimColor>{t('loading_config')}</Text> : config && (...)}` para el bloque de configuracion. |
+| FE-06: `ServicesView` sin paginacion en lista de servicios | No conforme | Baja | `src/views/services.tsx` — `services.map()` sin limite ni `MAX_VISIBLE_ROWS`. En sistemas con muchos servicios (>20) la lista puede exceder el viewport sin posibilidad de scroll. | Aplicar el mismo patron `MAX_VISIBLE_ROWS = Math.max(5, (stdout?.rows ?? 24) - 8)` con paginacion `j/k` que usan `InstalledView`, `OutdatedView` e `HistoryView`. |
 
 ---
 
@@ -325,50 +320,49 @@ El proyecto tiene dos codebases con filosofias de UI radicalmente distintas: la 
 
 ### Checklist
 
-* [ ] iPhone pequeno — No aplica (TUI es terminal, no iOS)
-* [ ] iPhone grande — No aplica
-* [ ] iPad portrait — No aplica
-* [ ] iPad landscape — No aplica
-* [ ] Multitarea — No aplica
-* [ ] Mac idiom — BrewBar: conforme; TUI: limitado por hardcoding
-* [ ] Safe areas correctas — No aplica (TUI); BrewBar: conforme (NSPopover fixed frame)
-* [ ] Keyboard avoidance correcto — No aplica (TUI es teclado); BrewBar: No aplica (no hay text input en popover)
-* [ ] Scroll correcto con contenido grande — Parcial (ver hallazgos)
-* [ ] Rotacion correcta — No aplica (TUI terminal; BrewBar no rota)
+* [x] iPhone pequeno — No aplica (macOS CLI / macOS app)
+* [x] iPhone grande — No aplica
+* [x] iPad portrait — No aplica
+* [x] iPad landscape — No aplica
+* [x] Multitarea — No aplica
+* [x] Mac idiom si aplica — BrewBar usa SwiftUI macOS nativo; TUI es terminal agnostica
+* [x] Safe areas correctas — BrewBar: no hay uso de `ignoresSafeArea` sin justificacion; TUI: N/A
+* [ ] Keyboard avoidance correcto — No aplica (TUI maneja input via `useInput`; BrewBar es popover sin formularios de texto libre)
+* [x] Scroll correcto con contenido grande — `InstalledView`, `OutdatedView`, `HistoryView` con paginacion dinamica; BrewBar usa `ScrollView` en `OutdatedListView`
+* [x] Rotacion correcta — BrewBar como menu bar app no rota; TUI adapta columnas via `stdout.columns`
+
+**Nota sobre TUI:** La adaptabilidad de layout en una TUI se expresa a traves de `useStdout()` para detectar dimensiones del terminal. Los fixes de v0.2.0 (dynamic `MAX_VISIBLE_ROWS`, dynamic `nameWidth`/`versionWidth`) estan verificados y correctamente implementados en las vistas de mayor contenido.
 
 ### Hallazgos
 
 | Elemento | Estado | Severidad | Evidencia | Accion |
 |----------|--------|-----------|-----------|--------|
-| `MAX_VISIBLE_ROWS = 20` hardcodeado en `installed.tsx`, `history.tsx`, y `outdated.tsx` — en terminales pequeñas (<22 filas) el contenido desborda o queda cortado | No conforme | Alta | `src/views/installed.tsx:15`, `src/views/history.tsx:18`, `src/views/outdated.tsx:13` | Usar `useStdout()` de Ink para obtener `stdout.rows` dinamicamente: `const maxRows = Math.max(5, (stdout?.rows ?? 24) - 8)` |
-| `padEnd(27)`, `padEnd(12)`, `padEnd(20)` hardcodeados para columnas de tablas — en terminales de menos de 80 columnas los valores se truncan o desfasan | No conforme | Media | `src/views/installed.tsx` — `pkg.name.padEnd(27)`, `src/views/services.tsx` — `svc.name.padEnd(20)` | Calcular anchos de columna a partir de `stdout.columns` con `useStdout()`; usar fraccion del total (ej. 35% nombre, 20% version) |
-| `UpgradePrompt` usa `width="80%"` — en terminales muy estrechas (<40 cols) el border box puede sobrepasar el ancho disponible | Parcial | Baja | `src/components/common/upgrade-prompt.tsx:29` | Agregar guard: `Math.min(Math.floor(columns * 0.8), columns - 4)` |
-| BrewBar: `.frame(width: 340, height: 420)` fijo en NSPopover | Conforme | — | `menubar/BrewBar/Sources/Views/PopoverView.swift:10` — apropiado para NSPopover; macOS gestiona el safe area del status bar | — |
+| FE-07: BrewBar PopoverView frame fijo 340×420 puede truncar texto con Dynamic Type grande | No conforme | Baja | `menubar/BrewBar/Sources/Views/PopoverView.swift` — `.frame(width: 340, height: 420)`. Con accessibility sizes muy grandes (AX5+) el texto puede truncarse. | Considerar `.frame(width: 340, height: 420, alignment: .topLeading)` con `ScrollView` como wrapper interior, o bien limitar el minimo y maximo con `.frame(minHeight: 320, maxHeight: 500)`. |
 
 ---
 
 # 9. Motion y percepcion de velocidad
 
-> Auditor: frontend-auditor | Fecha: 2026-04-22
+> Auditor: frontend-auditor | Fecha: 2026-04-23
 
 ## 9.1 Transiciones
 
 ### Checklist
 
-* [ ] Las transiciones comunican cambio de estado — Parcial (TUI no tiene animaciones; BrewBar minimal)
-* [x] No hay animacion gratuita — correcto, ninguna animacion decorativa innecesaria
-* [x] Las duraciones son consistentes — BrewBar usa duraciones de sistema
-* [x] Las curvas son coherentes — BrewBar usa curvas de sistema SwiftUI
-* [ ] No hay jank perceptible — riesgo en GradientText (ver hallazgos)
-* [ ] Reduced Motion respetado — No aplica en TUI; BrewBar no usa animaciones custom
+* [ ] Las transiciones comunican cambio de estado — No aplica (cero animaciones encontradas; correcto por arquitectura)
+* [ ] No hay animacion gratuita — No aplica
+* [ ] Las duraciones son consistentes — No aplica
+* [ ] Las curvas son coherentes — No aplica
+* [x] No hay jank perceptible — `GradientText` con `React.memo` + `useMemo` (fix v0.2.0); BrewBar sin animaciones custom
+* [ ] Reduced Motion respetado — No aplica (sin animaciones)
+
+**Justificacion arquitectural:** Ink 5.x es un renderer de terminal que escribe caracteres en stdout; no existe modelo de interpolacion visual entre frames. Las transiciones de estado son instantaneas por naturaleza del medio. La ausencia de animaciones es correcta y no constituye hallazgo. BrewBar no usa animaciones custom — solo el comportamiento nativo del `NSPopover` gestionado por el sistema operativo.
 
 ### Hallazgos
 
 | Elemento | Estado | Severidad | Evidencia | Accion |
 |----------|--------|-----------|-----------|--------|
-| TUI no implementa animaciones — Ink/terminal no soporta CSS transitions; el re-render completo del `body` en cada keystroke reemplaza el contenido sin transicion | Conforme | — | Comportamiento esperado en terminal UI; no es un defecto | — |
-| `GradientText` crea un nodo `<Text>` por caracter — logo ASCII genera ~258 nodos React — cada re-render de Header (cualquier cambio en navigation-store) reconcilia 258 elementos | No conforme | Alta | `src/utils/gradient.tsx` — `chars.map((char, i) => <Text key={i} color={...}>{char}</Text>)`; header.tsx usa GradientText para LOGO_BREW (28ch × 6 filas) + LOGO_TUI (~15ch × 6 filas) | Memoizar `GradientText` con `React.memo`; o pre-renderizar el logo como string ANSI estático con `chalk` y usar un solo `<Text>` |
-| BrewBar: no usa animaciones custom — todas las transiciones son del sistema (sheet presentation, ProgressView) | Conforme | — | `menubar/BrewBar/Sources/Views/` — sin `.animation()`, sin `.transition()` custom | — |
+| Todos los items: No aplica por arquitectura | No aplica | — | Ink TUI: renderer de terminal sin capacidad de interpolacion. BrewBar: popover sin animaciones custom. | Sin accion requerida. |
 
 ---
 
@@ -376,58 +370,52 @@ El proyecto tiene dos codebases con filosofias de UI radicalmente distintas: la 
 
 ### Checklist
 
-* [ ] Skeletons correctos — no hay skeletons; se usa spinner centralizado
-* [x] Loaders adecuados al contexto — spinner para operaciones cortas, ProgressLog para streaming
-* [ ] Optimistic UI justificada — no hay optimistic UI (correcto para CLI operations)
-* [ ] Prefetch donde aporta valor — `fetchAll()` en dashboard hace prefetch paralelo; vistas Pro no prefetchean
-* [x] Placeholders evitan vacio abrupto — brew-store pre-inicializa flags de loading a `true`
-* [ ] Haptics coherentes y no invasivos — No aplica (TUI terminal); BrewBar no usa haptics
+* [ ] Skeletons correctos — No aplica (terminal no tiene layout visual previo al contenido; spinners son el mecanismo correcto)
+* [x] Loaders adecuados al contexto — `<Loading>` full-view para carga inicial; `Spinner` inline para operaciones de stream
+* [ ] Optimistic UI justificada — No aplica (no hay actualizaciones optimistas)
+* [ ] Prefetch donde aporta valor — No aplica (TUI hace `fetchAll()` en paralelo al inicio; BrewBar carga al abrir popover)
+* [x] Placeholders evitan vacio abrupto — `loading.installed: true` pre-inicializado en brew-store evita flash inicial (fix v0.2.0 verificado)
+* [ ] Haptics coherentes y no invasivos — No aplica (TUI en terminal; BrewBar es popover, haptics no son estandar en menu bar apps)
 
 ### Hallazgos
 
 | Elemento | Estado | Severidad | Evidencia | Accion |
 |----------|--------|-----------|-----------|--------|
-| No hay skeleton views — el spinner `<Loading>` no preserva la estructura visual de la pantalla; en listas largas, el cambio de spinner a contenido es abrupto | Parcial | Baja | `src/components/common/loading.tsx` — solo `<Spinner>` + label; ninguna vista tiene skeleton placeholder | Para terminal, un skeleton ASCII de líneas vacias (ej. `░░░░░░░░░░ loading...`) seria suficiente en vistas de lista criticas (installed, outdated) |
-| `SecurityAuditView` hace auto-scan en mount — el usuario ve un spinner durante el scan de OSV.dev en cada apertura de la vista aunque los datos no hayan cambiado | Parcial | Baja | `src/views/security-audit.tsx:useEffect(() => { scan(); }, [])` — scan incondicionalen mount | Cachear resultado del ultimo scan con timestamp en security-store; re-escanear solo si >N minutos desde ultimo scan |
-| `AccountView`: transicion de estado `'validating'` a `'pro'`/`'free'` es instantanea sin indicador de progreso previo a la inicializacion | Parcial | Media | `src/stores/license-store.ts` — estado inicial `'free'` antes de que `initialize()` sea llamado; la TUI puede mostrar estado incorrecto durante startup | Unificar con hallazgo de 5.3: inicializar como `'validating'`; agregar `<Loading>` en AccountView cuando `status === 'validating'` |
+| FE-08: `openBrewTUI()` en BrewBar silencia errores de lanzamiento | No conforme | Baja | `menubar/BrewBar/Sources/App/AppDelegate.swift` — `try? process.run()` descarta silenciosamente cualquier error de lanzamiento del proceso. Si brew-tui no esta instalado o el path es incorrecto, el usuario no recibe feedback. | Sustituir `try?` por un bloque `do/catch` que muestre un `NSAlert` con el error de lanzamiento. El check de `which brew-tui` al inicio reduce la probabilidad pero no la elimina. |
 
 ### Registro de motion
 
+**Nota:** No se encontraron animaciones ni transiciones personalizadas en ninguna de las dos codebases. La tabla siguiente registra este hecho de forma explicita.
+
 | Elemento | Tipo de transicion | Objetivo UX | Correcta | Riesgo | Accion |
 |----------|--------------------|-------------|----------|--------|--------|
-| `<Spinner>` (TUI) | Animacion ASCII rotating | Indicar operacion en progreso | Si | Bajo — usa `@inkjs/ui` nativo | Ninguna |
-| `ProgressLog` (TUI) | Scroll de lineas en tiempo real (buffer rolling 100 lineas) | Mostrar output de brew streaming | Si | Bajo | Ninguna |
-| `ConfirmDialog` (TUI) | Aparicion instantanea (sin transicion — comportamiento de terminal) | Interrumpir flujo para confirmacion destructiva | Si | Bajo | Ninguna |
-| `PopoverView` sheet presentation (BrewBar) | `.sheet(isPresented:)` — animacion del sistema macOS | Mostrar SettingsView como modal | Si | Bajo — animacion de sistema | Ninguna |
-| `ProgressView` (BrewBar) | Spinner/indeterminate del sistema macOS | Indicar carga de paquetes outdated | Si | Bajo | Ninguna |
-| Logo GradientText (TUI) | Re-render estatico en cada navegacion | Identidad visual | Parcial | Alto — 258 nodos React recalculados sin memo | Memoizar o convertir a string ANSI estatico |
+| TUI (Ink 5.x) — todas las vistas | Sin animacion (renderer de terminal) | N/A — cambios de estado son instantaneos por naturaleza del medio | Correcto | Ninguno | Sin accion |
+| BrewBar — NSPopover | Transicion nativa del sistema (NSPopover appearance) | Apertura/cierre del panel gestionado por macOS | Correcto | Ninguno | Sin accion |
+| BrewBar — ProgressView | Indicador de actividad del sistema (spinning wheel) | Comunicar estado de carga al usuario | Correcto | Ninguno | Sin accion |
 
 ---
 
 # 10. Frontend tecnico
 
-> Auditor: frontend-auditor | Fecha: 2026-04-22
+> Auditor: frontend-auditor | Fecha: 2026-04-23
 
 ## 10.1 Renderizado y estabilidad
 
 ### Checklist
 
-* [ ] ForEach con identidad estable
-* [ ] No hay diffing defectuoso
-* [ ] No hay parpadeos por recreacion de vistas
-* [x] No hay perdida de estado por identidad incorrecta — no detectado en TUI (vistas son singleton por switch)
-* [ ] Imagenes cargan con estrategia correcta — No aplica (terminal; BrewBar sin imagenes remotas)
-* [x] Scroll en listas grandes fluido — LazyVStack en BrewBar; buffer rolling de 100 lineas en TUI streams
+* [x] ForEach con identidad estable
+* [x] No hay diffing defectuoso
+* [ ] No hay parpadeos por recreacion de vistas — *ver hallazgo FE-09*
+* [x] No hay perdida de estado por identidad incorrecta
+* [x] Imagenes cargan con estrategia correcta — No aplica (no hay imagenes en TUI; BrewBar usa SF Symbols del sistema)
+* [x] Scroll en listas grandes fluido — `LazyVStack` en `OutdatedListView`; paginacion con offset en TUI
 
 ### Hallazgos
 
 | Elemento | Estado | Severidad | Evidencia | Accion |
 |----------|--------|-----------|-----------|--------|
-| `key={i}` (indice de array) en `DoctorView` para renderizar advertencias | No conforme | Media | `src/views/doctor.tsx` — `doctorWarnings.map((warning, i) => <Box key={i}` y `warning.split('\n').map((line, j) => <Text key={j}` — si el array cambia de orden o longitud, React reutiliza nodos incorrectos | Usar `key={warning.slice(0,40)}` para el Box externo (contenido como key); `key={j}` en lineas internas es menos critico pero reemplazar por `key={`${i}-${j}`}` |
-| `key={i}` en `ProgressLog` para lineas de streaming — el buffer es una ventana deslizante `slice(-maxVisible)`, lo que hace que el indice 0 represente distintas lineas en cada render | No conforme | Media | `src/components/common/progress-log.tsx` — `visible.map((line, i) => <Text key={i}` — a medida que llegan nuevas lineas y se descarta la primera, todos los indices se desplazan | Usar `key={`${startIndex + i}`}` donde `startIndex = lines.length - visible.length`; o usar un ID monotono por linea en el hook |
-| `useEffect(() => { fetchAll(); }, [])` en todas las vistas — dep array vacio con funcion de store como dep — viola React exhaustive-deps pero es un patron intencionado de Ink/Zustand | Parcial | Baja | `src/views/dashboard.tsx:useEffect`, `src/views/installed.tsx:useEffect`, etc. (patron en ~8 vistas) | Aceptable dado que Zustand store functions son estables; documentar como excepcion eslint-disable con comentario explicativo |
-| BrewBar: `ForEach(appState.outdatedPackages)` — `BrewPackage` conforma `Identifiable` con `id: String` (nombre del paquete) — identidad estable y correcta | Conforme | — | `menubar/BrewBar/Sources/Models/AppState.swift` | — |
-| BrewBar: `NSHostingController` creado de nuevo en cada apertura del popover (`togglePopover()`) — destruye y recrea todo el arbol SwiftUI | Parcial | Baja | `menubar/BrewBar/Sources/App/AppDelegate.swift` — `popover.contentViewController = NSHostingController(rootView: PopoverView(...))` en cada `showRelativeToRect` | Crear el `NSHostingController` una sola vez en `applicationDidFinishLaunching` y reutilizarlo; actualizar `appState` desde el exterior |
+| FE-09: Clave composite en `ProgressLog` puede causar parpadeo | No conforme | Baja | `src/components/common/progress-log.tsx` — `key={line.slice(0,30) + (lines.length - visible.length + i)}`. Si dos lineas comparten el mismo prefijo de 30 caracteres y su posicion en el buffer cambia, React recrea el elemento. | Usar un indice global monotonicamente creciente como clave (contador de lineas recibidas, no posicion en ventana) o incluir un hash del contenido completo de la linea para diferenciarlas. |
+| FE-10: `key={j}` en lineas de warning en `DoctorView` | No conforme | Baja | `src/views/doctor.tsx:40` — `warning.split('\n').map((line, j) => <Text key={j}>...)`. Indice de array como clave. | Aceptable en este caso especifico (datos estaticos de solo lectura, no reordenables), pero por consistencia con el resto de la codebase se recomienda `key={warning.slice(0,20) + '-line-' + j}`. |
 
 ---
 
@@ -435,20 +423,18 @@ El proyecto tiene dos codebases con filosofias de UI radicalmente distintas: la 
 
 ### Checklist
 
-* [x] Sheets coordinadas correctamente — `modal-store` con conteo de referencias evita conflictos
-* [x] Alerts no compiten entre si — un solo `<ConfirmDialog>` activo a la vez por diseno del modal-store
-* [ ] NavigationDestination centralizada o bien trazable — TUI: routing por switch en `app.tsx` (centralizado); acoplamiento lateral via `selectedPackage`
-* [ ] Side effects fuera del body — violations detectadas (ver hallazgos)
-* [ ] Tareas ligadas al ciclo de vida correcto
+* [x] Sheets coordinadas correctamente — BrewBar: un solo `.sheet` en `PopoverView` para Settings
+* [x] Alerts no compiten entre si — BrewBar: un solo `confirmationDialog`; TUI: `ConfirmDialog` controlado por modal-store con contador de referencias
+* [x] NavigationDestination centralizada o bien trazable — TUI: switch central en `app.tsx`; BrewBar: navegacion via `.sheet` simple
+* [ ] Side effects fuera del body — *ver hallazgo FE-11*
+* [ ] Tareas ligadas al ciclo de vida correcto — *ver hallazgo FE-12*
 
 ### Hallazgos
 
 | Elemento | Estado | Severidad | Evidencia | Accion |
 |----------|--------|-----------|-----------|--------|
-| `app.tsx` tiene un side effect (`initLicense()`) dentro de `useEffect` con dep array vacio que omite la dep — React DevTools marcaria esto como violation; en Strict Mode se llamaria dos veces | No conforme | Media | `src/app.tsx:useEffect(() => { initLicense(); }, [])` — `initLicense` no esta en el dep array | Agregar `// eslint-disable-next-line react-hooks/exhaustive-deps` con comentario explicando que `initLicense` es idempotente; o envolver en `useRef` guard |
-| `setInterval` en `license-store.ts` `initialize()` no tiene guard contra llamadas multiples — si `initialize()` se llama dos veces (posible en desarrollo con HMR o Strict Mode), se acumulan timers | No conforme | Alta | `src/stores/license-store.ts:71` — `setInterval(async () => { ... }, REVALIDATION_CHECK_MS).unref()` sin variable de referencia ni guard | Guardar la referencia del interval: `const intervalId = setInterval(...); return () => clearInterval(intervalId)`; o agregar un flag modular `let _initialized = false` |
-| `SecurityAuditView`: `useEffect(() => { scan(); }, [])` lanza una peticion de red (OSV.dev API) en mount sin cancelacion en unmount | No conforme | Media | `src/views/security-audit.tsx` — no hay `useEffect` de cleanup ni `AbortController` para el scan en curso | Retornar cleanup desde el useEffect que cancele el scan via `scanAbortRef.current?.abort()` |
-| `BrewBar AppDelegate`: Timer de 2 segundos para badge updates con `Timer.scheduledTimer` — el timer persiste aunque el popover este cerrado y no sea visible | Parcial | Baja | `menubar/BrewBar/Sources/App/AppDelegate.swift` — timer creado en `applicationDidFinishLaunching` siempre activo | Aceptable para menu bar app (el badge debe actualizarse aunque el popover este cerrado); evaluar reducir frecuencia a 5s |
+| FE-11: `Task {}` anonimos en botones de BrewBar sin handle de cancelacion | No conforme | Baja | `menubar/BrewBar/Sources/Views/OutdatedListView.swift` — botones de upgrade individual lanzan `Task { await appState.upgradePackage(pkg) }` sin almacenar el handle. Si el popover se cierra durante la operacion, la tarea no tiene mecanismo de cancelacion explicito. | Almacenar el handle en `@State private var upgradeTask: Task<Void,Never>?` y cancelarlo en `.onDisappear { upgradeTask?.cancel() }`. Alternativamente, mover la logica de cancelacion al `@Observable AppState`. |
+| FE-12: `.onAppear` en `DoctorView` sin cleanup de la operacion | No conforme | Baja | `src/views/doctor.tsx:13` — `useEffect(() => { fetchDoctor(); }, [])`. La llamada a `fetchDoctor()` no tiene mecanismo de cancelacion si la vista se desmonta mientras el fetch esta en curso. | Cambiar a `.task {}` en SwiftUI o implementar cleanup: `useEffect(() => { const controller = new AbortController(); fetchDoctor(controller.signal); return () => controller.abort(); }, [])`. Para el contexto actual de Ink TUI, el patron `mountedRef` ya usado en `package-info.tsx` es el correcto y deberia aplicarse aqui tambien. |
 
 ---
 
@@ -456,22 +442,18 @@ El proyecto tiene dos codebases con filosofias de UI radicalmente distintas: la 
 
 ### Checklist
 
-* [ ] Previews utiles — TUI: 0 previews; BrewBar: buena cobertura
-* [ ] Componentes testeables — TUI: `ink-testing-library` instalada pero 0 tests escritos
-* [ ] No hay logica de negocio incrustada — violations detectadas (ver hallazgos)
-* [ ] El body principal sigue siendo legible — violations en vistas complejas
-* [x] Modificadores custom con sentido semantico — BrewBar: sin ViewModifiers custom problemáticos; TUI: sin custom modifiers (paradigma diferente)
+* [x] Previews utiles — BrewBar: 13 previews incluyendo variantes de Spanish locale; excelente cobertura
+* [x] Componentes testeables — Componentes aceptan datos inyectados; stores de Zustand son instancias singleton pero testables via reset
+* [ ] No hay logica de negocio incrustada — *ver hallazgo FE-13*
+* [ ] El body principal sigue siendo legible — *ver hallazgo FE-02 (ProfilesView 267 lineas)*
+* [x] Modificadores custom con sentido semantico — No se encontraron ViewModifiers custom en BrewBar; TUI usa componentes con nombres semanticos (`<StatusBadge>`, `<StatCard>`, `<ProgressLog>`)
 
 ### Hallazgos
 
 | Elemento | Estado | Severidad | Evidencia | Accion |
 |----------|--------|-----------|-----------|--------|
-| 0 tests de componentes UI en TUI — `ink-testing-library` esta instalada pero ninguna vista ni componente tiene test | No conforme | Alta | `package.json` — `"@inkjs/testing-library"` en devDependencies; `src/` — 0 archivos `.test.tsx`; `src/views/` — 0 tests | Escribir tests para al menos: `<ConfirmDialog>` (flujo confirm/cancel), `AccountView` (estados free/pro/expired), `UpgradePrompt` (renderizado por viewId) |
-| `AccountView` contiene `maskKey()` — logica de presentacion de datos sensibles incrustada en la vista | Parcial | Baja | `src/views/account.tsx:22-26` — funcion `maskKey()` definida dentro del componente | Mover a `src/utils/mask.ts` o al license-store como selector; testeable de forma independiente |
-| `useBrewStream` contiene logica de dominio — detecta tipo de accion brew y escribe en history desde el hook de UI | No conforme | Media | `src/hooks/use-brew-stream.ts:7-36` — `detectAction()` y `logToHistory()` son logica de dominio de history, no UI | Mover `detectAction` y `logToHistory` a `src/lib/history/history-logger.ts`; el hook solo deberia manejar el ciclo de vida del stream |
-| `ProfilesView` body supera 300 lineas con condicionales anidados para 7 modos — legibilidad muy reducida | No conforme | Media | `src/views/profiles.tsx` — cuerpo principal con bloques `mode === 'list'`, `mode === 'detail'`, `mode === 'create'`, etc., sin extraccion a subcomponentes | Extraer cada modo como subcomponente; el body principal deberia ser un switch de ~10 lineas |
-| BrewBar: previews bien cubiertos — 7 previews en PopoverView cubriendo todos los estados + locale; 4 en OutdatedListView; 2 en SettingsView | Conforme | — | `menubar/BrewBar/Sources/Views/PopoverView.swift`, `OutdatedListView.swift`, `SettingsView.swift` | — |
-| `NSAppleScript` en BrewBar hardcodea `"Terminal"` como nombre de la aplicacion de terminal — falla con iTerm2, Warp, Ghostty, Alacritty | No conforme | Alta | `menubar/BrewBar/Sources/Views/PopoverView.swift` — `tell application "Terminal" to do script "brew-tui"` | Leer la terminal preferida del usuario desde UserDefaults o NSUserDefaults; ofrecer picker en SettingsView con opciones Terminal/iTerm2/Warp/custom |
+| FE-13: `COLORS.ts` creado como fix pero nunca importado — 189 literales hex inline | No conforme | Media | `src/utils/colors.ts` — exporta `COLORS` con 8 tokens de color. Grep de importaciones: 0 resultados en los 71 archivos `.ts`/`.tsx` del proyecto. Los 12 archivos de vistas usan literales hex directos (ej. `color="#EF4444"`, `color="#22C55E"`, `color="#F59E0B"`). | Reemplazar sistematicamente los literales hex en los archivos de vistas por referencias a `COLORS.*`. Priorizar los colores mas frecuentes: `#EF4444` (error), `#22C55E` (success), `#F59E0B` (warning). Este cambio no afecta comportamiento pero es el objetivo declarado del fix. |
+| FE-14: Previews de TUI ausentes en vistas principales | No conforme | Baja | Ninguna vista en `src/views/` tiene `#Preview` o `PreviewProvider`. Ink TUI no soporta Xcode previews, pero la ausencia de storybooks o snapshots hace imposible la validacion visual automatica. | A nivel inmediato: documentar en README que los previews de TUI se validan ejecutando `npm run dev`. A nivel futuro: considerar `@inkjs/testing` o snapshots de texto para regresion de layout. |
 
 ---
 
@@ -479,40 +461,41 @@ El proyecto tiene dos codebases con filosofias de UI radicalmente distintas: la 
 
 | Severidad | Cantidad |
 |-----------|----------|
-| Critica   | 0 |
-| Alta      | 6 |
-| Media     | 9 |
-| Baja      | 7 |
+| Critica | 0 |
+| Alta | 0 |
+| Media | 2 |
+| Baja | 12 |
 
-**Total hallazgos no conformes:** 22
+**Total hallazgos no conformes:** 14
 
-### Indice de hallazgos por severidad
+### Indice de hallazgos
 
-**Alta:**
-1. `goBack()` con historial inutilizado — solo 1 nivel de back disponible (`src/stores/navigation-store.ts`)
-2. `SearchView`: errores de busqueda silenciados — usuario ve "no results" en lugar de mensaje de error (`src/views/search.tsx`)
-3. `MAX_VISIBLE_ROWS = 20` hardcodeado — desborde en terminales pequenas (`src/views/installed.tsx`, `history.tsx`, `outdated.tsx`)
-4. `GradientText`: 258 nodos React sin memo — re-render costoso en cada navegacion (`src/utils/gradient.tsx`)
-5. `setInterval` en `license-store.initialize()` sin guard — acumulacion de timers (`src/stores/license-store.ts:71`)
-6. 0 tests de UI — `ink-testing-library` instalada sin uso (`package.json`, `src/views/`)
-7. `NSAppleScript` hardcodea "Terminal" — falla con iTerm2, Warp, Ghostty (`menubar/.../PopoverView.swift`)
+| ID | Descripcion | Seccion | Severidad | Archivo principal |
+|----|-------------|---------|-----------|-------------------|
+| FE-01 | `package-info` en VIEWS pero ausente de TAB_VIEWS | 5.1 | Baja | `src/components/layout/header.tsx` |
+| FE-02 | `ProfilesView` 267 lineas con 7 modos inline sin descomposicion | 5.1 | Media | `src/views/profiles.tsx` |
+| FE-03 | `app.tsx` mezcla inicializacion de licencia con routing | 5.1 | Baja | `src/app.tsx` |
+| FE-04 | `AccountView` sin loading durante `status === 'validating'` | 5.3 | Baja | `src/views/account.tsx` |
+| FE-05 | `DashboardView` sin guard de carga para bloque `config` | 5.3 | Baja | `src/views/dashboard.tsx` |
+| FE-06 | `ServicesView` sin paginacion para listas largas | 5.3 | Baja | `src/views/services.tsx` |
+| FE-07 | BrewBar PopoverView frame fijo puede truncar texto con Dynamic Type grande | 5.4 | Baja | `menubar/BrewBar/Sources/Views/PopoverView.swift` |
+| FE-08 | `openBrewTUI()` silencia errores de lanzamiento con `try?` | 9.2 | Baja | `menubar/BrewBar/Sources/App/AppDelegate.swift` |
+| FE-09 | Clave composite en `ProgressLog` puede causar parpadeo | 10.1 | Baja | `src/components/common/progress-log.tsx` |
+| FE-10 | `key={j}` en lineas de warning en `DoctorView` | 10.1 | Baja | `src/views/doctor.tsx` |
+| FE-11 | `Task {}` anonimos en botones de BrewBar sin handle de cancelacion | 10.2 | Baja | `menubar/BrewBar/Sources/Views/OutdatedListView.swift` |
+| FE-12 | `.onAppear` en `DoctorView` sin cleanup de operacion async | 10.2 | Baja | `src/views/doctor.tsx` |
+| FE-13 | `COLORS.ts` creado pero nunca importado — 189 literales hex inline | 10.3 | Media | `src/utils/colors.ts` + todos los archivos de vistas |
+| FE-14 | Ausencia de previews/snapshots para vistas TUI | 10.3 | Baja | `src/views/` (todos) |
 
-**Media:**
-1. `app.tsx` mezcla routing, Pro gate, e inicializacion de licencia en un mismo componente
-2. `AccountView` muestra estado `'free'` antes de que la validacion de licencia complete
-3. `ServicesView`: accion `start` sin dialogo de confirmacion
-4. `padEnd()` con valores hardcodeados — layout roto en terminales < 80 cols
-5. `key={i}` en `DoctorView` — identidad inestable en lista de advertencias
-6. `key={i}` en `ProgressLog` — identidad inestable en buffer rolling de streaming
-7. `SecurityAuditView`: scan en mount sin cancelacion en unmount
-8. `ProfilesView`: body > 300 lineas con 7 modos anidados sin extraccion
-9. `useBrewStream` contiene logica de dominio (`detectAction`, `logToHistory`)
+### Fixes de v0.2.0 verificados como Conforme
 
-**Baja:**
-1. `package-info` requiere estado lateral `selectedPackage` — acoplamiento fragil en navegacion
-2. `UpgradePrompt` usa `width="80%"` sin guard de ancho minimo
-3. `useEffect` con dep array vacio — patron intencionado pero sin comentario explicativo
-4. `NSHostingController` creado nuevo en cada apertura del popover (BrewBar)
-5. `maskKey()` incrustada en AccountView — deberia estar en utils
-6. No hay skeleton views — transicion spinner → contenido es abrupta
-7. `SecurityAuditView` no cachea resultados de scan — re-escanea en cada apertura
+| Fix declarado | Estado | Evidencia |
+|---------------|--------|-----------|
+| `goBack()` hace pop del historial | Conforme | `src/stores/navigation-store.ts` — `viewHistory.slice(0, -1)` correcto |
+| `MAX_VISIBLE_ROWS` dinamico | Conforme | `src/views/installed.tsx`, `outdated.tsx`, `history.tsx` — `Math.max(5, (stdout?.rows ?? 24) - 8)` |
+| `GradientText` memoizado | Conforme | `src/utils/gradient.tsx` — `export const GradientText = React.memo(...)` |
+| Errores de busqueda visibles | Conforme | `src/views/search.tsx` — `{searchError && <Text color="#EF4444">{searchError}</Text>}` |
+| Errores de servicios visibles | Conforme | `src/views/services.tsx` — `serviceActionError` renderizado en UI |
+| Anchos de columna dinamicos | Conforme | `src/views/services.tsx` — `nameWidth` desde `stdout?.columns` |
+| Claves React estables | Conforme | Todas las vistas usan `name`, `id` (UUID), o composites significativos — no indices puros en listas de datos |
+| Archivo de tokens de color creado | Parcial | `src/utils/colors.ts` existe pero no tiene ninguna importacion — ver FE-13 |

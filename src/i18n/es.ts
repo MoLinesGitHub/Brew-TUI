@@ -188,6 +188,7 @@ const es: Translations = {
   profiles_title: 'Perfiles de Paquetes ({{count}})',
   profiles_importTitle: 'Importando perfil...',
   profiles_importComplete: 'Importaci\u00F3n completa. Presiona cualquier tecla.',
+  profiles_importPartial: 'Importaci\u00F3n finalizada con errores. Revisa el registro arriba.',
   profiles_createName: 'Crear Perfil \u2014 Nombre:',
   profiles_namePlaceholder: 'ej. trabajo, personal, proyecto-x',
   profiles_createDesc: 'Crear Perfil "{{name}}" \u2014 Descripci\u00F3n:',

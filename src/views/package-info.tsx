@@ -100,7 +100,10 @@ export function PackageInfoView() {
   useEffect(() => {
     if (!stream.isRunning && !stream.error && stream.lines.length > 0 && !hasRefreshed.current && packageName) {
       hasRefreshed.current = true;
-      api.getFormulaInfo(packageName)
+      const refreshFn = packageType === 'cask'
+        ? api.getCaskInfo(packageName).then((c) => c ? { ...c, installed: c.installed ? [{ version: c.installed }] : [] } as unknown as import('../lib/types.js').Formula : null)
+        : api.getFormulaInfo(packageName);
+      refreshFn
         .then((f) => { if (mountedRef.current) { setFormula(f); } })
         .catch(() => { /* ignore refresh errors */ });
     }

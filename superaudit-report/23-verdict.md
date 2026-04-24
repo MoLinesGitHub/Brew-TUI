@@ -20,7 +20,7 @@
 * **Hallazgos criticos:** 4 → **4 corregidos** (QA-001, QA-002, QA-003, REL-001)
 * **Hallazgos altos:** 21 → **21 corregidos**
 * **Hallazgos medios:** 36 → **36 corregidos**
-* **Hallazgos bajos:** 25 → **22 corregidos, 3 pendientes** (REL-005 screenshots, GOV-006 tuist verify, REL-003 stale strings)
+* **Hallazgos bajos:** 25 → **25 corregidos**
 * **Dominios auditados:** 14 de 14
 * **Fecha de correccion:** 2026-04-24
 * **Pantallas auditadas:** 15 (12 vistas TUI + 3 vistas SwiftUI de BrewBar)

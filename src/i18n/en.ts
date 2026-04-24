@@ -186,6 +186,7 @@ const en = {
   profiles_title: 'Package Profiles ({{count}})',
   profiles_importTitle: 'Importing profile...',
   profiles_importComplete: 'Import complete. Press any key.',
+  profiles_importPartial: 'Import finished with errors. Check the log above.',
   profiles_createName: 'Create Profile \u2014 Name:',
   profiles_namePlaceholder: 'e.g. work, personal, project-x',
   profiles_createDesc: 'Create Profile "{{name}}" \u2014 Description:',

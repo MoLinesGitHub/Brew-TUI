@@ -8,7 +8,6 @@ import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { t } from '../i18n/index.js';
 import { fetchWithTimeout } from './fetch-timeout.js';
-import { logger } from '../utils/logger.js';
 
 const execFileAsync = promisify(execFile);
 const BREWBAR_APP_PATH = '/Applications/BrewBar.app';
@@ -109,7 +108,9 @@ export async function installBrewBar(isPro: boolean, force = false): Promise<voi
       throw new Error(t('cli_brewbarDownloadFailed', { error: 'SHA-256 mismatch: binary may have been tampered with' }));
     }
   } else {
-    logger.warn('SHA-256 checksum not available for BrewBar download');
+    // NUEVO-003: Treat missing checksum as fatal — don't install unverified binaries
+    await rm(TMP_ZIP, { force: true }).catch(() => {});
+    throw new Error(t('cli_brewbarDownloadFailed', { error: 'SHA-256 checksum unavailable — cannot verify download integrity' }));
   }
 
   // Remove old app if force reinstall

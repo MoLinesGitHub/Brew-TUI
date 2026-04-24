@@ -5,6 +5,7 @@ struct PopoverView: View {
     let scheduler: SchedulerService
 
     @State private var showSettings = false
+    @State private var refreshTask: Task<Void, Never>?
     @Environment(\.legibilityWeight) private var legibilityWeight
     @Environment(\.colorSchemeContrast) private var colorSchemeContrast
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -38,6 +39,7 @@ struct PopoverView: View {
             footerView
         }
         .frame(width: 340, minHeight: 420)
+        .onDisappear { refreshTask?.cancel() }
         .sheet(isPresented: $showSettings) {
             SettingsView(scheduler: scheduler)
         }
@@ -60,11 +62,8 @@ struct PopoverView: View {
                     .frame(width: 16, height: 16)
             }
 
-            // Note: Task in button action cannot be replaced with .task modifier
-            // (.task fires on appear, not on tap). Consider storing Task handle
-            // for cancellation if the view can disappear mid-refresh.
             Button {
-                Task { await appState.refresh() }
+                refreshTask = Task { await appState.refresh() }
             } label: {
                 Image(systemName: "arrow.clockwise")
             }
@@ -96,7 +95,7 @@ struct PopoverView: View {
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
             Button("Retry") {
-                Task { await appState.refresh() }
+                refreshTask = Task { await appState.refresh() }
             }
             Spacer()
         }

@@ -57,7 +57,13 @@ function recordAttempt(success: boolean): void {
   }
 }
 
-// AES-256-GCM encryption secret — derived key via scrypt
+// SECURITY NOTE — Known architectural limitation (documented decision):
+// These constants are compiled into the npm bundle and can be extracted by any user
+// with `cat node_modules/.../license-manager.js`. The encryption protects against
+// casual filesystem access, not against a determined attacker with the bundle.
+// The primary defense is server-side revalidation (24h cycle via Polar.sh) and
+// machine binding (machineId in the encrypted envelope). Migrating to macOS Keychain
+// would eliminate this limitation but adds native dependency complexity.
 const ENCRYPTION_SECRET = 'brew-tui-license-aes256gcm-v1';
 const SCRYPT_SALT = 'brew-tui-salt-v1';
 
@@ -238,7 +244,7 @@ export function getDegradationLevel(license: LicenseData): DegradationLevel {
 
 // Layer 10: License key format validation
 function validateLicenseKey(key: string): void {
-  // LemonSqueezy keys are UUID-like: 8-4-4-4-12 hex chars or similar
+  // Polar keys are UUID-like: 8-4-4-4-12 hex chars or similar
   // Reject obviously invalid keys to avoid unnecessary API calls
   if (key.length < 10 || key.length > 100) {
     throw new Error('Invalid license key format');
@@ -284,7 +290,7 @@ export async function activate(key: string): Promise<LicenseData> {
 /**
  * Revalidate the license against the server.
  * This also serves as Layer 19 (telemetry): each validation call
- * allows LemonSqueezy to track activation count, last-seen timestamp,
+ * allows Polar to track activation count, last-seen timestamp,
  * and detect if the activation limit is exceeded (license sharing).
  */
 // EP-006: Detect if an error is a network error vs validation/contract error

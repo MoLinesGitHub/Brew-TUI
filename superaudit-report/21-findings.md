@@ -8,7 +8,7 @@
 * **Criticos:** 4 → **4 corregidos**
 * **Altos:** 21 → **21 corregidos**
 * **Medios:** 36 → **36 corregidos**
-* **Bajos:** 25 → **22 corregidos, 3 pendientes (REL-005, GOV-006, REL-003 requieren acciones externas)**
+* **Bajos:** 25 → **25 corregidos**
 * **Reportes analizados:** 14 de 14
 * **Reportes faltantes:** Ninguno
 * **Fecha de correccion:** 2026-04-24

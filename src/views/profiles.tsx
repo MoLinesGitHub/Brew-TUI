@@ -26,6 +26,7 @@ export function ProfilesView() {
   const [editDesc, setEditDesc] = useState('');
   const [importLines, setImportLines] = useState<string[]>([]);
   const [importRunning, setImportRunning] = useState(false);
+  const [importHadError, setImportHadError] = useState(false);
   const [importProfile, setImportProfile] = useState<Awaited<ReturnType<typeof manager.loadProfile>> | null>(null);
   const { openModal, closeModal } = useModalStore();
   const importGenRef = useRef<AsyncGenerator<string> | null>(null);
@@ -103,6 +104,7 @@ export function ProfilesView() {
     setMode('importing');
     setImportLines([]);
     setImportRunning(true);
+    setImportHadError(false);
     try {
       const isPro = useLicenseStore.getState().isPro();
       const gen = manager.importProfile(isPro, profile);
@@ -113,6 +115,7 @@ export function ProfilesView() {
       }
     } catch (err) {
       if (mountedRef.current) {
+        setImportHadError(true);
         setImportLines((prev) => [...prev, `${t('error_prefix')}${err instanceof Error ? err.message : err}`]);
       }
     } finally {
@@ -153,7 +156,7 @@ export function ProfilesView() {
         <ProgressLog lines={importLines} isRunning={importRunning} title={t('profiles_importTitle')} />
         {!importRunning && (
           <Box marginTop={1}>
-            <ResultBanner status="success" message={`\u2714 ${t('profiles_importComplete')}`} />
+            <ResultBanner status={importHadError ? 'error' : 'success'} message={importHadError ? t('profiles_importPartial') : `\u2714 ${t('profiles_importComplete')}`} />
           </Box>
         )}
       </Box>

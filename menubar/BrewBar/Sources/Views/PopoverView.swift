@@ -8,7 +8,6 @@ struct PopoverView: View {
     @State private var refreshTask: Task<Void, Never>?
     @Environment(\.legibilityWeight) private var legibilityWeight
     @Environment(\.colorSchemeContrast) private var colorSchemeContrast
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         VStack(spacing: 0) {
@@ -49,6 +48,7 @@ struct PopoverView: View {
         HStack {
             Image(systemName: "mug.fill")
                 .foregroundStyle(.secondary)
+                .accessibilityHidden(true)
             Text("Homebrew Updates")
                 .font(.headline)
                 .fontWeight(legibilityWeight == .bold ? .bold : .semibold)
@@ -90,6 +90,7 @@ struct PopoverView: View {
             Image(systemName: "exclamationmark.triangle.fill")
                 .font(.largeTitle)
                 .foregroundStyle(.yellow)
+                .accessibilityHidden(true)
             Text(message)
                 .font(.caption)
                 .foregroundStyle(.secondary)
@@ -109,6 +110,7 @@ struct PopoverView: View {
             Image(systemName: "checkmark.circle.fill")
                 .font(.largeTitle)
                 .foregroundStyle(colorSchemeContrast == .increased ? Color(red: 0, green: 0.6, blue: 0) : .green)
+                .accessibilityHidden(true)
             Text("All packages up to date")
                 .font(.headline)
                 .foregroundStyle(.secondary)
@@ -193,6 +195,7 @@ struct PopoverView: View {
         HStack(spacing: 6) {
             Image(systemName: "lock.fill")
                 .foregroundStyle(.orange)
+                .accessibilityHidden(true)
             Text(String(localized: "Pro license expired"))
                 .font(.caption)
                 .foregroundStyle(.orange)

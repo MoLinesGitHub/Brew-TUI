@@ -91,6 +91,11 @@ struct LicenseChecker {
         return .notFound
     }
 
+    /// Evaluate a license directly (for testing without filesystem access)
+    static func checkLicenseWith(_ license: LicenseData) -> LicenseStatus {
+        evaluate(license)
+    }
+
     // MARK: - Evaluation
 
     private static func evaluate(_ license: LicenseData) -> LicenseStatus {

@@ -81,6 +81,7 @@ struct OutdatedListView: View {
                 Image(systemName: "pin.fill")
                     .font(.caption)
                     .foregroundStyle(.orange)
+                    .accessibilityLabel(String(localized: "Pinned"))
             }
 
             // Note: Task in button action — .task modifier not applicable here
@@ -116,6 +117,7 @@ struct OutdatedListView: View {
                 Image(systemName: "lock.fill")
                     .font(.caption)
                     .foregroundStyle(.secondary)
+                    .accessibilityLabel(String(localized: "Upgrade not available — Pro license required"))
             }
         }
         .padding(.horizontal, 12)

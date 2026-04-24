@@ -111,4 +111,210 @@ struct BrewServiceTests {
         #expect(service.status == "started")
         #expect(service.user == "testuser")
     }
+
+    @Test("hasError is true for error status")
+    func hasError() {
+        let service = BrewService(name: "redis", status: "error", user: nil, file: nil, exitCode: 1)
+        #expect(service.hasError == true)
+        #expect(service.isRunning == false)
+    }
+
+    @Test("isRunning is true for started status")
+    func isRunning() {
+        let service = BrewService(name: "redis", status: "started", user: "root", file: nil, exitCode: 0)
+        #expect(service.isRunning == true)
+        #expect(service.hasError == false)
+    }
+}
+
+// MARK: - LicenseChecker Tests
+
+@Suite("LicenseChecker")
+struct LicenseCheckerTests {
+    @Test("parseDate handles ISO8601 with fractional seconds")
+    func parseDateFractional() {
+        // LicenseChecker.parseDate is private, so we test via evaluate indirectly
+        // by constructing LicenseData with known dates
+        let license = LicenseData(
+            key: "test-key",
+            instanceId: "inst-1",
+            status: "active",
+            customerEmail: "test@example.com",
+            customerName: "Test",
+            plan: "pro",
+            activatedAt: "2026-01-01T00:00:00.000Z",
+            expiresAt: nil,
+            lastValidatedAt: ISO8601DateFormatter().string(from: Date())
+        )
+        // A recently validated active license should be .pro
+        let result = LicenseChecker.checkLicenseWith(license)
+        switch result {
+        case .pro(let data):
+            #expect(data.key == "test-key")
+        default:
+            Issue.record("Expected .pro but got \(result)")
+        }
+    }
+
+    @Test("expired status returns .expired")
+    func expiredStatus() {
+        let license = LicenseData(
+            key: "test-key",
+            instanceId: "inst-1",
+            status: "revoked",
+            customerEmail: "test@example.com",
+            customerName: "Test",
+            plan: "pro",
+            activatedAt: "2026-01-01T00:00:00.000Z",
+            expiresAt: nil,
+            lastValidatedAt: ISO8601DateFormatter().string(from: Date())
+        )
+        let result = LicenseChecker.checkLicenseWith(license)
+        switch result {
+        case .expired:
+            break // expected
+        default:
+            Issue.record("Expected .expired but got \(result)")
+        }
+    }
+
+    @Test("past expiration date returns .expired")
+    func pastExpiration() {
+        let license = LicenseData(
+            key: "test-key",
+            instanceId: "inst-1",
+            status: "active",
+            customerEmail: "test@example.com",
+            customerName: "Test",
+            plan: "pro",
+            activatedAt: "2025-01-01T00:00:00.000Z",
+            expiresAt: "2025-06-01T00:00:00.000Z",
+            lastValidatedAt: ISO8601DateFormatter().string(from: Date())
+        )
+        let result = LicenseChecker.checkLicenseWith(license)
+        switch result {
+        case .expired:
+            break // expected
+        default:
+            Issue.record("Expected .expired but got \(result)")
+        }
+    }
+
+    @Test("30+ days since validation returns .expired")
+    func degradationExpired() {
+        let thirtyOneDaysAgo = Date().addingTimeInterval(-31 * 24 * 60 * 60)
+        let license = LicenseData(
+            key: "test-key",
+            instanceId: "inst-1",
+            status: "active",
+            customerEmail: "test@example.com",
+            customerName: "Test",
+            plan: "pro",
+            activatedAt: "2026-01-01T00:00:00.000Z",
+            expiresAt: nil,
+            lastValidatedAt: ISO8601DateFormatter().string(from: thirtyOneDaysAgo)
+        )
+        let result = LicenseChecker.checkLicenseWith(license)
+        switch result {
+        case .expired:
+            break // expected
+        default:
+            Issue.record("Expected .expired but got \(result)")
+        }
+    }
+}
+
+// MARK: - AppState Tests
+
+@Suite("AppState")
+struct AppStateTests {
+    @Test("outdatedCount reflects packages array")
+    @MainActor func outdatedCount() {
+        let state = AppState()
+        #expect(state.outdatedCount == 0)
+
+        state.outdatedPackages = [
+            OutdatedPackage(name: "wget", installedVersions: ["1.21"], currentVersion: "1.22", pinned: false, pinnedVersion: nil),
+            OutdatedPackage(name: "curl", installedVersions: ["8.0"], currentVersion: "8.1", pinned: false, pinnedVersion: nil),
+        ]
+        #expect(state.outdatedCount == 2)
+    }
+
+    @Test("errorServices filters by hasError")
+    @MainActor func errorServices() {
+        let state = AppState()
+        state.services = [
+            BrewService(name: "redis", status: "started", user: nil, file: nil, exitCode: 0),
+            BrewService(name: "mysql", status: "error", user: nil, file: nil, exitCode: 1),
+            BrewService(name: "nginx", status: "started", user: nil, file: nil, exitCode: 0),
+        ]
+        #expect(state.errorServices.count == 1)
+        #expect(state.errorServices[0].name == "mysql")
+    }
+
+    @Test("upgrade blocked when canUpgrade is false")
+    @MainActor func upgradeBlockedWithoutPro() async {
+        let state = AppState()
+        state.canUpgrade = false
+        await state.upgrade(package: "wget")
+        #expect(state.error != nil)
+        #expect(state.error?.contains("expired") == true || state.error?.contains("Pro") == true)
+    }
+
+    @Test("upgradeAll blocked when canUpgrade is false")
+    @MainActor func upgradeAllBlockedWithoutPro() async {
+        let state = AppState()
+        state.canUpgrade = false
+        await state.upgradeAll()
+        #expect(state.error != nil)
+    }
+
+    @Test("refresh guards against concurrent calls")
+    @MainActor func refreshGuard() async {
+        let state = AppState()
+        state.isLoading = true
+        // This should return immediately without changing state
+        await state.refresh()
+        // isLoading should still be true (the non-force path returned early)
+        #expect(state.isLoading == true)
+    }
+
+    @Test("lastSchedulerError reads from UserDefaults")
+    @MainActor func schedulerErrorPersistence() {
+        let state = AppState()
+        UserDefaults.standard.set(
+            ["message": "Test error", "date": "2026-04-24T10:00:00Z"],
+            forKey: "lastSchedulerError"
+        )
+        let error = state.lastSchedulerError
+        #expect(error?.message == "Test error")
+        #expect(error?.date == "2026-04-24T10:00:00Z")
+        // Cleanup
+        UserDefaults.standard.removeObject(forKey: "lastSchedulerError")
+    }
+}
+
+// MARK: - Data hex extension Tests
+
+@Suite("Data Hex Extension")
+struct DataHexTests {
+    @Test("valid hex string produces correct data")
+    func validHex() {
+        let data = Data(hexString: "48656c6c6f")
+        #expect(data != nil)
+        #expect(String(data: data!, encoding: .utf8) == "Hello")
+    }
+
+    @Test("empty hex string produces empty data")
+    func emptyHex() {
+        let data = Data(hexString: "")
+        #expect(data != nil)
+        #expect(data!.isEmpty)
+    }
+
+    @Test("invalid hex returns nil")
+    func invalidHex() {
+        let data = Data(hexString: "ZZZZ")
+        #expect(data == nil)
+    }
 }

@@ -1,14 +1,28 @@
-import { readFile, writeFile, rename } from 'node:fs/promises';
-import { randomBytes } from 'node:crypto';
+import { readFile, writeFile, rename, mkdir } from 'node:fs/promises';
+import { randomBytes, randomUUID } from 'node:crypto';
 import { join } from 'node:path';
+import { homedir } from 'node:os';
 import { DATA_DIR, ensureDataDirs } from '../data-dir.js';
 import { fetchWithTimeout } from '../fetch-timeout.js';
 import { logger } from '../../utils/logger.js';
 
+const MACHINE_ID_PATH = join(homedir(), '.brew-tui', 'machine-id');
+
+async function getMachineId(): Promise<string> {
+  try {
+    const id = (await readFile(MACHINE_ID_PATH, 'utf-8')).trim();
+    if (id) return id;
+  } catch { /* file doesn't exist yet */ }
+  const id = randomUUID();
+  await mkdir(join(homedir(), '.brew-tui'), { recursive: true, mode: 0o700 });
+  await writeFile(MACHINE_ID_PATH, id, { encoding: 'utf-8', mode: 0o600 });
+  return id;
+}
+
 const PROMO_PATH = join(DATA_DIR, 'promo.json');
 
 // Promo API endpoint (self-hosted or Polar webhook)
-const PROMO_API_URL = 'https://api.molinesdesigns.com/promo';
+const PROMO_API_URL = 'https://api.molinesdesigns.com/api/promo';
 
 export interface PromoCode {
   code: string;
@@ -107,21 +121,40 @@ export async function redeemPromoCode(code: string): Promise<{
   expiresAt?: string;
   error?: string;
 }> {
-  const validation = await validatePromoCode(code);
-  if (!validation.valid) {
-    return { success: false, error: validation.error };
+  const normalized = code.trim().toUpperCase();
+  const machineId = await getMachineId();
+
+  // Call backend to validate + redeem in one step
+  try {
+    const res = await fetchWithTimeout(`${PROMO_API_URL}/redeem`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code: normalized, machineId }),
+    }, 10_000);
+
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({})) as { error?: string };
+      return { success: false, error: body.error ?? 'Invalid or expired promo code' };
+    }
+
+    const data = await res.json() as { data: { expiresAt: string; type: string; durationDays: number } };
+    var serverExpiresAt = data.data.expiresAt;
+    var serverType = data.data.type as 'trial' | 'discount' | 'full';
+  } catch (err) {
+    logger.error('Promo redeem failed', { error: String(err) });
+    return { success: false, error: 'Could not reach promo server. Check your connection.' };
   }
 
+  // Save locally as well
   await ensureDataDirs();
 
   const redemption: PromoRedemption = {
-    code: code.trim().toUpperCase(),
+    code: normalized,
     redeemedAt: new Date().toISOString(),
-    expiresAt: new Date(Date.now() + (validation.durationDays! * 24 * 60 * 60 * 1000)).toISOString(),
-    type: validation.type!,
+    expiresAt: serverExpiresAt,
+    type: serverType,
   };
 
-  // Load existing redemptions
   let file: PromoFile = { version: 1, redemptions: [] };
   try {
     const raw = await readFile(PROMO_PATH, 'utf-8');

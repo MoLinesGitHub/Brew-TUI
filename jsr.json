@@ -1,6 +1,6 @@
 {
   "name": "@molines/brew-tui",
-  "version": "0.3.2",
+  "version": "0.3.3",
   "exports": "./build/index.js",
   "publish": {
     "include": [

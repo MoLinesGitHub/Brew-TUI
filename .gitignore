@@ -20,3 +20,7 @@ menubar/DerivedData/
 *.mobileprovision
 ExportOptions.plist
 AuthKey_*.p8
+BrewBar.app.zip
+BrewBar.app.zip.sha256
+BrewBar.dSYM.zip
+BrewBar.app.dSYM/

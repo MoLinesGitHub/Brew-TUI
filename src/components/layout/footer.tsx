@@ -20,7 +20,7 @@ const VIEW_HINT_DEFS: Record<ViewId, HintDef[]> = {
   'smart-cleanup': [['enter', 'hint_toggle'], ['c', 'hint_clean'], ['r', 'hint_refresh'], ['q', 'hint_quit']],
   history: [['/', 'hint_search'], ['enter', 'hint_replay'], ['f', 'hint_filter'], ['c', 'hint_clear'], ['q', 'hint_quit']],
   'security-audit': [['r', 'hint_scan'], ['enter', 'hint_details'], ['u', 'hint_upgrade'], ['q', 'hint_quit']],
-  account: [['d', 'hint_deactivate'], ['q', 'hint_quit']],
+  account: [['p', 'hint_promo'], ['d', 'hint_deactivate'], ['q', 'hint_quit']],
 };
 
 function HintItem({ def }: { def: HintDef }) {

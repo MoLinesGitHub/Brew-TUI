@@ -1,25 +1,41 @@
 import React, { useState } from 'react';
 import { Box, Text, useInput } from 'ink';
+import { TextInput } from '@inkjs/ui';
 import { useLicenseStore } from '../stores/license-store.js';
 import { ConfirmDialog } from '../components/common/confirm-dialog.js';
 import { Loading } from '../components/common/loading.js';
+import { ResultBanner } from '../components/common/result-banner.js';
 import { SectionHeader } from '../components/common/section-header.js';
 import { COLORS } from '../utils/colors.js';
 import { GRADIENTS } from '../utils/gradient.js';
 import { t } from '../i18n/index.js';
 import { formatDate } from '../utils/format.js';
+import { redeemPromoCode } from '../lib/license/promo.js';
 
 export function AccountView() {
   const { status, license, deactivate, degradation } = useLicenseStore();
   const [confirmDeactivate, setConfirmDeactivate] = useState(false);
   const [deactivating, setDeactivating] = useState(false);
   const [deactivateError, setDeactivateError] = useState<string | null>(null);
+  const [promoMode, setPromoMode] = useState(false);
+  const [promoLoading, setPromoLoading] = useState(false);
+  const [promoResult, setPromoResult] = useState<{ success: boolean; message: string } | null>(null);
 
-  useInput((input) => {
-    if (confirmDeactivate || deactivating) return;
+  useInput((input, key) => {
+    if (confirmDeactivate || deactivating || promoMode) {
+      if (key.escape && promoMode) {
+        setPromoMode(false);
+        setPromoResult(null);
+      }
+      return;
+    }
 
     if (input === 'd' && status === 'pro') {
       setConfirmDeactivate(true);
+    }
+    if (input === 'p') {
+      setPromoMode(true);
+      setPromoResult(null);
     }
   });
 
@@ -131,9 +147,51 @@ export function AccountView() {
         {deactivateError && <Text color={COLORS.error}>{deactivateError}</Text>}
       </Box>
 
-      <Box marginTop={2}>
+      {/* Promo code section */}
+      <Box flexDirection="column" marginTop={1} paddingLeft={2}>
+        {promoMode ? (
+          <Box flexDirection="column" gap={1}>
+            <Text bold color={COLORS.gold}>{t('account_promoTitle')}</Text>
+            {promoLoading ? (
+              <Text color={COLORS.sky}>{t('account_promoValidating')}</Text>
+            ) : (
+              <Box gap={1}>
+                <Text color={COLORS.muted}>{t('account_promoLabel')}</Text>
+                <TextInput
+                  defaultValue=""
+                  placeholder="BREW-XXXX-XXXX"
+                  onSubmit={async (value: string) => {
+                    if (!value.trim()) return;
+                    setPromoLoading(true);
+                    try {
+                      const result = await redeemPromoCode(value);
+                      if (result.success) {
+                        setPromoResult({ success: true, message: t('account_promoSuccess', { expires: formatDate(result.expiresAt!) }) });
+                      } else {
+                        setPromoResult({ success: false, message: result.error ?? t('account_promoInvalid') });
+                      }
+                    } catch {
+                      setPromoResult({ success: false, message: t('account_promoError') });
+                    } finally {
+                      setPromoLoading(false);
+                    }
+                  }}
+                />
+              </Box>
+            )}
+            {promoResult && (
+              <ResultBanner status={promoResult.success ? 'success' : 'error'} message={promoResult.message} />
+            )}
+            <Text color={COLORS.textSecondary} dimColor>{t('account_promoEsc')}</Text>
+          </Box>
+        ) : (
+          <Text color={COLORS.textSecondary}>{t('account_promoHint')}</Text>
+        )}
+      </Box>
+
+      <Box marginTop={1}>
         <Text color={COLORS.textSecondary}>
-          {status === 'pro' ? `d:${t('hint_deactivate')}` : ''}
+          {status === 'pro' ? `d ${t('hint_deactivate')}` : ''}
           {' '}{t('app_version', { version: process.env.APP_VERSION ?? '0.1.0' })}
         </Text>
       </Box>

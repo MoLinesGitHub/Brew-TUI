@@ -49,6 +49,7 @@ const en = {
   hint_force: 'force uninstall (ignore deps)',
   hint_rescan: 'rescan',
   hint_deactivate: 'deactivate',
+  hint_promo: 'promo code',
   hint_importProfile: 'import this profile',
   hint_lang: 'lang',
   hint_replay: 'replay',
@@ -263,6 +264,14 @@ const en = {
   account_licenseExpired: 'Your license has expired. Renew to continue using Pro features.',
   account_deactivating: 'Deactivating...',
   account_loading: 'Loading license status...',
+  account_promoTitle: 'Redeem Promo Code',
+  account_promoLabel: 'Code:',
+  account_promoValidating: 'Validating promo code...',
+  account_promoSuccess: 'Promo code redeemed! Pro access until {{expires}}.',
+  account_promoInvalid: 'Invalid or expired promo code.',
+  account_promoError: 'Could not validate promo code. Check your connection.',
+  account_promoEsc: 'esc: cancel',
+  account_promoHint: 'p: redeem promo code',
 
   // ── Upgrade Prompt ──
   upgrade_proFeature: '{{title}} \u2014 Pro Feature',

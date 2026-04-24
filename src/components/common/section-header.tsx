@@ -14,7 +14,7 @@ interface SectionHeaderProps {
 export function SectionHeader({ emoji, title, color = COLORS.gold, gradient, count }: SectionHeaderProps) {
   return (
     <Box gap={1}>
-      <Text>{emoji}</Text>
+      <Text>{emoji} </Text>
       {gradient ? (
         <GradientText colors={gradient} bold>{title}</GradientText>
       ) : (

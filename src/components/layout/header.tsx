@@ -67,23 +67,27 @@ export function Header() {
           </Box>
         ))}
       </Box>
+      <Text> </Text>
       <Box borderStyle="single" borderBottom borderLeft={false} borderRight={false} borderTop={false} borderColor={COLORS.gold} paddingX={1} flexWrap="wrap">
         {TAB_VIEWS.map((view, i) => {
           const key = VIEW_KEYS[view];
           const viewLabel = t(VIEW_LABEL_KEYS[view]);
-          const label = key ? `${key}:${viewLabel}` : viewLabel;
           const isPro = isProView(view);
+          const isActive = view === currentView;
+          const isAccount = view === 'account';
 
           return (
             <React.Fragment key={view}>
               {i > 0 && <Text color={COLORS.border}> {'\u2502'} </Text>}
-              <Text
-                bold={view === currentView}
-                color={view === currentView ? COLORS.success : COLORS.textSecondary}
-                underline={view === currentView}
-              >
-                {view === currentView ? `\u25CF ${label}` : label}
-              </Text>
+              {isActive && <Text color={COLORS.sky}>{'\u25CF'} </Text>}
+              {key ? (
+                <>
+                  <Text bold color="#FFFFFF">{key}</Text>
+                  <Text bold={isActive} underline={isActive} color={isActive ? COLORS.success : isAccount ? COLORS.gold : COLORS.textSecondary}> {viewLabel}</Text>
+                </>
+              ) : (
+                <Text bold={isActive} underline={isActive} color={isActive ? COLORS.success : isAccount ? COLORS.gold : COLORS.textSecondary}>{viewLabel}</Text>
+              )}
               {isPro && <Text color={COLORS.brand} bold> {t('pro_badge')}</Text>}
             </React.Fragment>
           );

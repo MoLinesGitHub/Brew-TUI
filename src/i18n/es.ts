@@ -51,6 +51,7 @@ const es: Translations = {
   hint_force: 'forzar (ignorar deps)',
   hint_rescan: 're-escanear',
   hint_deactivate: 'desactivar',
+  hint_promo: 'c\u00F3digo promo',
   hint_importProfile: 'importar este perfil',
   hint_lang: 'idioma',
   hint_replay: 'repetir',
@@ -265,6 +266,14 @@ const es: Translations = {
   account_licenseExpired: 'Tu licencia ha expirado. Renueva para seguir usando las funciones Pro.',
   account_deactivating: 'Desactivando...',
   account_loading: 'Cargando estado de la licencia...',
+  account_promoTitle: 'Canjear C\u00F3digo Promocional',
+  account_promoLabel: 'C\u00F3digo:',
+  account_promoValidating: 'Validando c\u00F3digo promocional...',
+  account_promoSuccess: '\u00A1C\u00F3digo canjeado! Acceso Pro hasta {{expires}}.',
+  account_promoInvalid: 'C\u00F3digo inv\u00E1lido o expirado.',
+  account_promoError: 'No se pudo validar el c\u00F3digo. Comprueba tu conexi\u00F3n.',
+  account_promoEsc: 'esc: cancelar',
+  account_promoHint: 'p: canjear c\u00F3digo promocional',
 
   // ── Upgrade Prompt ──
   upgrade_proFeature: '{{title}} \u2014 Funci\u00F3n Pro',

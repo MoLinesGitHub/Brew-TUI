@@ -7,17 +7,20 @@ import { StatCard } from '../components/common/stat-card.js';
 import { StatusBadge } from '../components/common/status-badge.js';
 import { ConfirmDialog } from '../components/common/confirm-dialog.js';
 import { ProgressLog } from '../components/common/progress-log.js';
+import { ResultBanner } from '../components/common/result-banner.js';
 import { SectionHeader } from '../components/common/section-header.js';
+import { COLORS } from '../utils/colors.js';
 import { GRADIENTS } from '../utils/gradient.js';
 import { t, tp } from '../i18n/index.js';
+import { formatRelativeTime } from '../utils/format.js';
 import type { Severity } from '../lib/security/types.js';
 
 const SEVERITY_COLORS: Record<Severity, string> = {
-  CRITICAL: '#EF4444',
-  HIGH: '#EF4444',
-  MEDIUM: '#F59E0B',
-  LOW: '#6B7280',
-  UNKNOWN: '#6B7280',
+  CRITICAL: COLORS.error,
+  HIGH: COLORS.error,
+  MEDIUM: COLORS.warning,
+  LOW: COLORS.textSecondary,
+  UNKNOWN: COLORS.textSecondary,
 };
 
 const SEVERITY_BADGE: Record<Severity, 'error' | 'warning' | 'muted'> = {
@@ -28,8 +31,13 @@ const SEVERITY_BADGE: Record<Severity, 'error' | 'warning' | 'muted'> = {
   UNKNOWN: 'muted',
 };
 
+// SCR-017: Detect network-related errors
+function isNetworkError(msg: string): boolean {
+  return /fetch failed|ECONNREFUSED|ENOTFOUND|ETIMEDOUT|network|abort/i.test(msg);
+}
+
 export function SecurityAuditView() {
-  const { summary, loading, error, scan } = useSecurityStore();
+  const { summary, loading, error, scan, cachedAt } = useSecurityStore();
   const [cursor, setCursor] = useState(0);
   const [expandedPkg, setExpandedPkg] = useState<string | null>(null);
   const [confirmUpgrade, setConfirmUpgrade] = useState<string | null>(null);
@@ -42,7 +50,8 @@ export function SecurityAuditView() {
   useInput((input, key) => {
     if (confirmUpgrade || stream.isRunning) return;
 
-    if (input === 'r') { void scan(); return; }
+    // ARQ-005: Manual refresh forces cache invalidation
+    if (input === 'r') { void scan(true); return; }
     if (input === 'u' && results[cursor]) {
       setConfirmUpgrade(results[cursor].packageName);
       return;
@@ -56,7 +65,15 @@ export function SecurityAuditView() {
   });
 
   if (loading) return <Loading message={t('loading_security')} />;
-  if (error) return <ErrorMessage message={error} />;
+
+  // SCR-017: Show user-friendly message for network errors
+  if (error) {
+    const displayError = isNetworkError(error) ? t('security_networkError') : error;
+    return <ErrorMessage message={displayError} />;
+  }
+
+  // ARQ-005: Show cache indicator
+  const cacheAge = cachedAt ? formatRelativeTime(cachedAt / 1000) : null;
 
   return (
     <Box flexDirection="column">
@@ -64,23 +81,26 @@ export function SecurityAuditView() {
 
       {summary && (
         <Box gap={1} marginY={1}>
-          <StatCard label={t('security_scanned')} value={summary.totalPackages} color="#06B6D4" />
+          <StatCard label={t('security_scanned')} value={summary.totalPackages} color={COLORS.info} />
           <StatCard
             label={t('security_vulnerable')}
             value={summary.vulnerablePackages}
-            color={summary.vulnerablePackages > 0 ? '#EF4444' : '#22C55E'}
+            color={summary.vulnerablePackages > 0 ? COLORS.error : COLORS.success}
           />
-          {summary.criticalCount > 0 && <StatCard label={t('security_critical')} value={summary.criticalCount} color="#EF4444" />}
-          {summary.highCount > 0 && <StatCard label={t('security_high')} value={summary.highCount} color="#EF4444" />}
-          {summary.mediumCount > 0 && <StatCard label={t('security_medium')} value={summary.mediumCount} color="#F59E0B" />}
+          {summary.criticalCount > 0 && <StatCard label={t('security_critical')} value={summary.criticalCount} color={COLORS.error} />}
+          {summary.highCount > 0 && <StatCard label={t('security_high')} value={summary.highCount} color={COLORS.error} />}
+          {summary.mediumCount > 0 && <StatCard label={t('security_medium')} value={summary.mediumCount} color={COLORS.warning} />}
         </Box>
+      )}
+
+      {/* ARQ-005: Cache indicator */}
+      {cacheAge && (
+        <Text color={COLORS.muted}>{t('security_cachedResults', { time: cacheAge })}</Text>
       )}
 
       {results.length === 0 && summary && (
         <Box marginTop={1}>
-          <Box borderStyle="round" borderColor="#22C55E" paddingX={2} paddingY={0}>
-            <Text color="#22C55E" bold>{'\u2714'} {t('security_noVulns')}</Text>
-          </Box>
+          <ResultBanner status="success" message={`\u2714 ${t('security_noVulns')}`} />
         </Box>
       )}
 
@@ -92,7 +112,7 @@ export function SecurityAuditView() {
               const name = confirmUpgrade;
               setConfirmUpgrade(null);
               await stream.run(['upgrade', name]);
-              void scan();
+              void scan(true);
             }}
             onCancel={() => setConfirmUpgrade(null)}
           />
@@ -114,14 +134,14 @@ export function SecurityAuditView() {
             return (
               <Box key={pkg.packageName} flexDirection="column">
                 <Box gap={1}>
-                  <Text color={isCurrent ? '#22C55E' : '#9CA3AF'}>{isCurrent ? '\u25B6' : ' '}</Text>
+                  <Text color={isCurrent ? COLORS.success : COLORS.muted}>{isCurrent ? '\u25B6' : ' '}</Text>
                   <StatusBadge label={pkg.maxSeverity} variant={SEVERITY_BADGE[pkg.maxSeverity]} />
-                  <Text bold={isCurrent} inverse={isCurrent} color={isCurrent ? '#F9FAFB' : '#9CA3AF'}>
+                  <Text bold={isCurrent} inverse={isCurrent} color={isCurrent ? COLORS.text : COLORS.muted}>
                     {pkg.packageName}
                   </Text>
-                  <Text color="#9CA3AF">{pkg.installedVersion}</Text>
-                  <Text color="#9CA3AF">{tp('plural_vulns', pkg.vulnerabilities.length)}</Text>
-                  <Text color="#9CA3AF">{isExpanded ? '\u25BC' : '\u25B6'}</Text>
+                  <Text color={COLORS.muted}>{pkg.installedVersion}</Text>
+                  <Text color={COLORS.muted}>{tp('plural_vulns', pkg.vulnerabilities.length)}</Text>
+                  <Text color={COLORS.muted}>{isExpanded ? '\u25BC' : '\u25B6'}</Text>
                 </Box>
 
                 {isExpanded && (
@@ -130,11 +150,11 @@ export function SecurityAuditView() {
                       <Box key={vuln.id} flexDirection="column" marginBottom={1}>
                         <Box gap={1}>
                           <Text color={SEVERITY_COLORS[vuln.severity]} bold>{vuln.id}</Text>
-                          <Text color="#9CA3AF">[{vuln.severity}]</Text>
+                          <Text color={COLORS.muted}>[{vuln.severity}]</Text>
                         </Box>
-                        <Text color="#9CA3AF" wrap="wrap">{vuln.summary}</Text>
+                        <Text color={COLORS.muted} wrap="wrap">{vuln.summary}</Text>
                         {vuln.fixedVersion && (
-                          <Text color="#22C55E">{t('security_fixedIn', { version: vuln.fixedVersion })}</Text>
+                          <Text color={COLORS.success}>{t('security_fixedIn', { version: vuln.fixedVersion })}</Text>
                         )}
                       </Box>
                     ))}
@@ -145,7 +165,7 @@ export function SecurityAuditView() {
           })}
 
           <Box marginTop={1}>
-            <Text color="#F9FAFB" bold>
+            <Text color={COLORS.text} bold>
               {cursor + 1}/{results.length}
             </Text>
           </Box>

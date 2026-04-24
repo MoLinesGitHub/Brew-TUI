@@ -4,6 +4,9 @@ struct OutdatedListView: View {
     let appState: AppState
     @State private var showUpgradeAllConfirm = false
     @State private var packageToConfirm: OutdatedPackage?
+    @State private var upgradeTask: Task<Void, Never>?
+    @Environment(\.legibilityWeight) private var legibilityWeight
+    @Environment(\.colorSchemeContrast) private var colorSchemeContrast
     private let installedVersionColor = Color.orange
     private let currentVersionColor = Color.cyan
 
@@ -12,7 +15,9 @@ struct OutdatedListView: View {
             HStack {
                 Text(String(format: String(localized: "%lld updates available"), Int64(appState.outdatedCount)))
                     .font(.subheadline)
+                    .fontWeight(legibilityWeight == .bold ? .bold : .regular)
                     .foregroundStyle(.secondary)
+                    .accessibilityAddTraits(.isHeader)
                 Spacer()
                 if appState.canUpgrade {
                     Button("Upgrade All") {
@@ -28,7 +33,7 @@ struct OutdatedListView: View {
                         titleVisibility: .visible
                     ) {
                         Button(String(localized: "Upgrade All"), role: .destructive) {
-                            Task { await appState.upgradeAll() }
+                            upgradeTask = Task { await appState.upgradeAll() }
                         }
                         Button(String(localized: "Cancel"), role: .cancel) {}
                     }
@@ -48,6 +53,7 @@ struct OutdatedListView: View {
                 }
             }
         }
+        .onDisappear { upgradeTask?.cancel() }
     }
 
     private func packageRow(_ pkg: OutdatedPackage) -> some View {
@@ -58,12 +64,13 @@ struct OutdatedListView: View {
                     .fontWeight(.medium)
                 HStack(spacing: 4) {
                     Text(pkg.installedVersion)
-                        .foregroundStyle(installedVersionColor)
+                        .foregroundStyle(colorSchemeContrast == .increased ? Color(red: 0.8, green: 0.4, blue: 0) : installedVersionColor)
                     Image(systemName: "arrow.right")
                         .font(.caption2)
                         .foregroundStyle(.secondary)
+                        .accessibilityHidden(true)
                     Text(pkg.currentVersion)
-                        .foregroundStyle(currentVersionColor)
+                        .foregroundStyle(colorSchemeContrast == .increased ? Color(red: 0, green: 0.5, blue: 0.7) : currentVersionColor)
                 }
                 .font(.caption)
             }
@@ -101,7 +108,7 @@ struct OutdatedListView: View {
                     titleVisibility: .visible
                 ) {
                     Button(String(localized: "Upgrade"), role: .destructive) {
-                        Task { await appState.upgrade(package: pkg.name) }
+                        upgradeTask = Task { await appState.upgrade(package: pkg.name) }
                     }
                     Button(String(localized: "Cancel"), role: .cancel) {}
                 }

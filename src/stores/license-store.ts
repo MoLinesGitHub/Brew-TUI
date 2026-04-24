@@ -8,8 +8,8 @@ import { initStoreIntegrity } from '../lib/license/anti-tamper.js';
 
 const REVALIDATION_CHECK_MS = 60 * 60 * 1000; // Check every hour
 
-// Module-level flag: prevents concurrent revalidation calls (initial + interval overlap)
-let _revalidating = false;
+// ARQ-002: Promise-based mutex for revalidation
+let _revalidatingPromise: Promise<void> | null = null;
 let _revalidationInterval: ReturnType<typeof setInterval> | null = null;
 
 interface LicenseState {
@@ -22,6 +22,20 @@ interface LicenseState {
   activate: (key: string) => Promise<boolean>;
   deactivate: () => Promise<void>;
   isPro: () => boolean;
+}
+
+async function doRevalidation(
+  license: LicenseData,
+  set: (partial: Partial<LicenseState>) => void,
+): Promise<void> {
+  const result = await manager.revalidate(license);
+  if (result === 'expired') {
+    set({ status: 'expired', license: { ...license, status: 'expired' }, degradation: 'expired' });
+  } else {
+    const updated = await manager.loadLicense();
+    const effective = updated ?? license;
+    set({ license: effective, degradation: getDegradationLevel(effective) });
+  }
 }
 
 export const useLicenseStore = create<LicenseState>((set, get) => ({
@@ -55,42 +69,23 @@ export const useLicenseStore = create<LicenseState>((set, get) => ({
     // Set Pro immediately (warning/limited still shown as pro, but pro-guard checks degradation)
     set({ status: 'pro', license, degradation: level });
 
-    if (manager.needsRevalidation(license) && !_revalidating) {
-      _revalidating = true;
-      try {
-        const result = await manager.revalidate(license);
-        if (result === 'expired') {
-          set({ status: 'expired', license: { ...license, status: 'expired' }, degradation: 'expired' });
-        } else {
-          const updated = await manager.loadLicense();
-          const effective = updated ?? license;
-          set({ license: effective, degradation: getDegradationLevel(effective) });
-        }
-      } finally {
-        _revalidating = false;
+    if (manager.needsRevalidation(license)) {
+      if (!_revalidatingPromise) {
+        _revalidatingPromise = doRevalidation(license, set)
+          .finally(() => { _revalidatingPromise = null; });
       }
+      await _revalidatingPromise;
     }
 
     // Periodically re-check license validity during the session
     if (_revalidationInterval) clearInterval(_revalidationInterval);
-    _revalidationInterval = setInterval(async () => {
+    _revalidationInterval = setInterval(() => {
       const current = get().license;
       if (!current || get().status !== 'pro') return;
       if (!manager.needsRevalidation(current)) return;
-      if (_revalidating) return;
-      _revalidating = true;
-      try {
-        const result = await manager.revalidate(current);
-        if (result === 'expired') {
-          set({ status: 'expired', license: { ...current, status: 'expired' }, degradation: 'expired' });
-        } else {
-          const updated = await manager.loadLicense();
-          const effective = updated ?? current;
-          set({ license: effective, degradation: getDegradationLevel(effective) });
-        }
-      } finally {
-        _revalidating = false;
-      }
+      if (_revalidatingPromise) return;
+      _revalidatingPromise = doRevalidation(current, set)
+        .finally(() => { _revalidatingPromise = null; });
     }, REVALIDATION_CHECK_MS);
     _revalidationInterval.unref();
   },

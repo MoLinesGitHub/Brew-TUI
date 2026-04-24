@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { Box, Text, useInput } from 'ink';
+import { COLORS } from '../../utils/colors.js';
 import { t, useLocaleStore } from '../../i18n/index.js';
 import { useModalStore } from '../../stores/modal-store.js';
 
@@ -26,12 +27,12 @@ export function ConfirmDialog({ message, onConfirm, onCancel }: ConfirmDialogPro
   });
 
   return (
-    <Box borderStyle="double" borderColor="#A855F7" paddingX={2} paddingY={1} flexDirection="column">
-      <Text bold color="#F9FAFB">{message}</Text>
+    <Box borderStyle="double" borderColor={COLORS.purple} paddingX={2} paddingY={1} flexDirection="column">
+      <Text bold color={COLORS.text}>{message}</Text>
       <Box marginTop={1}>
-        <Text color="#22C55E">{t('confirm_yes')}</Text>
+        <Text color={COLORS.success}>{t('confirm_yes')}</Text>
         <Text> / </Text>
-        <Text color="#EF4444">{t('confirm_no')}</Text>
+        <Text color={COLORS.error}>{t('confirm_no')}</Text>
       </Box>
     </Box>
   );

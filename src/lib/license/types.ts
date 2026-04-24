@@ -21,7 +21,7 @@ export interface LicenseFile {
 
 export type LicenseStatus = 'free' | 'pro' | 'expired' | 'validating';
 
-export interface LemonSqueezyActivateResponse {
+export interface PolarActivateResponse {
   activated: boolean;
   error: string | null;
   license_key: {
@@ -36,7 +36,7 @@ export interface LemonSqueezyActivateResponse {
   meta: { customer_name: string; customer_email: string };
 }
 
-export interface LemonSqueezyValidateResponse {
+export interface PolarValidateResponse {
   valid: boolean;
   error: string | null;
   license_key: {

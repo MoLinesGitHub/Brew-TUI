@@ -1,6 +1,7 @@
 import React from 'react';
 import { Box, Text } from 'ink';
 import { TextInput } from '@inkjs/ui';
+import { COLORS } from '../../utils/colors.js';
 import { t } from '../../i18n/index.js';
 
 interface SearchInputProps {
@@ -14,7 +15,7 @@ export function SearchInput({ defaultValue, onChange, placeholder, isActive = tr
   const resolvedPlaceholder = placeholder ?? t('searchInput_placeholder');
   return (
     <Box>
-      <Text color="#FFD700">{'\u{1F50D}'} </Text>
+      <Text color={COLORS.gold}>{'\u{1F50D}'} </Text>
       {isActive ? (
         <TextInput
           placeholder={resolvedPlaceholder}
@@ -22,7 +23,7 @@ export function SearchInput({ defaultValue, onChange, placeholder, isActive = tr
           onChange={onChange}
         />
       ) : (
-        <Text color="#6B7280">{defaultValue || placeholder}</Text>
+        <Text color={COLORS.textSecondary}>{defaultValue || placeholder}</Text>
       )}
     </Box>
   );

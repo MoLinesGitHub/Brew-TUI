@@ -1,9 +1,10 @@
 import React from 'react';
 import { createInterface } from 'node:readline/promises';
+import { rm } from 'node:fs/promises';
 import { render } from 'ink';
 import { App } from './app.js';
 import { activate, deactivate, loadLicense, revalidate } from './lib/license/license-manager.js';
-import { ensureDataDirs } from './lib/data-dir.js';
+import { ensureDataDirs, DATA_DIR } from './lib/data-dir.js';
 import { t } from './i18n/index.js';
 import { useLicenseStore } from './stores/license-store.js';
 import { formatDate } from './utils/format.js';
@@ -115,9 +116,10 @@ async function runCli() {
 
   if (command === 'install-brewbar') {
     await useLicenseStore.getState().initialize();
+    const isPro = useLicenseStore.getState().isPro();
     const { installBrewBar } = await import('./lib/brewbar-installer.js');
     try {
-      await installBrewBar(arg === '--force');
+      await installBrewBar(isPro, arg === '--force');
       console.log(t('cli_brewbarInstalled'));
     } catch (err) {
       console.error(err instanceof Error ? err.message : String(err));
@@ -135,6 +137,20 @@ async function runCli() {
       console.error(err instanceof Error ? err.message : String(err));
       process.exit(1);
     }
+    return;
+  }
+
+  // SEG-007: delete-account subcommand
+  if (command === 'delete-account') {
+    const rl = createInterface({ input: process.stdin, output: process.stdout });
+    const answer = await rl.question(t('delete_account_confirm') + ' (y/N): ');
+    rl.close();
+    if (answer.toLowerCase() !== 'y' && answer.toLowerCase() !== 's') {
+      console.log(t('cli_deactivateCancelled'));
+      return;
+    }
+    await rm(DATA_DIR, { recursive: true, force: true });
+    console.log(t('delete_account_success'));
     return;
   }
 

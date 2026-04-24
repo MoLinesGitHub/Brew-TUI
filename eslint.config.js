@@ -29,6 +29,9 @@ export default [
       '@typescript-eslint': tsPlugin,
     },
     rules: {
+      // Extend @typescript-eslint/recommended rules (GOV-005)
+      ...tsPlugin.configs.recommended.rules,
+      // Override specific rules after spreading recommended defaults
       'no-unused-vars': 'off',
       '@typescript-eslint/no-unused-vars': ['warn', { varsIgnorePattern: '^_', argsIgnorePattern: '^_' }],
       'no-undef': 'off', // TypeScript handles this

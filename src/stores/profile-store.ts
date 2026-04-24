@@ -16,6 +16,10 @@ interface ProfileState {
   updateProfile: (oldName: string, newName: string, newDescription: string) => Promise<void>;
 }
 
+function getIsPro(): boolean {
+  return useLicenseStore.getState().isPro();
+}
+
 export const useProfileStore = create<ProfileState>((set) => ({
   profileNames: [],
   selectedProfile: null,
@@ -24,14 +28,14 @@ export const useProfileStore = create<ProfileState>((set) => ({
 
   fetchProfiles: async () => {
     set({ loading: true });
-    const names = await manager.listProfiles();
+    const names = await manager.listProfiles(getIsPro());
     set({ profileNames: names, loading: false });
   },
 
   loadProfile: async (name) => {
     set({ loadError: null });
     try {
-      const profile = await manager.loadProfile(name);
+      const profile = await manager.loadProfile(getIsPro(), name);
       set({ selectedProfile: profile });
     } catch (err) {
       set({ loadError: err instanceof Error ? err.message : String(err) });
@@ -42,8 +46,8 @@ export const useProfileStore = create<ProfileState>((set) => ({
     set({ loading: true, loadError: null });
     try {
       const license = useLicenseStore.getState().license;
-      await manager.exportCurrentSetup(name, description, license);
-      const names = await manager.listProfiles();
+      await manager.exportCurrentSetup(getIsPro(), name, description, license);
+      const names = await manager.listProfiles(getIsPro());
       set({ profileNames: names, loading: false });
     } catch (err) {
       set({ loading: false, loadError: err instanceof Error ? err.message : String(err) });
@@ -52,17 +56,17 @@ export const useProfileStore = create<ProfileState>((set) => ({
   },
 
   deleteProfile: async (name) => {
-    await manager.deleteProfile(name);
-    const names = await manager.listProfiles();
+    await manager.deleteProfile(getIsPro(), name);
+    const names = await manager.listProfiles(getIsPro());
     set({ profileNames: names, selectedProfile: null });
   },
 
   updateProfile: async (oldName, newName, newDescription) => {
     set({ loadError: null });
     try {
-      await manager.updateProfile(oldName, newName, newDescription);
-      const names = await manager.listProfiles();
-      const updated = await manager.loadProfile(newName);
+      await manager.updateProfile(getIsPro(), oldName, newName, newDescription);
+      const names = await manager.listProfiles(getIsPro());
+      const updated = await manager.loadProfile(getIsPro(), newName);
       set({ profileNames: names, selectedProfile: updated });
     } catch (err) {
       set({ loadError: err instanceof Error ? err.message : String(err) });

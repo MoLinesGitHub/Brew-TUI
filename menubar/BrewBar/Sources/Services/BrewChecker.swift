@@ -1,4 +1,7 @@
 import Foundation
+import os
+
+private let brewCheckerLogger = Logger(subsystem: "com.molinesdesigns.brewbar", category: "BrewChecker")
 
 struct BrewChecker: Sendable {
     /// Resolved at init time so every call uses the same executable.
@@ -19,7 +22,8 @@ struct BrewChecker: Sendable {
     private static let processTimeout: TimeInterval = 60 // seconds
 
     private func run(_ arguments: [String]) async throws -> Data {
-        try await withCheckedThrowingContinuation { continuation in
+        brewCheckerLogger.info("Running brew \(arguments.joined(separator: " "), privacy: .public)")
+        return try await withCheckedThrowingContinuation { continuation in
             let process = Process()
             let pipe = Pipe()
 
@@ -67,16 +71,20 @@ struct BrewChecker: Sendable {
             do {
                 try process.run()
             } catch let error as CocoaError where error.code == .fileNoSuchFile || error.code == .fileReadNoSuchFile {
+                brewCheckerLogger.error("Homebrew not found at \(self.brewPath, privacy: .public)")
                 guard_.resume(with: .failure(BrewError.brewNotInstalled))
                 return
             } catch {
+                brewCheckerLogger.error("Failed to launch brew: \(error.localizedDescription, privacy: .public)")
                 guard_.resume(with: .failure(error))
                 return
             }
 
             // Timeout: kill the process if it takes too long
-            DispatchQueue.global().asyncAfter(deadline: .now() + Self.processTimeout) {
+            Task {
+                try? await Task.sleep(for: .seconds(Self.processTimeout))
                 if process.isRunning {
+                    brewCheckerLogger.error("brew command timed out after \(Self.processTimeout, privacy: .public)s")
                     process.terminate()
                     guard_.resume(with: .failure(BrewError.timeout))
                 }
@@ -85,21 +93,31 @@ struct BrewChecker: Sendable {
     }
 
     func checkOutdated() async throws -> OutdatedResponse {
+        brewCheckerLogger.info("Checking for outdated packages")
         let data = try await run(["outdated", "--json=v2"])
-        return try JSONDecoder().decode(OutdatedResponse.self, from: data)
+        let result = try JSONDecoder().decode(OutdatedResponse.self, from: data)
+        brewCheckerLogger.info("Found \(result.formulae.count + result.casks.count) outdated packages")
+        return result
     }
 
     func checkServices() async throws -> [BrewService] {
+        brewCheckerLogger.info("Checking services")
         let data = try await run(["services", "list", "--json"])
-        return try JSONDecoder().decode([BrewService].self, from: data)
+        let result = try JSONDecoder().decode([BrewService].self, from: data)
+        brewCheckerLogger.info("Found \(result.count) services")
+        return result
     }
 
     func upgradePackage(_ name: String) async throws {
+        brewCheckerLogger.info("Upgrading package: \(name, privacy: .public)")
         _ = try await run(["upgrade", name])
+        brewCheckerLogger.info("Successfully upgraded \(name, privacy: .public)")
     }
 
     func upgradeAll() async throws {
+        brewCheckerLogger.info("Upgrading all packages")
         _ = try await run(["upgrade"])
+        brewCheckerLogger.info("Successfully upgraded all packages")
     }
 }
 

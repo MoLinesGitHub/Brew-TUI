@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import type { HistoryEntry, HistoryAction } from '../lib/history/types.js';
-import * as logger from '../lib/history/history-logger.js';
+import * as historyLogger from '../lib/history/history-logger.js';
+import { useLicenseStore } from './license-store.js';
 
 interface HistoryState {
   entries: HistoryEntry[];
@@ -20,7 +21,8 @@ export const useHistoryStore = create<HistoryState>((set) => ({
   fetchHistory: async () => {
     set({ loading: true, error: null });
     try {
-      const entries = await logger.loadHistory();
+      const isPro = useLicenseStore.getState().isPro();
+      const entries = await historyLogger.loadHistory(isPro);
       set({ entries, loading: false });
     } catch (err) {
       set({ loading: false, error: err instanceof Error ? err.message : String(err) });
@@ -28,13 +30,15 @@ export const useHistoryStore = create<HistoryState>((set) => ({
   },
 
   logAction: async (action, packageName, success, error = null) => {
-    await logger.appendEntry(action, packageName, success, error);
-    const entries = await logger.loadHistory();
+    const isPro = useLicenseStore.getState().isPro();
+    await historyLogger.appendEntry(isPro, action, packageName, success, error);
+    const entries = await historyLogger.loadHistory(isPro);
     set({ entries });
   },
 
   clearHistory: async () => {
-    await logger.clearHistory();
+    const isPro = useLicenseStore.getState().isPro();
+    await historyLogger.clearHistory(isPro);
     set({ entries: [] });
   },
 }));

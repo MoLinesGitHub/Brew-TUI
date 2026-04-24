@@ -1,18 +1,20 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Box, Text, useInput } from 'ink';
-import { TextInput } from '@inkjs/ui';
+import { Box, useInput } from 'ink';
 import { useProfileStore } from '../stores/profile-store.js';
+import { useLicenseStore } from '../stores/license-store.js';
 import { Loading } from '../components/common/loading.js';
 import { ConfirmDialog } from '../components/common/confirm-dialog.js';
 import { ProgressLog } from '../components/common/progress-log.js';
-import { SectionHeader } from '../components/common/section-header.js';
-import { GRADIENTS } from '../utils/gradient.js';
+import { ResultBanner } from '../components/common/result-banner.js';
 import { t } from '../i18n/index.js';
 import { useModalStore } from '../stores/modal-store.js';
-import { formatDate } from '../utils/format.js';
 import * as manager from '../lib/profiles/profile-manager.js';
+import { ProfileListMode } from './profiles/profile-list-mode.js';
+import { ProfileDetailMode } from './profiles/profile-detail-mode.js';
+import { ProfileCreateName, ProfileCreateDesc } from './profiles/profile-create-flow.js';
+import { ProfileEditName, ProfileEditDesc } from './profiles/profile-edit-flow.js';
 
-type Mode = 'list' | 'detail' | 'create-name' | 'create-desc' | 'importing' | 'edit-name' | 'edit-desc';
+type Mode = 'list' | 'detail' | 'create-name' | 'create-desc' | 'confirm-import' | 'importing' | 'edit-name' | 'edit-desc';
 
 export function ProfilesView() {
   const { profileNames, selectedProfile, loading, loadError, fetchProfiles, loadProfile, exportCurrent, deleteProfile, updateProfile } = useProfileStore();
@@ -24,15 +26,13 @@ export function ProfilesView() {
   const [editDesc, setEditDesc] = useState('');
   const [importLines, setImportLines] = useState<string[]>([]);
   const [importRunning, setImportRunning] = useState(false);
+  const [importProfile, setImportProfile] = useState<Awaited<ReturnType<typeof manager.loadProfile>> | null>(null);
   const { openModal, closeModal } = useModalStore();
-  // Holds the active import generator so it can be cancelled on unmount,
-  // which terminates the underlying brew child process via streamBrew's finally block.
   const importGenRef = useRef<AsyncGenerator<string> | null>(null);
   const mountedRef = useRef(true);
 
   useEffect(() => { fetchProfiles(); }, []);
 
-  // Cancel any in-flight import when this view unmounts.
   useEffect(() => {
     mountedRef.current = true;
     return () => {
@@ -42,11 +42,8 @@ export function ProfilesView() {
     };
   }, []);
 
-  // Suppress global keys while in any sub-panel so Escape/q/numbers don't
-  // navigate away while the user is typing a name, typing a description,
-  // viewing detail, or watching an import stream.
   useEffect(() => {
-    if (mode === 'detail' || mode === 'create-name' || mode === 'create-desc' || mode === 'importing' || mode === 'edit-name' || mode === 'edit-desc') {
+    if (mode !== 'list') {
       openModal();
       return () => { closeModal(); };
     }
@@ -64,7 +61,7 @@ export function ProfilesView() {
       return;
     }
     if (input === 'i' && profileNames[cursor]) {
-      void startImport(profileNames[cursor]);
+      void prepareImport(profileNames[cursor]);
       return;
     }
 
@@ -84,18 +81,31 @@ export function ProfilesView() {
     }
   }, { isActive: mode === 'detail' });
 
-  // Allow dismissing the import-complete screen with any key
   useInput(() => {
     setMode('list');
   }, { isActive: mode === 'importing' && !importRunning });
 
-  const startImport = async (name: string) => {
+  // SCR-005: Show import summary before starting
+  const prepareImport = async (name: string) => {
+    try {
+      const isPro = useLicenseStore.getState().isPro();
+      const profile = await manager.loadProfile(isPro, name);
+      setImportProfile(profile);
+      setMode('confirm-import');
+    } catch (err) {
+      setImportLines([`${t('error_prefix')}${err instanceof Error ? err.message : err}`]);
+      setMode('importing');
+      setImportRunning(false);
+    }
+  };
+
+  const startImport = async (profile: Awaited<ReturnType<typeof manager.loadProfile>>) => {
     setMode('importing');
     setImportLines([]);
     setImportRunning(true);
     try {
-      const profile = await manager.loadProfile(name);
-      const gen = manager.importProfile(profile);
+      const isPro = useLicenseStore.getState().isPro();
+      const gen = manager.importProfile(isPro, profile);
       importGenRef.current = gen;
       for await (const line of gen) {
         if (!mountedRef.current) break;
@@ -115,15 +125,35 @@ export function ProfilesView() {
 
   if (loading) return <Loading message={t('loading_profiles')} />;
 
+  if (mode === 'confirm-import' && importProfile) {
+    return (
+      <Box flexDirection="column">
+        <ConfirmDialog
+          message={t('profiles_importSummary', {
+            formulae: String(importProfile.formulae.length),
+            casks: String(importProfile.casks.length),
+          })}
+          onConfirm={() => {
+            const profile = importProfile;
+            setImportProfile(null);
+            void startImport(profile);
+          }}
+          onCancel={() => {
+            setImportProfile(null);
+            setMode('list');
+          }}
+        />
+      </Box>
+    );
+  }
+
   if (mode === 'importing') {
     return (
       <Box flexDirection="column">
         <ProgressLog lines={importLines} isRunning={importRunning} title={t('profiles_importTitle')} />
         {!importRunning && (
           <Box marginTop={1}>
-            <Box borderStyle="round" borderColor="#22C55E" paddingX={2} paddingY={0}>
-              <Text color="#22C55E" bold>{'\u2714'} {t('profiles_importComplete')}</Text>
-            </Box>
+            <ResultBanner status="success" message={`\u2714 ${t('profiles_importComplete')}`} />
           </Box>
         )}
       </Box>
@@ -131,138 +161,60 @@ export function ProfilesView() {
   }
 
   if (mode === 'create-name') {
-    return (
-      <Box flexDirection="column">
-        <Text bold>{t('profiles_createName')}</Text>
-        <TextInput
-          placeholder={t('profiles_namePlaceholder')}
-          onSubmit={(val) => { setNewName(val); setMode('create-desc'); }}
-        />
-      </Box>
-    );
+    return <ProfileCreateName onSubmit={(val) => { setNewName(val); setMode('create-desc'); }} />;
   }
 
   if (mode === 'create-desc') {
     return (
-      <Box flexDirection="column">
-        <Text bold>{t('profiles_createDesc', { name: newName })}</Text>
-        {loadError && <Text color="#EF4444">{t('error_prefix')}{loadError}</Text>}
-        <TextInput
-          placeholder={t('profiles_descPlaceholder')}
-          onSubmit={async (val) => {
-            try {
-              await exportCurrent(newName, val);
-            } finally {
-              setMode('list');
-              setNewName('');
-            }
-          }}
-        />
-      </Box>
+      <ProfileCreateDesc
+        name={newName}
+        loadError={loadError}
+        onSubmit={async (val) => {
+          try {
+            await exportCurrent(newName, val);
+          } finally {
+            setMode('list');
+            setNewName('');
+          }
+        }}
+      />
     );
   }
 
   if (mode === 'edit-name') {
-    return (
-      <Box flexDirection="column">
-        <Text bold>{t('profiles_editName')}</Text>
-        <TextInput
-          defaultValue={editName}
-          onSubmit={(val) => { setEditName(val); setMode('edit-desc'); }}
-        />
-      </Box>
-    );
+    return <ProfileEditName defaultName={editName} onSubmit={(val) => { setEditName(val); setMode('edit-desc'); }} />;
   }
 
   if (mode === 'edit-desc') {
     return (
-      <Box flexDirection="column">
-        <Text bold>{t('profiles_editDesc', { name: editName })}</Text>
-        {loadError && <Text color="#EF4444">{t('error_prefix')}{loadError}</Text>}
-        <TextInput
-          defaultValue={editDesc}
-          onSubmit={async (val) => {
-            if (selectedProfile) {
-              await updateProfile(selectedProfile.name, editName, val);
-            }
-            setMode('detail');
-            setEditName('');
-            setEditDesc('');
-          }}
-        />
-      </Box>
+      <ProfileEditDesc
+        name={editName}
+        defaultDesc={editDesc}
+        loadError={loadError}
+        onSubmit={async (val) => {
+          if (selectedProfile) {
+            await updateProfile(selectedProfile.name, editName, val);
+          }
+          setMode('detail');
+          setEditName('');
+          setEditDesc('');
+        }}
+      />
     );
   }
 
   if (mode === 'detail' && selectedProfile) {
-    return (
-      <Box flexDirection="column">
-        <Text bold color="#FFD700">{selectedProfile.name}</Text>
-        <Text color="#9CA3AF">{selectedProfile.description}</Text>
-        <Text color="#9CA3AF">{t('profiles_created', { date: formatDate(selectedProfile.createdAt) })}</Text>
-        <Box marginTop={1} flexDirection="column">
-          <Text bold>{t('profiles_formulaeCount', { count: selectedProfile.formulae.length })}</Text>
-          <Box paddingLeft={2} flexDirection="column">
-            {selectedProfile.formulae.slice(0, 30).map((f) => (
-              <Text key={f} color="#9CA3AF">{f}</Text>
-            ))}
-            {selectedProfile.formulae.length > 30 && (
-              <Text color="#6B7280" italic>{t('common_andMore', { count: selectedProfile.formulae.length - 30 })}</Text>
-            )}
-          </Box>
-          <Text bold>{t('profiles_casksCount', { count: selectedProfile.casks.length })}</Text>
-          <Box paddingLeft={2} flexDirection="column">
-            {selectedProfile.casks.map((c) => (
-              <Text key={c} color="#9CA3AF">{c}</Text>
-            ))}
-          </Box>
-        </Box>
-        <Box marginTop={1}>
-          <Text color="#6B7280">esc:{t('hint_back')} e:{t('hint_edit')} i:{t('hint_importProfile')}</Text>
-        </Box>
-      </Box>
-    );
+    return <ProfileDetailMode profile={selectedProfile} />;
   }
 
   return (
-    <Box flexDirection="column">
-      <SectionHeader emoji={'\u{1F4C1}'} title={t('profiles_title', { count: profileNames.length })} gradient={GRADIENTS.gold} />
-
-      {confirmDelete && profileNames[cursor] && (
-        <Box marginY={1}>
-          <ConfirmDialog
-            message={t('profiles_confirmDelete', { name: profileNames[cursor] })}
-            onConfirm={() => { void deleteProfile(profileNames[cursor]); setConfirmDelete(false); }}
-            onCancel={() => setConfirmDelete(false)}
-          />
-        </Box>
-      )}
-
-      {profileNames.length === 0 && !confirmDelete && (
-        <Box marginTop={1} borderStyle="round" borderColor="#6B7280" paddingX={2} paddingY={0}>
-          <Box flexDirection="column">
-            <Text color="#6B7280" italic>{t('profiles_noProfiles')}</Text>
-            <Text color="#9CA3AF">{t('profiles_press')} <Text color="#FFD700" bold>n</Text> {t('profiles_exportHint')}</Text>
-          </Box>
-        </Box>
-      )}
-
-      {profileNames.length > 0 && !confirmDelete && (
-        <Box flexDirection="column" marginTop={1}>
-          {profileNames.map((name, i) => {
-            const isCurrent = i === cursor;
-            return (
-              <Box key={name} gap={1}>
-                <Text color={isCurrent ? '#22C55E' : '#9CA3AF'}>{isCurrent ? '\u25B6' : ' '}</Text>
-                <Text bold={isCurrent} inverse={isCurrent}>{name}</Text>
-              </Box>
-            );
-          })}
-          <Box marginTop={1}>
-            <Text color="#F9FAFB" bold>{cursor + 1}/{profileNames.length}</Text>
-          </Box>
-        </Box>
-      )}
-    </Box>
+    <ProfileListMode
+      profileNames={profileNames}
+      cursor={cursor}
+      confirmDelete={confirmDelete}
+      loadError={loadError}
+      onConfirmDelete={() => { void deleteProfile(profileNames[cursor]); setConfirmDelete(false); }}
+      onCancelDelete={() => setConfirmDelete(false)}
+    />
   );
 }

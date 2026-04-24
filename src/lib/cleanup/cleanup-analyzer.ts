@@ -2,8 +2,6 @@ import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { execBrew } from '../brew-cli.js';
 import { formatBytes } from '../../utils/format.js';
-import { requirePro } from '../license/pro-guard.js';
-import { useLicenseStore } from '../../stores/license-store.js';
 import type { Formula } from '../types.js';
 import type { CleanupCandidate, CleanupSummary } from './types.js';
 
@@ -29,11 +27,11 @@ async function getCellarPath(name: string): Promise<string | null> {
 }
 
 export async function analyzeCleanup(
+  isPro: boolean,
   formulae: Formula[],
   leaves: string[],
 ): Promise<CleanupSummary> {
-  const { license, status } = useLicenseStore.getState();
-  requirePro(license, status);
+  if (!isPro) throw new Error('Pro license required');
 
   const leavesSet = new Set(leaves);
 

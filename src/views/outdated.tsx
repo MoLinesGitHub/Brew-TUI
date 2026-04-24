@@ -2,13 +2,15 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Box, Text, useInput, useStdout } from 'ink';
 import { useBrewStore } from '../stores/brew-store.js';
 import { useBrewStream } from '../hooks/use-brew-stream.js';
-import { execBrew } from '../lib/brew-cli.js';
+import { pinPackage, unpinPackage } from '../lib/brew-api.js';
 import { Loading, ErrorMessage } from '../components/common/loading.js';
 import { StatusBadge } from '../components/common/status-badge.js';
 import { ProgressLog } from '../components/common/progress-log.js';
 import { ConfirmDialog } from '../components/common/confirm-dialog.js';
+import { ResultBanner } from '../components/common/result-banner.js';
 import { SectionHeader } from '../components/common/section-header.js';
 import { VersionArrow } from '../components/common/version-arrow.js';
+import { COLORS } from '../utils/colors.js';
 import { GRADIENTS } from '../utils/gradient.js';
 import { t } from '../i18n/index.js';
 
@@ -61,8 +63,9 @@ export function OutdatedView() {
     } else if (input === 'A' && allOutdated.length > 0) {
       setConfirmAction({ type: 'all' });
     } else if (input === 'p' && allOutdated[cursor]) {
+      // ARQ-008: Use brew-api functions instead of direct execBrew
       const pkg = allOutdated[cursor];
-      void execBrew([pkg.pinned ? 'unpin' : 'pin', pkg.name]).then(() => void fetchOutdated());
+      void (pkg.pinned ? unpinPackage(pkg.name) : pinPackage(pkg.name)).then(() => void fetchOutdated());
       return;
     } else if (input === 'r') {
       void fetchOutdated();
@@ -86,22 +89,27 @@ export function OutdatedView() {
           title={t('outdated_upgrading')}
         />
         {stream.isRunning && (
-          <Text color="#6B7280">esc:{t('hint_cancel')}</Text>
+          <Text color={COLORS.textSecondary}>esc:{t('hint_cancel')}</Text>
         )}
         {!stream.isRunning && (
           <Box flexDirection="column" marginTop={1}>
-            <Box borderStyle="round" borderColor={stream.error ? '#EF4444' : '#22C55E'} paddingX={2} paddingY={0}>
-              <Text color={stream.error ? '#EF4444' : '#22C55E'} bold>
+            <Box borderStyle="round" borderColor={stream.error ? COLORS.error : COLORS.success} paddingX={2} paddingY={0}>
+              <Text color={stream.error ? COLORS.error : COLORS.success} bold>
                 {stream.error ? `\u2718 ${stream.error}` : `\u2714 ${t('outdated_upgradeComplete')}`}
               </Text>
-              <Text color="#9CA3AF"> {t('outdated_pressRefresh')}</Text>
+              <Text color={COLORS.muted}> {t('outdated_pressRefresh')}</Text>
             </Box>
-            <Text color="#6B7280">r:{t('hint_refresh')} esc:{t('hint_clear')}</Text>
+            <Text color={COLORS.textSecondary}>r:{t('hint_refresh')} esc:{t('hint_clear')}</Text>
           </Box>
         )}
       </Box>
     );
   }
+
+  // SCR-012: Build package list for upgrade-all confirmation
+  const upgradeAllMessage = confirmAction?.type === 'all'
+    ? `${t('outdated_confirmAll', { count: allOutdated.length })}\n${t('outdated_upgradeAllList', { list: allOutdated.map(p => p.name).join(', ') })}`
+    : '';
 
   return (
     <Box flexDirection="column">
@@ -112,7 +120,7 @@ export function OutdatedView() {
           <ConfirmDialog
             message={
               confirmAction.type === 'all'
-                ? t('outdated_confirmAll', { count: allOutdated.length })
+                ? upgradeAllMessage
                 : t('outdated_confirmSingle', { name: confirmAction.type === 'single' ? confirmAction.name : '' })
             }
             onConfirm={() => {
@@ -131,24 +139,22 @@ export function OutdatedView() {
 
       {allOutdated.length === 0 && !confirmAction && (
         <Box marginTop={1}>
-          <Box borderStyle="round" borderColor="#22C55E" paddingX={2} paddingY={0}>
-            <Text color="#22C55E" bold>{'\u2714'} {t('outdated_upToDate')}</Text>
-          </Box>
+          <ResultBanner status="success" message={`\u2714 ${t('outdated_upToDate')}`} />
         </Box>
       )}
 
       {allOutdated.length > 0 && !confirmAction && (
         <Box flexDirection="column" marginTop={1}>
           {start > 0 && (
-            <Text color="#6B7280" dimColor>  {t('scroll_moreAbove', { count: start })}</Text>
+            <Text color={COLORS.textSecondary} dimColor>  {t('scroll_moreAbove', { count: start })}</Text>
           )}
           {visible.map((pkg, i) => {
             const idx = start + i;
             const isCurrent = idx === cursor;
             return (
               <Box key={pkg.name} gap={1}>
-                <Text color={isCurrent ? '#22C55E' : '#9CA3AF'}>{isCurrent ? '\u25B6' : ' '}</Text>
-                <Text bold={isCurrent} inverse={isCurrent} color={isCurrent ? '#F9FAFB' : '#9CA3AF'}>
+                <Text color={isCurrent ? COLORS.success : COLORS.muted}>{isCurrent ? '\u25B6' : ' '}</Text>
+                <Text bold={isCurrent} inverse={isCurrent} color={isCurrent ? COLORS.text : COLORS.muted}>
                   {pkg.name}
                 </Text>
                 <VersionArrow current={pkg.installed_versions[0] ?? ''} latest={pkg.current_version} />
@@ -157,11 +163,11 @@ export function OutdatedView() {
             );
           })}
           {start + MAX_VISIBLE_ROWS < allOutdated.length && (
-            <Text color="#6B7280" dimColor>  {t('scroll_moreBelow', { count: allOutdated.length - start - MAX_VISIBLE_ROWS })}</Text>
+            <Text color={COLORS.textSecondary} dimColor>  {t('scroll_moreBelow', { count: allOutdated.length - start - MAX_VISIBLE_ROWS })}</Text>
           )}
 
           <Box marginTop={1}>
-            <Text color="#F9FAFB" bold>
+            <Text color={COLORS.text} bold>
               {cursor + 1}/{allOutdated.length}
             </Text>
           </Box>

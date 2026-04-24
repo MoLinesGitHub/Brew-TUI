@@ -1,6 +1,7 @@
 import React from 'react';
 import { Box, Text } from 'ink';
 import { useNavigationStore } from '../../stores/navigation-store.js';
+import { COLORS } from '../../utils/colors.js';
 import { t, useLocaleStore } from '../../i18n/index.js';
 import type { ViewId } from '../../lib/types.js';
 import type { TranslationKey } from '../../i18n/en.js';
@@ -23,12 +24,12 @@ const VIEW_HINT_DEFS: Record<ViewId, HintDef[]> = {
 };
 
 function HintItem({ def }: { def: HintDef }) {
-  if (def.length === 1) return <Text color="#FFD700" dimColor>{t(def[0])}</Text>;
+  if (def.length === 1) return <Text color={COLORS.gold} dimColor>{t(def[0])}</Text>;
   return (
     <>
-      <Text color="#F9FAFB" bold>{def[0]}</Text>
-      <Text color="#6B7280">:</Text>
-      <Text color="#FFD700" dimColor>{t(def[1])}</Text>
+      <Text color={COLORS.text} bold>{def[0]}</Text>
+      <Text color={COLORS.textSecondary}>:</Text>
+      <Text color={COLORS.gold} dimColor>{t(def[1])}</Text>
     </>
   );
 }
@@ -39,20 +40,20 @@ export function Footer() {
   const defs = VIEW_HINT_DEFS[currentView] ?? [];
 
   return (
-    <Box borderStyle="single" borderTop borderBottom={false} borderLeft={false} borderRight={false} borderColor="#FFD700" paddingX={1} flexWrap="wrap">
+    <Box borderStyle="single" borderTop borderBottom={false} borderLeft={false} borderRight={false} borderColor={COLORS.gold} paddingX={1} flexWrap="wrap">
       {defs.map((def, i) => {
         const key = def.length === 1 ? def[0] : `${def[0]}:${def[1]}`;
         return (
           <React.Fragment key={key}>
-            {i > 0 && <Text color="#4B5563"> {'\u2502'} </Text>}
+            {i > 0 && <Text color={COLORS.border}> {'\u2502'} </Text>}
             <HintItem def={def} />
           </React.Fragment>
         );
       })}
-      <Text color="#4B5563"> {'\u2502'} </Text>
-      <Text color="#F9FAFB" bold>L</Text>
-      <Text color="#6B7280">:</Text>
-      <Text color="#FFD700" dimColor>{t('hint_lang')}({locale})</Text>
+      <Text color={COLORS.border}> {'\u2502'} </Text>
+      <Text color={COLORS.text} bold>L</Text>
+      <Text color={COLORS.textSecondary}>:</Text>
+      <Text color={COLORS.gold} dimColor>{t('hint_lang')}({locale})</Text>
     </Box>
   );
 }

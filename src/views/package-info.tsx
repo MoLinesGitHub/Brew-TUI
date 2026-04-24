@@ -8,6 +8,7 @@ import { ProgressLog } from '../components/common/progress-log.js';
 import { ConfirmDialog } from '../components/common/confirm-dialog.js';
 import { SectionHeader } from '../components/common/section-header.js';
 import { GradientText, GRADIENTS } from '../utils/gradient.js';
+import { COLORS } from '../utils/colors.js';
 import { formatRelativeTime } from '../utils/format.js';
 import { t } from '../i18n/index.js';
 import type { TranslationKey } from '../i18n/en.js';
@@ -28,6 +29,7 @@ const ACTION_CONFIRM_KEYS: Record<string, TranslationKey> = {
 
 export function PackageInfoView() {
   const packageName = useNavigationStore((s) => s.selectedPackage);
+  const packageType = useNavigationStore((s) => s.selectedPackageType);
   const [formula, setFormula] = useState<Formula | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -45,10 +47,55 @@ export function PackageInfoView() {
   useEffect(() => {
     if (!packageName) return;
     setLoading(true);
-    api.getFormulaInfo(packageName)
-      .then((f) => { if (mountedRef.current) { setFormula(f); setLoading(false); } })
-      .catch((err) => { if (mountedRef.current) { setError(err.message); setLoading(false); } });
-  }, [packageName]);
+
+    // SCR-008: Try cask-specific info if we know it's a cask
+    const fetchInfo = async () => {
+      if (packageType === 'cask') {
+        // Try cask first, fall back to formula
+        const caskInfo = await api.getCaskInfo(packageName);
+        if (caskInfo && mountedRef.current) {
+          // Convert cask to a formula-like shape for display
+          const formulaLike: Formula = {
+            name: caskInfo.token,
+            full_name: caskInfo.full_token,
+            tap: '',
+            desc: caskInfo.desc,
+            license: '',
+            homepage: caskInfo.homepage,
+            versions: { stable: caskInfo.version, head: null, bottle: false },
+            dependencies: [],
+            build_dependencies: [],
+            installed: caskInfo.installed ? [{
+              version: caskInfo.installed,
+              used_options: [],
+              built_as_bottle: false,
+              poured_from_bottle: false,
+              time: caskInfo.installed_time ?? 0,
+              runtime_dependencies: [],
+              installed_as_dependency: false,
+              installed_on_request: true,
+            }] : [],
+            linked_keg: null,
+            pinned: false,
+            outdated: caskInfo.outdated,
+            deprecated: false,
+            keg_only: false,
+            caveats: null,
+          };
+          setFormula(formulaLike);
+          setLoading(false);
+          return;
+        }
+      }
+      // Default: try formula info
+      const f = await api.getFormulaInfo(packageName);
+      if (mountedRef.current) { setFormula(f); setLoading(false); }
+    };
+
+    fetchInfo().catch((err) => {
+      if (mountedRef.current) { setError(err.message); setLoading(false); }
+    });
+  }, [packageName, packageType]);
 
   useEffect(() => {
     if (!stream.isRunning && !stream.error && stream.lines.length > 0 && !hasRefreshed.current && packageName) {
@@ -79,7 +126,7 @@ export function PackageInfoView() {
   });
 
   if (!packageName) {
-    return <Text color="#6B7280" italic>{t('pkgInfo_noPackage')}</Text>;
+    return <Text color={COLORS.textSecondary} italic>{t('pkgInfo_noPackage')}</Text>;
   }
 
   if (loading) return <Loading message={t('loading_package', { name: packageName })} />;
@@ -91,14 +138,14 @@ export function PackageInfoView() {
       <Box flexDirection="column">
         <ProgressLog lines={stream.lines} isRunning={stream.isRunning} title={t(ACTION_PROGRESS_KEYS[activeActionRef.current] ?? ACTION_PROGRESS_KEYS['install']!, { name: formula.name })} />
         {stream.isRunning && (
-          <Text color="#6B7280">esc:{t('hint_cancel')}</Text>
+          <Text color={COLORS.textSecondary}>esc:{t('hint_cancel')}</Text>
         )}
         {!stream.isRunning && (
           <>
-            <Text color={stream.error ? '#EF4444' : '#22C55E'} bold>
+            <Text color={stream.error ? COLORS.error : COLORS.success} bold>
               {stream.error ? `\u2718 ${stream.error}` : `\u2714 ${t('pkgInfo_done')}`}
             </Text>
-            <Text color="#6B7280">esc:{t('hint_back')}</Text>
+            <Text color={COLORS.textSecondary}>esc:{t('hint_back')}</Text>
           </>
         )}
       </Box>
@@ -128,7 +175,7 @@ export function PackageInfoView() {
 
       <Box gap={2} marginBottom={1}>
         <GradientText colors={GRADIENTS.gold} bold>{formula.name}</GradientText>
-        <Text color="#2DD4BF">{installed?.version ?? formula.versions.stable}</Text>
+        <Text color={COLORS.teal}>{installed?.version ?? formula.versions.stable}</Text>
         {isInstalled && <StatusBadge label={t('badge_installed')} variant="success" />}
         {formula.outdated && <StatusBadge label={t('badge_outdated')} variant="warning" />}
         {formula.pinned && <StatusBadge label={t('badge_pinned')} variant="info" />}
@@ -140,17 +187,17 @@ export function PackageInfoView() {
         <Text>{formula.desc}</Text>
 
         <Box flexDirection="column">
-          <SectionHeader emoji={'\u{1F4CB}'} title={t('pkgInfo_details')} gradient={['#F9FAFB', '#9CA3AF']} />
-          <Box borderStyle="round" borderColor="#4B5563" paddingX={2} flexDirection="column">
-            <Text><Text color="#9CA3AF">{t('pkgInfo_homepage')}</Text> {formula.homepage}</Text>
-            <Text><Text color="#9CA3AF">{t('pkgInfo_license')}</Text>  {formula.license}</Text>
-            <Text><Text color="#9CA3AF">{t('pkgInfo_tap')}</Text>      {formula.tap}</Text>
-            <Text><Text color="#9CA3AF">{t('pkgInfo_stable')}</Text>   {formula.versions.stable}</Text>
+          <SectionHeader emoji={'\u{1F4CB}'} title={t('pkgInfo_details')} gradient={[COLORS.text, COLORS.muted]} />
+          <Box borderStyle="round" borderColor={COLORS.border} paddingX={2} flexDirection="column">
+            <Text><Text color={COLORS.muted}>{t('pkgInfo_homepage')}</Text> {formula.homepage}</Text>
+            <Text><Text color={COLORS.muted}>{t('pkgInfo_license')}</Text>  {formula.license}</Text>
+            <Text><Text color={COLORS.muted}>{t('pkgInfo_tap')}</Text>      {formula.tap}</Text>
+            <Text><Text color={COLORS.muted}>{t('pkgInfo_stable')}</Text>   {formula.versions.stable}</Text>
             {installed && (
               <>
-                <Text><Text color="#9CA3AF">{t('pkgInfo_installed')}</Text> {installed.version} ({formatRelativeTime(installed.time)})</Text>
-                <Text><Text color="#9CA3AF">{t('pkgInfo_bottle')}</Text>    {installed.poured_from_bottle ? t('common_yes') : t('common_no')}</Text>
-                <Text><Text color="#9CA3AF">{t('pkgInfo_onRequest')}</Text> {installed.installed_on_request ? t('common_yes') : t('pkgInfo_noDependency')}</Text>
+                <Text><Text color={COLORS.muted}>{t('pkgInfo_installed')}</Text> {installed.version} ({formatRelativeTime(installed.time)})</Text>
+                <Text><Text color={COLORS.muted}>{t('pkgInfo_bottle')}</Text>    {installed.poured_from_bottle ? t('common_yes') : t('common_no')}</Text>
+                <Text><Text color={COLORS.muted}>{t('pkgInfo_onRequest')}</Text> {installed.installed_on_request ? t('common_yes') : t('pkgInfo_noDependency')}</Text>
               </>
             )}
           </Box>
@@ -161,7 +208,7 @@ export function PackageInfoView() {
             <SectionHeader emoji={'\u{1F517}'} title={t('pkgInfo_dependencies', { count: formula.dependencies.length })} gradient={GRADIENTS.ocean} />
             <Box paddingLeft={2} flexWrap="wrap" columnGap={2}>
               {formula.dependencies.map((dep) => (
-                <Text key={dep} color="#9CA3AF">{dep}</Text>
+                <Text key={dep} color={COLORS.muted}>{dep}</Text>
               ))}
             </Box>
           </Box>
@@ -169,16 +216,16 @@ export function PackageInfoView() {
 
         {formula.caveats && (
           <Box flexDirection="column">
-            <SectionHeader emoji={'\u26A0\uFE0F'} title={t('pkgInfo_caveats')} color="#F59E0B" />
-            <Box borderStyle="round" borderColor="#F59E0B" paddingX={2}>
-              <Text color="#F59E0B">{formula.caveats}</Text>
+            <SectionHeader emoji={'\u26A0\uFE0F'} title={t('pkgInfo_caveats')} color={COLORS.warning} />
+            <Box borderStyle="round" borderColor={COLORS.warning} paddingX={2}>
+              <Text color={COLORS.warning}>{formula.caveats}</Text>
             </Box>
           </Box>
         )}
       </Box>
 
       <Box marginTop={1}>
-        <Text color="#6B7280">
+        <Text color={COLORS.textSecondary}>
           {isInstalled ? `u:${t('hint_uninstall')}` : `i:${t('hint_install')}`}
           {isInstalled && formula.outdated ? ` U:${t('hint_upgrade')}` : ''}
           {` esc:${t('hint_back')}`}

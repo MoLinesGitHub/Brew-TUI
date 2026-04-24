@@ -10,7 +10,7 @@ declare const __TEST_MODE__: boolean;
  */
 export function isDebuggerAttached(): boolean {
   // Compile-time flag — replaced to `false` in production builds
-  if (__TEST_MODE__) return false;
+  if (typeof __TEST_MODE__ !== 'undefined' && __TEST_MODE__) return false;
 
   // Node.js inspector protocol active
   if (inspector.url()) return true;

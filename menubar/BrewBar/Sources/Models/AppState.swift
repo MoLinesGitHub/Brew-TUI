@@ -18,6 +18,14 @@ final class AppState {
     var outdatedCount: Int { outdatedPackages.count }
     var errorServices: [BrewService] { services.filter(\.hasError) }
 
+    var lastSchedulerError: (message: String, date: String)? {
+        guard let dict = UserDefaults.standard.dictionary(forKey: "lastSchedulerError"),
+              let message = dict["message"] as? String,
+              let date = dict["date"] as? String
+        else { return nil }
+        return (message, date)
+    }
+
     func refresh(force: Bool = false) async {
         guard force || !isLoading else { return }
         isLoading = true

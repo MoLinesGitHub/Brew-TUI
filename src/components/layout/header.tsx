@@ -2,6 +2,7 @@ import React from 'react';
 import { Box, Text } from 'ink';
 import { useNavigationStore } from '../../stores/navigation-store.js';
 import { isProView } from '../../lib/license/feature-gate.js';
+import { COLORS } from '../../utils/colors.js';
 import { t, useLocaleStore } from '../../i18n/index.js';
 import { GradientText, GRADIENTS } from '../../utils/gradient.js';
 import type { ViewId } from '../../lib/types.js';
@@ -66,7 +67,7 @@ export function Header() {
           </Box>
         ))}
       </Box>
-      <Box borderStyle="single" borderBottom borderLeft={false} borderRight={false} borderTop={false} borderColor="#FFD700" paddingX={1} flexWrap="wrap">
+      <Box borderStyle="single" borderBottom borderLeft={false} borderRight={false} borderTop={false} borderColor={COLORS.gold} paddingX={1} flexWrap="wrap">
         {TAB_VIEWS.map((view, i) => {
           const key = VIEW_KEYS[view];
           const viewLabel = t(VIEW_LABEL_KEYS[view]);
@@ -75,15 +76,15 @@ export function Header() {
 
           return (
             <React.Fragment key={view}>
-              {i > 0 && <Text color="#4B5563"> {'\u2502'} </Text>}
+              {i > 0 && <Text color={COLORS.border}> {'\u2502'} </Text>}
               <Text
                 bold={view === currentView}
-                color={view === currentView ? '#22C55E' : '#6B7280'}
+                color={view === currentView ? COLORS.success : COLORS.textSecondary}
                 underline={view === currentView}
               >
                 {view === currentView ? `\u25CF ${label}` : label}
               </Text>
-              {isPro && <Text color="#FF6B2B" bold> {t('pro_badge')}</Text>}
+              {isPro && <Text color={COLORS.brand} bold> {t('pro_badge')}</Text>}
             </React.Fragment>
           );
         })}

@@ -1,12 +1,32 @@
-import { hostname } from 'node:os';
-import type { LemonSqueezyActivateResponse, LemonSqueezyValidateResponse } from './types.js';
+import { randomUUID } from 'node:crypto';
+import { readFile, writeFile, mkdir } from 'node:fs/promises';
+import { join } from 'node:path';
+import { homedir } from 'node:os';
+import type { PolarActivateResponse, PolarValidateResponse } from './types.js';
 import { fetchWithTimeout } from '../fetch-timeout.js';
 
 const BASE_URL = 'https://api.polar.sh/v1/customer-portal/license-keys';
 
-// ── CONFIGURE: Replace with your Polar organization ID ──
-// Found at: polar.sh/dashboard → Settings → General
+// ── GOV-004: Public organization ID (not a secret) ──
+// This is the public Polar organization identifier used for license key operations.
+// Found at: polar.sh/dashboard -> Settings -> General
 export const POLAR_ORGANIZATION_ID = 'b8f245c0-d116-4457-92fb-1bda47139f82';
+
+// SEG-004: Machine-specific identifier stored persistently
+const DATA_DIR = join(homedir(), '.brew-tui');
+const MACHINE_ID_PATH = join(DATA_DIR, 'machine-id');
+
+async function getMachineId(): Promise<string> {
+  try {
+    const id = (await readFile(MACHINE_ID_PATH, 'utf-8')).trim();
+    if (id) return id;
+  } catch { /* file doesn't exist yet */ }
+
+  const id = randomUUID();
+  await mkdir(DATA_DIR, { recursive: true, mode: 0o700 });
+  await writeFile(MACHINE_ID_PATH, id, { encoding: 'utf-8', mode: 0o600 });
+  return id;
+}
 
 // Layer 11: API URL validation
 function validateApiUrl(url: string): void {
@@ -66,12 +86,19 @@ async function post<T>(endpoint: string, body: Record<string, unknown>, expectEm
   return res.json() as Promise<T>;
 }
 
-export async function activateLicense(key: string): Promise<LemonSqueezyActivateResponse> {
+export async function activateLicense(key: string): Promise<PolarActivateResponse> {
+  const machineId = await getMachineId();
+
   const activation = await post<PolarActivation>('activate', {
     key,
     organization_id: POLAR_ORGANIZATION_ID,
-    label: hostname(),
+    label: machineId, // SEG-004: Use machine UUID instead of hostname
   });
+
+  // EP-001: Runtime validation of activation response
+  if (!activation || typeof activation.id !== 'string' || !activation.license_key) {
+    throw new Error('Invalid activation response: missing required fields');
+  }
 
   // Polar's activate response doesn't include customer info — fetch it via validate
   let customerEmail = '';
@@ -104,12 +131,17 @@ export async function activateLicense(key: string): Promise<LemonSqueezyActivate
   };
 }
 
-export async function validateLicense(key: string, instanceId: string): Promise<LemonSqueezyValidateResponse> {
+export async function validateLicense(key: string, instanceId: string): Promise<PolarValidateResponse> {
   const res = await post<PolarValidated>('validate', {
     key,
     organization_id: POLAR_ORGANIZATION_ID,
     activation_id: instanceId,
   });
+
+  // EP-002: Runtime validation of validate response
+  if (!res || typeof res.id !== 'string' || typeof res.status !== 'string' || !res.customer) {
+    throw new Error('Invalid validation response: missing required fields');
+  }
 
   const notExpired = res.expires_at === null || new Date(res.expires_at) > new Date();
   const valid = res.status === 'granted' && notExpired;

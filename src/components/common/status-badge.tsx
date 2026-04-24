@@ -1,14 +1,15 @@
 import React from 'react';
 import { Text } from 'ink';
+import { COLORS } from '../../utils/colors.js';
 
 type BadgeVariant = 'success' | 'warning' | 'error' | 'info' | 'muted';
 
 const BADGE_STYLES: Record<BadgeVariant, { icon: string; color: string }> = {
-  success: { icon: '\u2714', color: '#22C55E' },
-  warning: { icon: '\u25CF', color: '#F59E0B' },
-  error: { icon: '\u2718', color: '#EF4444' },
-  info: { icon: '\u25C6', color: '#3B82F6' },
-  muted: { icon: '\u25CB', color: '#6B7280' },
+  success: { icon: '\u2714', color: COLORS.success },
+  warning: { icon: '\u25CF', color: COLORS.warning },
+  error: { icon: '\u2718', color: COLORS.error },
+  info: { icon: '\u25C6', color: COLORS.blue },
+  muted: { icon: '\u25CB', color: COLORS.textSecondary },
 };
 
 interface StatusBadgeProps {

@@ -7,7 +7,10 @@ struct SettingsView: View {
     let scheduler: SchedulerService
 
     @State private var launchAtLogin: Bool
+    @State private var loginError: String?
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.legibilityWeight) private var legibilityWeight
+    @Environment(\.colorSchemeContrast) private var colorSchemeContrast
 
     init(scheduler: SchedulerService, launchAtLogin: Bool? = nil) {
         self.scheduler = scheduler
@@ -19,6 +22,8 @@ struct SettingsView: View {
         VStack(spacing: 16) {
             Text("BrewBar Settings")
                 .font(.headline)
+                .fontWeight(legibilityWeight == .bold ? .bold : .semibold)
+                .accessibilityAddTraits(.isHeader)
 
             Form {
                 Picker("Check interval", selection: Binding(
@@ -45,7 +50,7 @@ struct SettingsView: View {
                 if scheduler.notificationsDenied {
                     Text("Notifications are disabled in System Settings. Enable them in System Settings > Notifications > BrewBar.")
                         .font(.caption)
-                        .foregroundStyle(.orange)
+                        .foregroundStyle(colorSchemeContrast == .increased ? Color(red: 0.8, green: 0.4, blue: 0) : .orange)
                 }
 
                 Toggle("Launch at login", isOn: $launchAtLogin)
@@ -59,11 +64,20 @@ struct SettingsView: View {
                                 try SMAppService.mainApp.unregister()
                             }
                         } catch {
+                            loginError = error.localizedDescription
                             launchAtLogin = !newValue
                         }
                     }
             }
             .formStyle(.grouped)
+            .alert(String(localized: "Login Item Error"), isPresented: Binding(
+                get: { loginError != nil },
+                set: { if !$0 { loginError = nil } }
+            )) {
+                Button(String(localized: "OK")) { loginError = nil }
+            } message: {
+                Text(loginError ?? "")
+            }
 
             HStack {
                 Spacer()

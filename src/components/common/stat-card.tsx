@@ -1,5 +1,6 @@
 import React from 'react';
 import { Box, Text } from 'ink';
+import { COLORS } from '../../utils/colors.js';
 
 interface StatCardProps {
   label: string;
@@ -19,7 +20,7 @@ export function StatCard({ label, value, color = 'white' }: StatCardProps) {
       minWidth={16}
     >
       <Text bold color={color}>{value}</Text>
-      <Text color="#9CA3AF">{label}</Text>
+      <Text color={COLORS.muted}>{label}</Text>
     </Box>
   );
 }

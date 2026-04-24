@@ -1,5 +1,6 @@
 import type { Vulnerability, Severity } from './types.js';
 import { fetchWithTimeout } from '../fetch-timeout.js';
+import { logger } from '../../utils/logger.js';
 
 const OSV_BATCH_URL = 'https://api.osv.dev/v1/querybatch';
 
@@ -77,6 +78,15 @@ async function queryBatch(
   }
 
   const data = (await res.json()) as OsvBatchResponse;
+
+  // EP-003: Validate response structure
+  if (!data || !Array.isArray(data.results)) {
+    throw new Error('Invalid OSV API response: missing results array');
+  }
+  if (data.results.length !== packages.length) {
+    throw new Error(`OSV API response mismatch: expected ${packages.length} results, got ${data.results.length}`);
+  }
+
   const result = new Map<string, Vulnerability[]>();
 
   for (let i = 0; i < packages.length; i++) {
@@ -102,6 +112,7 @@ async function queryOneByOne(
   packages: Array<{ name: string; version: string }>,
 ): Promise<Map<string, Vulnerability[]>> {
   const result = new Map<string, Vulnerability[]>();
+  const errors: string[] = [];
 
   for (const pkg of packages) {
     try {
@@ -110,9 +121,40 @@ async function queryOneByOne(
         [{ package: { name: pkg.name, ecosystem: 'Homebrew' }, version: pkg.version }],
       );
       for (const [k, v] of partial) result.set(k, v);
-    } catch {
-      // Skip packages that the API rejects
+    } catch (err) {
+      // EP-004: Only skip on 400 (bad request for that package). Re-throw on 5xx or network errors.
+      const msg = err instanceof Error ? err.message : String(err);
+      if (msg.includes('400')) {
+        errors.push(`Skipped ${pkg.name}: ${msg}`);
+        continue;
+      }
+      // For rate limiting (429), apply backoff
+      if (msg.includes('429')) {
+        logger.warn(`Rate limited by OSV API, backing off`, { package: pkg.name });
+        await new Promise(r => setTimeout(r, 2000));
+        // Retry once after backoff
+        try {
+          const retryResult = await queryBatch(
+            [pkg],
+            [{ package: { name: pkg.name, ecosystem: 'Homebrew' }, version: pkg.version }],
+          );
+          for (const [k, v] of retryResult) result.set(k, v);
+        } catch {
+          errors.push(`Failed after retry ${pkg.name}: ${msg}`);
+        }
+        continue;
+      }
+      // Network/server errors: log and continue instead of failing entire scan
+      logger.error(`OSV query failed for ${pkg.name}: ${msg}`);
+      errors.push(`${pkg.name}: ${msg}`);
     }
+
+    // EP-008: Rate limit protection — small delay between individual requests
+    await new Promise(r => setTimeout(r, 75));
+  }
+
+  if (errors.length > 0) {
+    logger.warn(`OSV query errors for ${errors.length} packages`, { errors: errors.slice(0, 5) });
   }
 
   return result;
@@ -121,11 +163,16 @@ async function queryOneByOne(
 export async function queryVulnerabilities(
   packages: Array<{ name: string; version: string }>,
 ): Promise<Map<string, Vulnerability[]>> {
+  // EP-007: Filter out packages with empty/undefined/null versions
+  const validPackages = packages.filter(
+    (p) => p.version && typeof p.version === 'string' && p.version.trim().length > 0,
+  );
+
   const result = new Map<string, Vulnerability[]>();
 
   // Split into batches to stay within OSV API limits
-  for (let i = 0; i < packages.length; i += BATCH_SIZE) {
-    const batch = packages.slice(i, i + BATCH_SIZE);
+  for (let i = 0; i < validPackages.length; i += BATCH_SIZE) {
+    const batch = validPackages.slice(i, i + BATCH_SIZE);
     const queries: OsvQuery[] = batch.map((p) => ({
       package: { name: p.name, ecosystem: 'Homebrew' },
       version: p.version,

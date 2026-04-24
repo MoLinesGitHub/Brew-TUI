@@ -103,10 +103,43 @@ function decryptLicenseData(encrypted: string, iv: string, tag: string): License
   return JSON.parse(plaintext.toString('utf-8')) as LicenseData;
 }
 
+// BK-003: Type guard for license data format
+function isLicenseFile(obj: unknown): obj is LicenseFile {
+  return typeof obj === 'object' && obj !== null && (obj as Record<string, unknown>).version === 1;
+}
+
+function isEncryptedLicenseFile(obj: unknown): obj is LicenseFile & { encrypted: string; iv: string; tag: string } {
+  if (!isLicenseFile(obj)) return false;
+  const record = obj as unknown as Record<string, unknown>;
+  return typeof record.encrypted === 'string'
+    && typeof record.iv === 'string'
+    && typeof record.tag === 'string';
+}
+
+// SEG-002: Read machine ID for portability check
+async function getMachineId(): Promise<string | null> {
+  try {
+    const { readFile: readMachineId } = await import('node:fs/promises');
+    const { join } = await import('node:path');
+    const { homedir } = await import('node:os');
+    const machineIdPath = join(homedir(), '.brew-tui', 'machine-id');
+    return (await readMachineId(machineIdPath, 'utf-8')).trim() || null;
+  } catch {
+    return null;
+  }
+}
+
 export async function loadLicense(): Promise<LicenseData | null> {
   try {
     const raw = await readFile(LICENSE_PATH, 'utf-8');
-    const file = JSON.parse(raw) as LicenseFile;
+    const parsed: unknown = JSON.parse(raw);
+
+    // BK-003: Validate parsed data
+    if (!isLicenseFile(parsed)) {
+      throw new Error('Invalid license data format');
+    }
+
+    const file = parsed as LicenseFile;
 
     if (file.version !== 1) {
       // Future: add migration logic here
@@ -114,8 +147,18 @@ export async function loadLicense(): Promise<LicenseData | null> {
     }
 
     // New encrypted format
-    if (file.encrypted && file.iv && file.tag) {
-      const data = decryptLicenseData(file.encrypted, file.iv, file.tag);
+    if (isEncryptedLicenseFile(file)) {
+      const data = decryptLicenseData(file.encrypted!, file.iv!, file.tag!);
+
+      // SEG-002: Check machine ID if stored in the envelope
+      const fileRecord = file as unknown as Record<string, unknown>;
+      if (fileRecord.machineId) {
+        const currentMachineId = await getMachineId();
+        if (currentMachineId && fileRecord.machineId !== currentMachineId) {
+          throw new Error('License was activated on a different machine');
+        }
+      }
+
       return data;
     }
 
@@ -136,7 +179,10 @@ export async function loadLicense(): Promise<LicenseData | null> {
 export async function saveLicense(data: LicenseData): Promise<void> {
   await ensureDataDirs();
   const { encrypted, iv, tag } = encryptLicenseData(data);
-  const file: LicenseFile = { version: 1, encrypted, iv, tag };
+  // SEG-002: Include machineId in the envelope for portability detection
+  const machineId = await getMachineId();
+  const file: Record<string, unknown> = { version: 1, encrypted, iv, tag };
+  if (machineId) file.machineId = machineId;
   const tmpPath = LICENSE_PATH + '.tmp';
   await writeFile(tmpPath, JSON.stringify(file, null, 2), { encoding: 'utf-8', mode: 0o600 });
   await rename(tmpPath, LICENSE_PATH);
@@ -241,6 +287,12 @@ export async function activate(key: string): Promise<LicenseData> {
  * allows LemonSqueezy to track activation count, last-seen timestamp,
  * and detect if the activation limit is exceeded (license sharing).
  */
+// EP-006: Detect if an error is a network error vs validation/contract error
+function isNetworkError(err: unknown): boolean {
+  const msg = err instanceof Error ? err.message : String(err);
+  return /fetch failed|ECONNREFUSED|ENOTFOUND|ETIMEDOUT|network|timeout|abort/i.test(msg);
+}
+
 export async function revalidate(license: LicenseData): Promise<RevalidationResult> {
   try {
     const res = await apiValidate(license.key, license.instanceId);
@@ -258,9 +310,14 @@ export async function revalidate(license: LicenseData): Promise<RevalidationResu
 
     await saveLicense({ ...license, status: 'expired' });
     return 'expired';
-  } catch {
-    // Network error: check grace period
-    return isWithinGracePeriod(license) ? 'grace' : 'expired';
+  } catch (err) {
+    // EP-006: Network errors trigger grace period; validation/contract errors mean expired
+    if (isNetworkError(err)) {
+      return isWithinGracePeriod(license) ? 'grace' : 'expired';
+    }
+    // Unexpected response or contract violation — treat as expired
+    await saveLicense({ ...license, status: 'expired' });
+    return 'expired';
   }
 }
 

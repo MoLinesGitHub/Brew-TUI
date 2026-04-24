@@ -337,6 +337,52 @@ const en = {
   // ── Scroll indicators ──
   scroll_moreAbove: '\u2191 {{count}} more',
   scroll_moreBelow: '\u2193 {{count}} more',
+
+  // ── SCR-001: Cleanup warning ──
+  cleanup_warning_system_tools: 'Warning: detected orphans may include dependencies of tools not managed by Homebrew. Review the list before proceeding.',
+
+  // ── SCR-002: Installed column headers ──
+  installed_col_package: 'Package',
+  installed_col_version: 'Version',
+  installed_col_status: 'Status',
+
+  // ── SCR-003: Search failed ──
+  search_failed: 'Search failed',
+
+  // ── SCR-007: Deactivate failed ──
+  deactivate_failed: 'Deactivation failed',
+
+  // ── ACC-005: Version labels ──
+  version_installed: 'installed:',
+  version_available: 'available:',
+
+  // ── SCR-006: Upgrade-all replay warning ──
+  upgrade_all_warning: 'Note: this will upgrade all currently outdated packages, which may differ from the original set.',
+
+  // ── SEG-007: Delete account ──
+  delete_account_confirm: 'Delete all Brew-TUI data (~/.brew-tui)? This removes your license, profiles, and history. This cannot be undone.',
+  delete_account_success: 'All Brew-TUI data has been removed.',
+
+  // ── SCR-012: Upgrade All packages list ──
+  outdated_upgradeAllList: 'Packages to upgrade: {{list}}',
+
+  // ── SCR-005: Profile import summary ──
+  profiles_importSummary: 'This profile contains {{formulae}} formulae and {{casks}} casks. Continue?',
+
+  // ── SCR-017: Network error ��─
+  security_networkError: 'Could not reach OSV.dev vulnerability database. Check your internet connection.',
+
+  // ── ARQ-004: Dashboard last updated ──
+  dashboard_lastUpdated: 'Last updated: {{time}}',
+
+  // ── SCR-014: Services last error ──
+  services_lastError: 'Last error: {{error}}',
+
+  // ── SCR-010: Generic network error ──
+  error_network: 'Network error: unable to reach the server.',
+
+  // ── ARQ-005: Security cache ──
+  security_cachedResults: 'Showing cached results ({{time}} ago). Press r to rescan.',
 };
 
 export default en;

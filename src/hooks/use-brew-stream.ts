@@ -1,6 +1,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { streamBrew } from '../lib/brew-cli.js';
 import { detectAction } from '../lib/history/history-logger.js';
+import { useLicenseStore } from '../stores/license-store.js';
 
 const MAX_LINES = 100;
 
@@ -9,10 +10,9 @@ async function logToHistory(args: string[], success: boolean, error: string | nu
   if (!detected) return;
 
   try {
-    // Dynamic import to avoid circular deps and to skip logging for free users
-    // (appendEntry calls requirePro() which will throw for free users)
+    const isPro = useLicenseStore.getState().isPro();
     const { appendEntry } = await import('../lib/history/history-logger.js');
-    await appendEntry(detected.action, detected.packageName, success, error);
+    await appendEntry(isPro, detected.action, detected.packageName, success, error);
   } catch {
     // Free user or file error — silently skip logging
   }

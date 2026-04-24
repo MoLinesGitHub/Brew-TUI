@@ -1,14 +1,22 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Box, Text, useInput } from 'ink';
 import { useBrewStore } from '../stores/brew-store.js';
 import { Loading, ErrorMessage } from '../components/common/loading.js';
+import { ResultBanner } from '../components/common/result-banner.js';
 import { SectionHeader } from '../components/common/section-header.js';
+import { COLORS } from '../utils/colors.js';
 import { GRADIENTS } from '../utils/gradient.js';
 import { t, tp } from '../i18n/index.js';
 
-// TODO: extract useViewState(key) hook for loading/error pattern
 export function DoctorView() {
   const { doctorWarnings, doctorClean, loading, errors, fetchDoctor } = useBrewStore();
+
+  // FE-006: Mounted ref for cleanup
+  const mountedRef = useRef(true);
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; };
+  }, []);
 
   useEffect(() => { fetchDoctor(); }, []);
 
@@ -25,26 +33,25 @@ export function DoctorView() {
 
       <Box flexDirection="column" marginTop={1}>
         {doctorClean && (
-          <Box borderStyle="round" borderColor="#22C55E" paddingX={2} paddingY={0}>
-            <Text color="#22C55E" bold>{'\u2714'} {t('doctor_clean')}</Text>
-          </Box>
+          <ResultBanner status="success" message={`\u2714 ${t('doctor_clean')}`} />
         )}
 
         {doctorClean === false && doctorWarnings.length === 0 && (
-          <Text color="#F59E0B">{t('doctor_warningsNotCaptured')}</Text>
+          <Text color={COLORS.warning}>{t('doctor_warningsNotCaptured')}</Text>
         )}
 
         {doctorWarnings.map((warning, i) => (
-          <Box key={warning.slice(0, 50) + i} flexDirection="column" marginBottom={1} borderStyle="single" borderColor="#F59E0B" paddingX={1}>
+          // FE-004: Improved React key
+          <Box key={`warning-${i}-${warning.slice(0, 20)}`} flexDirection="column" marginBottom={1} borderStyle="single" borderColor={COLORS.warning} paddingX={1}>
             {warning.split('\n').map((line, j) => (
-              <Text key={j} color={j === 0 ? '#F59E0B' : '#9CA3AF'}>{line}</Text>
+              <Text key={`warning-${i}-${j}-${line.slice(0, 20)}`} color={j === 0 ? COLORS.warning : COLORS.muted}>{line}</Text>
             ))}
           </Box>
         ))}
       </Box>
 
       <Box marginTop={1}>
-        <Text color="#F9FAFB" bold>
+        <Text color={COLORS.text} bold>
           {doctorWarnings.length > 0 ? tp('plural_warnings', doctorWarnings.length) : ''}
         </Text>
       </Box>

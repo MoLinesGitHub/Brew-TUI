@@ -1,6 +1,7 @@
 import React from 'react';
 import { Box, Text } from 'ink';
 import { Spinner } from '@inkjs/ui';
+import { COLORS } from '../../utils/colors.js';
 import { t } from '../../i18n/index.js';
 
 interface ProgressLogProps {
@@ -14,18 +15,18 @@ export function ProgressLog({ lines, isRunning, title, maxVisible = 15 }: Progre
   const visible = lines.slice(-maxVisible);
 
   return (
-    <Box flexDirection="column" borderStyle="round" borderColor="#38BDF8" paddingX={1}>
+    <Box flexDirection="column" borderStyle="round" borderColor={COLORS.sky} paddingX={1}>
       {title && (
         <Box marginBottom={1}>
           {isRunning && <Spinner label="" />}
-          <Text bold color="#38BDF8"> {title}</Text>
+          <Text bold color={COLORS.sky}> {title}</Text>
         </Box>
       )}
       {visible.map((line, i) => (
-        <Text key={line.slice(0, 30) + (lines.length - visible.length + i)} color="#9CA3AF" wrap="wrap">{line}</Text>
+        <Text key={lines.length - visible.length + i} color={COLORS.muted} wrap="wrap">{line}</Text>
       ))}
       {lines.length === 0 && !isRunning && (
-        <Text color="#6B7280" italic>{t('progress_noOutput')}</Text>
+        <Text color={COLORS.textSecondary} italic>{t('progress_noOutput')}</Text>
       )}
     </Box>
   );

@@ -9,7 +9,9 @@ import { SearchInput } from '../components/common/search-input.js';
 import { StatusBadge } from '../components/common/status-badge.js';
 import { ConfirmDialog } from '../components/common/confirm-dialog.js';
 import { ProgressLog } from '../components/common/progress-log.js';
+import { ResultBanner } from '../components/common/result-banner.js';
 import { Loading, ErrorMessage } from '../components/common/loading.js';
+import { COLORS } from '../utils/colors.js';
 import { truncate } from '../utils/format.js';
 import { t } from '../i18n/index.js';
 import { useModalStore } from '../stores/modal-store.js';
@@ -94,7 +96,7 @@ export function InstalledView() {
     } else if (input === 'G') {
       setCursor(Math.max(allItems.length - 1, 0));
     } else if (key.return && allItems[cursor]) {
-      selectPackage(allItems[cursor].name);
+      selectPackage(allItems[cursor].name, tab === 'formulae' ? 'formula' : 'cask');
       navigate('package-info');
     } else if (input === 'f') {
       setTab((t) => t === 'formulae' ? 'casks' : 'formulae');
@@ -114,16 +116,15 @@ export function InstalledView() {
           title={t('pkgInfo_uninstalling', { name: '...' })}
         />
         {stream.isRunning && (
-          <Text color="#6B7280">esc:{t('hint_cancel')}</Text>
+          <Text color={COLORS.textSecondary}>esc:{t('hint_cancel')}</Text>
         )}
         {!stream.isRunning && (
           <Box flexDirection="column" marginTop={1}>
-            <Box borderStyle="round" borderColor={stream.error ? '#EF4444' : '#22C55E'} paddingX={2} paddingY={0}>
-              <Text color={stream.error ? '#EF4444' : '#22C55E'} bold>
-                {stream.error ? `\u2718 ${stream.error}` : `\u2714 ${t('pkgInfo_done')}`}
-              </Text>
-            </Box>
-            <Text color="#6B7280">esc:{t('hint_back')}</Text>
+            <ResultBanner
+              status={stream.error ? 'error' : 'success'}
+              message={stream.error ? `\u2718 ${stream.error}` : `\u2714 ${t('pkgInfo_done')}`}
+            />
+            <Text color={COLORS.textSecondary}>esc:{t('hint_back')}</Text>
           </Box>
         )}
       </Box>
@@ -142,19 +143,19 @@ export function InstalledView() {
       <Box marginBottom={1} gap={1}>
         <Box
           borderStyle="round"
-          borderColor={tab === 'formulae' ? '#06B6D4' : '#6B7280'}
+          borderColor={tab === 'formulae' ? COLORS.info : COLORS.textSecondary}
           paddingX={1}
         >
-          <Text bold={tab === 'formulae'} color={tab === 'formulae' ? '#06B6D4' : '#6B7280'}>
+          <Text bold={tab === 'formulae'} color={tab === 'formulae' ? COLORS.info : COLORS.textSecondary}>
             {'\u{1F4E6}'} {t('installed_formulaeCount', { count: formulae.length })}
           </Text>
         </Box>
         <Box
           borderStyle="round"
-          borderColor={tab === 'casks' ? '#A855F7' : '#6B7280'}
+          borderColor={tab === 'casks' ? COLORS.purple : COLORS.textSecondary}
           paddingX={1}
         >
-          <Text bold={tab === 'casks'} color={tab === 'casks' ? '#A855F7' : '#6B7280'}>
+          <Text bold={tab === 'casks'} color={tab === 'casks' ? COLORS.purple : COLORS.textSecondary}>
             {'\u{1F37A}'} {t('installed_casksCount', { count: casks.length })}
           </Text>
         </Box>
@@ -175,7 +176,7 @@ export function InstalledView() {
 
       {/* Search bar */}
       {isSearching && (
-        <Box marginBottom={1} borderStyle="round" borderColor="#FFD700" paddingX={1}>
+        <Box marginBottom={1} borderStyle="round" borderColor={COLORS.gold} paddingX={1}>
           <SearchInput defaultValue={filter} onChange={setFilter} isActive={isSearching} />
         </Box>
       )}
@@ -183,50 +184,50 @@ export function InstalledView() {
       {/* Column header — 1 space prefix matches the 1-char cursor glyph in data
           rows; gap={1} is shared by both header and data rows via the parent Box,
           so widths must match: ' ' + gap(1) + padEnd(27) aligns with data rows. */}
-      <Box gap={1} borderStyle="single" borderBottom borderTop={false} borderLeft={false} borderRight={false} borderColor="#4B5563">
-        <Text color="#F9FAFB" bold>{' '}{'Package'.padEnd(nameWidth)}</Text>
-        <Text color="#F9FAFB" bold>{'Version'.padEnd(versionWidth)}</Text>
-        <Text color="#F9FAFB" bold>{'Status'}</Text>
+      <Box gap={1} borderStyle="single" borderBottom borderTop={false} borderLeft={false} borderRight={false} borderColor={COLORS.border}>
+        <Text color={COLORS.text} bold>{' '}{t('installed_col_package').padEnd(nameWidth)}</Text>
+        <Text color={COLORS.text} bold>{t('installed_col_version').padEnd(versionWidth)}</Text>
+        <Text color={COLORS.text} bold>{t('installed_col_status')}</Text>
       </Box>
 
       {/* Package list */}
       <Box flexDirection="column">
         {visible.length === 0 && (
           <Box paddingY={1} justifyContent="center">
-            <Text color="#6B7280" italic>{t('installed_noPackages')}</Text>
+            <Text color={COLORS.textSecondary} italic>{t('installed_noPackages')}</Text>
           </Box>
         )}
         {start > 0 && (
-          <Text color="#6B7280" dimColor>  {t('scroll_moreAbove', { count: start })}</Text>
+          <Text color={COLORS.textSecondary} dimColor>  {t('scroll_moreAbove', { count: start })}</Text>
         )}
         {visible.map((item, i) => {
           const idx = start + i;
           const isCurrent = idx === cursor;
           return (
             <Box key={item.name} gap={1}>
-              <Text color={isCurrent ? '#22C55E' : '#9CA3AF'}>{isCurrent ? '\u25B6' : ' '}</Text>
-              <Text bold={isCurrent} inverse={isCurrent} color={isCurrent ? '#F9FAFB' : '#9CA3AF'}>
+              <Text color={isCurrent ? COLORS.success : COLORS.muted}>{isCurrent ? '\u25B6' : ' '}</Text>
+              <Text bold={isCurrent} inverse={isCurrent} color={isCurrent ? COLORS.text : COLORS.muted}>
                 {truncate(item.name, nameWidth).padEnd(nameWidth)}
               </Text>
-              <Text color="#2DD4BF">{item.version.padEnd(versionWidth)}</Text>
+              <Text color={COLORS.teal}>{item.version.padEnd(versionWidth)}</Text>
               {item.outdated && <StatusBadge label={t('badge_outdated')} variant="warning" />}
               {item.pinned && <StatusBadge label={t('badge_pinned')} variant="info" />}
               {item.kegOnly && <StatusBadge label={t('badge_kegOnly')} variant="muted" />}
               {item.installedAsDependency && <StatusBadge label={t('badge_dep')} variant="muted" />}
               {!item.outdated && !item.pinned && !item.kegOnly && !item.installedAsDependency && (
-                <Text color="#6B7280" dimColor>{truncate(item.desc, 30)}</Text>
+                <Text color={COLORS.textSecondary} dimColor>{truncate(item.desc, 30)}</Text>
               )}
             </Box>
           );
         })}
         {start + MAX_VISIBLE_ROWS < allItems.length && (
-          <Text color="#6B7280" dimColor>  {t('scroll_moreBelow', { count: allItems.length - start - MAX_VISIBLE_ROWS })}</Text>
+          <Text color={COLORS.textSecondary} dimColor>  {t('scroll_moreBelow', { count: allItems.length - start - MAX_VISIBLE_ROWS })}</Text>
         )}
       </Box>
 
       {/* Status bar */}
       <Box marginTop={1}>
-        <Text color="#F9FAFB" bold>
+        <Text color={COLORS.text} bold>
           {allItems.length > 0 ? `${cursor + 1}/${allItems.length}` : '0/0'}
         </Text>
       </Box>

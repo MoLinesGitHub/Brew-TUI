@@ -1,19 +1,19 @@
 import { rm, access, readFile } from 'node:fs/promises';
 import { createWriteStream } from 'node:fs';
-import { createHash } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { pipeline } from 'node:stream/promises';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { t } from '../i18n/index.js';
-import { verifyPro } from './license/pro-guard.js';
-import { useLicenseStore } from '../stores/license-store.js';
 import { fetchWithTimeout } from './fetch-timeout.js';
-import { getDegradationLevel } from './license/license-manager.js';
+import { logger } from '../utils/logger.js';
 
 const execFileAsync = promisify(execFile);
 const BREWBAR_APP_PATH = '/Applications/BrewBar.app';
 const DOWNLOAD_URL = 'https://github.com/MoLinesGitHub/Brew-TUI/releases/latest/download/BrewBar.app.zip';
-const TMP_ZIP = '/tmp/BrewBar.app.zip';
+const MAX_SIZE = 200 * 1024 * 1024; // 200 MB
 
 export async function isBrewBarInstalled(): Promise<boolean> {
   try {
@@ -24,24 +24,14 @@ export async function isBrewBarInstalled(): Promise<boolean> {
   }
 }
 
-export async function installBrewBar(force = false): Promise<void> {
+export async function installBrewBar(isPro: boolean, force = false): Promise<void> {
   // macOS only
   if (process.platform !== 'darwin') {
     throw new Error(t('cli_brewbarMacOnly'));
   }
 
-  // Ensure the license store is populated in one-shot CLI processes.
-  const initial = useLicenseStore.getState();
-  if (initial.status === 'validating' && initial.license === null) {
-    await initial.initialize();
-  }
-
   // Pro check
-  const { license, status } = useLicenseStore.getState();
-  if (!verifyPro(license, status)) {
-    if (license && (status === 'expired' || getDegradationLevel(license) !== 'none')) {
-      throw new Error(t('cli_brewbarRevalidateRequired'));
-    }
+  if (!isPro) {
     throw new Error(t('cli_brewbarProRequired'));
   }
 
@@ -52,37 +42,74 @@ export async function installBrewBar(force = false): Promise<void> {
 
   console.log(t('cli_brewbarInstalling'));
 
+  // EP-013: Use unique temp path
+  const TMP_ZIP = join(tmpdir(), 'BrewBar-' + randomUUID() + '.zip');
+
   // Download zip (120s timeout for large binary)
   const res = await fetchWithTimeout(DOWNLOAD_URL, {}, 120_000);
   if (!res.ok || !res.body) {
     throw new Error(t('cli_brewbarDownloadFailed', { error: `HTTP ${res.status}` }));
   }
 
-  // Reject downloads larger than 200 MB
+  // Reject downloads larger than 200 MB (from Content-Length header)
   const contentLength = Number(res.headers.get('content-length') ?? '0');
-  if (contentLength > 200 * 1024 * 1024) {
+  if (contentLength > MAX_SIZE) {
     throw new Error(t('cli_brewbarDownloadFailed', { error: 'Download exceeds 200 MB size limit' }));
   }
 
-  // Write to tmp file
-  const fileStream = createWriteStream(TMP_ZIP);
-  await pipeline(res.body as any, fileStream);
+  // EP-005: Track downloaded bytes during the stream
+  let downloadedBytes = 0;
 
-  // SHA-256 integrity check
+  // Write to tmp file with byte counting
+  const fileStream = createWriteStream(TMP_ZIP);
+  const transformedBody = new ReadableStream({
+    async start(controller) {
+      const bodyReader = (res.body as ReadableStream<Uint8Array>).getReader();
+      try {
+        while (true) {
+          const { done, value } = await bodyReader.read();
+          if (done) break;
+          downloadedBytes += value.length;
+          if (downloadedBytes > MAX_SIZE) {
+            controller.error(new Error('Download exceeds 200 MB limit'));
+            return;
+          }
+          controller.enqueue(value);
+        }
+        controller.close();
+      } catch (err) {
+        controller.error(err);
+      }
+    },
+  });
+  await pipeline(transformedBody as unknown as NodeJS.ReadableStream, fileStream);
+
+  // SEG-001: SHA-256 integrity check with proper error handling
+  let expectedHash: string | null = null;
   try {
     const checksumRes = await fetchWithTimeout(`${DOWNLOAD_URL}.sha256`, {}, 15_000);
     if (checksumRes.ok) {
-      const expected = (await checksumRes.text()).trim().split(/\s+/)[0]!.toLowerCase();
-      const fileBuffer = await readFile(TMP_ZIP);
-      const actual = createHash('sha256').update(fileBuffer).digest('hex');
-      if (actual !== expected) {
-        await rm(TMP_ZIP, { force: true }).catch(() => {});
-        throw new Error(t('cli_brewbarDownloadFailed', { error: 'SHA-256 checksum mismatch' }));
+      const text = await checksumRes.text();
+      // EP-009: Validate split result is defined
+      const hash = text.trim().split(/\s+/)[0];
+      // EP-010: Validate hash format
+      if (hash && /^[0-9a-f]{64}$/i.test(hash)) {
+        expectedHash = hash.toLowerCase();
       }
     }
-  } catch (err) {
-    // Re-throw checksum mismatch errors; ignore network errors fetching the checksum file
-    if (err instanceof Error && err.message.includes('checksum mismatch')) throw err;
+  } catch {
+    /* checksum file not available */
+  }
+
+  if (expectedHash) {
+    const fileBuffer = await readFile(TMP_ZIP);
+    const actual = createHash('sha256').update(fileBuffer).digest('hex');
+    if (actual !== expectedHash) {
+      await rm(TMP_ZIP, { force: true }).catch(() => {});
+      throw new Error(t('cli_brewbarDownloadFailed', { error: 'SHA-256 mismatch: binary may have been tampered with' }));
+    }
+  } else {
+    logger.warn('SHA-256 checksum not available for BrewBar download');
   }
 
   // Remove old app if force reinstall

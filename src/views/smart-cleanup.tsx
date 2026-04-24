@@ -5,8 +5,10 @@ import { useBrewStream } from '../hooks/use-brew-stream.js';
 import { Loading, ErrorMessage } from '../components/common/loading.js';
 import { ConfirmDialog } from '../components/common/confirm-dialog.js';
 import { ProgressLog } from '../components/common/progress-log.js';
+import { ResultBanner } from '../components/common/result-banner.js';
 import { StatCard } from '../components/common/stat-card.js';
 import { SectionHeader } from '../components/common/section-header.js';
+import { COLORS } from '../utils/colors.js';
 import { GRADIENTS } from '../utils/gradient.js';
 import { t } from '../i18n/index.js';
 
@@ -66,22 +68,18 @@ export function SmartCleanupView() {
       <Box flexDirection="column">
         <ProgressLog lines={stream.lines} isRunning={stream.isRunning} title={t('cleanup_cleaning')} />
         {stream.isRunning && (
-          <Text color="#6B7280">esc:{t('hint_cancel')}</Text>
+          <Text color={COLORS.muted}>esc:{t('hint_cancel')}</Text>
         )}
 
         {!stream.isRunning && !stream.error && (
-          <Box borderStyle="round" borderColor="#22C55E" paddingX={2} paddingY={0}>
-            <Text color="#22C55E" bold>{'\u2714'} {t('cleanup_complete')}</Text>
-          </Box>
+          <ResultBanner status="success" message={`\u2714 ${t('cleanup_complete')}`} />
         )}
 
         {!stream.isRunning && stream.error && (
           <Box flexDirection="column" gap={1}>
-            <Box borderStyle="round" borderColor="#EF4444" paddingX={2} paddingY={0}>
-              <Text color="#EF4444" bold>{'\u2718'} {t('cleanup_depError')}</Text>
-            </Box>
+            <ResultBanner status="error" message={`\u2718 ${t('cleanup_depError')}`} />
             {isDependencyError && failedNames.length > 0 && (
-              <Text color="#F59E0B">
+              <Text color={COLORS.warning}>
                 F:{t('hint_force')} r:{t('hint_refresh')}
               </Text>
             )}
@@ -112,14 +110,18 @@ export function SmartCleanupView() {
 
       {summary && (
         <Box gap={1} marginY={1}>
-          <StatCard label={t('cleanup_orphans')} value={candidates.length} color={candidates.length > 0 ? '#F59E0B' : '#22C55E'} />
-          <StatCard label={t('cleanup_reclaimable')} value={summary.totalReclaimableFormatted} color="#38BDF8" />
-          <StatCard label={t('cleanup_selected')} value={selected.size} color={selected.size > 0 ? '#22C55E' : '#6B7280'} />
+          <StatCard label={t('cleanup_orphans')} value={candidates.length} color={candidates.length > 0 ? COLORS.warning : COLORS.success} />
+          <StatCard label={t('cleanup_reclaimable')} value={summary.totalReclaimableFormatted} color={COLORS.sky} />
+          <StatCard label={t('cleanup_selected')} value={selected.size} color={selected.size > 0 ? COLORS.success : COLORS.muted} />
         </Box>
       )}
 
+      {/* SCR-001: Two-step confirmation with system tools warning */}
       {confirmClean && (
-        <Box marginY={1}>
+        <Box flexDirection="column" marginY={1} gap={1}>
+          <Box borderStyle="round" borderColor={COLORS.warning} paddingX={2} paddingY={0}>
+            <Text color={COLORS.warning}>{t('cleanup_warning_system_tools')}</Text>
+          </Box>
           <ConfirmDialog
             message={t('cleanup_confirmUninstall', { count: selected.size })}
             onConfirm={() => {
@@ -135,9 +137,7 @@ export function SmartCleanupView() {
       )}
 
       {candidates.length === 0 && !confirmClean && (
-        <Box borderStyle="round" borderColor="#22C55E" paddingX={2} paddingY={0}>
-          <Text color="#22C55E" bold>{'\u2714'} {t('cleanup_systemClean')}</Text>
-        </Box>
+        <ResultBanner status="success" message={`\u2714 ${t('cleanup_systemClean')}`} />
       )}
 
       {candidates.length > 0 && !confirmClean && (
@@ -147,16 +147,16 @@ export function SmartCleanupView() {
             const isSelected = selected.has(c.name);
             return (
               <Box key={c.name} gap={1}>
-                <Text color={isCurrent ? '#22C55E' : '#9CA3AF'}>{isCurrent ? '\u25B6' : ' '}</Text>
-                <Text color={isSelected ? '#22C55E' : '#9CA3AF'}>{isSelected ? '\u2611' : '\u2610'}</Text>
-                <Text bold={isCurrent} inverse={isCurrent} color={isCurrent ? '#F9FAFB' : '#9CA3AF'}>{c.name}</Text>
-                <Text color="#F59E0B">{c.diskUsageFormatted}</Text>
-                <Text color="#6B7280">[{c.reason}]</Text>
+                <Text color={isCurrent ? COLORS.success : COLORS.muted}>{isCurrent ? '\u25B6' : ' '}</Text>
+                <Text color={isSelected ? COLORS.success : COLORS.muted}>{isSelected ? '\u2611' : '\u2610'}</Text>
+                <Text bold={isCurrent} inverse={isCurrent} color={isCurrent ? COLORS.text : COLORS.muted}>{c.name}</Text>
+                <Text color={COLORS.warning}>{c.diskUsageFormatted}</Text>
+                <Text color={COLORS.textSecondary}>[{c.reason}]</Text>
               </Box>
             );
           })}
           <Box marginTop={1}>
-            <Text color="#F9FAFB" bold>
+            <Text color={COLORS.text} bold>
               {cursor + 1}/{candidates.length}
             </Text>
           </Box>

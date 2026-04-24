@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import type { Formula, Cask, OutdatedPackage, BrewService, BrewConfig } from '../lib/types.js';
 import * as api from '../lib/brew-api.js';
+import { logger } from '../utils/logger.js';
 
 const BREW_UPDATE_COOLDOWN_MS = 5 * 60 * 1000;
 
@@ -58,7 +59,8 @@ export const useBrewStore = create<BrewState>((set, get) => ({
   // Pre-initialize loading flags for keys that fetchAll always triggers so
   // views that check loading.X get a spinner on first render rather than
   // flashing empty/zeroed content for one frame before the fetch starts.
-  loading: { installed: true, outdated: true, services: true, config: true, doctor: false },
+  // SCR-013: Pre-initialize doctor loading to true
+  loading: { installed: true, outdated: true, services: true, config: true, doctor: true },
   errors: {},
   lastFetchedAt: {},
 
@@ -122,11 +124,8 @@ export const useBrewStore = create<BrewState>((set, get) => ({
       const result = await api.getLeaves();
       set({ leaves: result });
     } catch (err) {
-      // Non-critical: leaves is used by cleanup analysis only.
-      // Log the error so failures are visible during development.
-      if (process.env.NODE_ENV !== 'production') {
-        console.error('[brew-store] fetchLeaves failed:', err instanceof Error ? err.message : String(err));
-      }
+      // QA-021: Use structured logger unconditionally
+      logger.error('fetchLeaves failed', { error: err instanceof Error ? err.message : String(err) });
     } finally {
       recordFetchTime(set, 'leaves');
     }
@@ -157,8 +156,9 @@ export const useBrewStore = create<BrewState>((set, get) => ({
       // Don't block on brew update — run in background.
       // This is equivalent to the auto-update that `brew` does by default,
       // which we disable per-command with HOMEBREW_NO_AUTO_UPDATE=1.
+      // ARQ-003: Capture brew update errors in store
       brewUpdateInFlight = api.brewUpdate()
-        .catch(() => {})
+        .catch((err) => { set((s) => ({ errors: { ...s.errors, update: String(err) } })); })
         .finally(() => {
           brewUpdateInFlight = null;
         });
@@ -171,6 +171,7 @@ export const useBrewStore = create<BrewState>((set, get) => ({
       store.fetchServices(),
       store.fetchConfig(),
       store.fetchLeaves(),
+      store.fetchDoctor(),
     ]).then(() => undefined)
       .finally(() => {
         fetchAllInFlight = null;

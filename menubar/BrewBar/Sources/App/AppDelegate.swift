@@ -11,6 +11,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let scheduler = SchedulerService()
     private var badgeTimer: Timer?
     private var launchTask: Task<Void, Never>?
+    private var badgeUpdateTask: Task<Void, Never>?
     private var lastBadgeCount = -1
     private var hostingController: NSHostingController<PopoverView>?
 
@@ -57,6 +58,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationWillTerminate(_ notification: Notification) {
         launchTask?.cancel()
         launchTask = nil
+        badgeUpdateTask?.cancel()
+        badgeUpdateTask = nil
         appState.onRefreshComplete = nil
         badgeTimer?.invalidate()
         badgeTimer = nil

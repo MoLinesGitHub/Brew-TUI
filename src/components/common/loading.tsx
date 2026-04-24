@@ -1,6 +1,7 @@
 import React from 'react';
 import { Box, Text } from 'ink';
 import { Spinner } from '@inkjs/ui';
+import { COLORS } from '../../utils/colors.js';
 import { t, useLocaleStore } from '../../i18n/index.js';
 
 interface LoadingProps {
@@ -24,8 +25,8 @@ export function ErrorMessage({ message }: ErrorMessageProps) {
   useLocaleStore((s) => s.locale); // re-render on locale change
   return (
     <Box paddingY={1}>
-      <Text color="#EF4444" bold>{'\u2718'} {t('error_prefix')}</Text>
-      <Text color="#EF4444">{message}</Text>
+      <Text color={COLORS.error} bold>{'\u2718'} {t('error_prefix')}</Text>
+      <Text color={COLORS.error}>{message}</Text>
     </Box>
   );
 }

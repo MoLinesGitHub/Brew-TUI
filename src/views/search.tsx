@@ -6,6 +6,8 @@ import { useBrewStream } from '../hooks/use-brew-stream.js';
 import { Loading } from '../components/common/loading.js';
 import { ProgressLog } from '../components/common/progress-log.js';
 import { ConfirmDialog } from '../components/common/confirm-dialog.js';
+import { ResultBanner } from '../components/common/result-banner.js';
+import { COLORS } from '../utils/colors.js';
 import { t } from '../i18n/index.js';
 import { useModalStore } from '../stores/modal-store.js';
 import { useNavigationStore } from '../stores/navigation-store.js';
@@ -49,7 +51,7 @@ export function SearchView() {
       setCursor(0);
     } catch (err) {
       setResults({ formulae: [], casks: [] });
-      setSearchError(err instanceof Error ? err.message : 'Search failed');
+      setSearchError(err instanceof Error ? err.message : t('search_failed'));
     } finally {
       setSearching(false);
     }
@@ -117,16 +119,15 @@ export function SearchView() {
           title={t('search_installing')}
         />
         {stream.isRunning && (
-          <Text color="#6B7280">esc:{t('hint_cancel')}</Text>
+          <Text color={COLORS.textSecondary}>esc:{t('hint_cancel')}</Text>
         )}
         {!stream.isRunning && (
           <Box flexDirection="column" marginTop={1}>
-            <Box borderStyle="round" borderColor={stream.error ? '#EF4444' : '#22C55E'} paddingX={2} paddingY={0}>
-              <Text color={stream.error ? '#EF4444' : '#22C55E'} bold>
-                {stream.error ? `\u2718 ${stream.error}` : `\u2714 ${t('search_installComplete')}`}
-              </Text>
-            </Box>
-            <Text color="#6B7280">esc:{t('hint_clear')}</Text>
+            <ResultBanner
+              status={stream.error ? 'error' : 'success'}
+              message={stream.error ? `\u2718 ${stream.error}` : `\u2714 ${t('search_installComplete')}`}
+            />
+            <Text color={COLORS.textSecondary}>esc:{t('hint_clear')}</Text>
           </Box>
         )}
       </Box>
@@ -136,7 +137,7 @@ export function SearchView() {
   return (
     <Box flexDirection="column">
       <Box marginBottom={1}>
-        <Text color="#FFD700">{'\u{1F50D}'} </Text>
+        <Text color={COLORS.gold}>{'\u{1F50D}'} </Text>
         {!results ? (
           <TextInput
             placeholder={t('search_placeholder')}
@@ -145,7 +146,7 @@ export function SearchView() {
             onSubmit={() => void doSearch(query)}
           />
         ) : (
-          <Text>{t('search_resultsFor')} "<Text bold color="#F9FAFB">{query}</Text>" <Text color="#6B7280">{t('search_escToClear')}</Text></Text>
+          <Text>{t('search_resultsFor')} "<Text bold color={COLORS.text}>{query}</Text>" <Text color={COLORS.textSecondary}>{t('search_escToClear')}</Text></Text>
         )}
       </Box>
 
@@ -153,7 +154,7 @@ export function SearchView() {
 
       {searchError && (
         <Box marginBottom={1}>
-          <Text color="#EF4444">{searchError}</Text>
+          <Text color={COLORS.error}>{searchError}</Text>
         </Box>
       )}
 
@@ -174,49 +175,49 @@ export function SearchView() {
         <Box flexDirection="column">
           {visibleFormulae.length > 0 && (
             <Box flexDirection="column" marginBottom={1}>
-              <Text bold color="#06B6D4">{t('search_formulaeHeader', { count: results.formulae.length })}</Text>
+              <Text bold color={COLORS.info}>{t('search_formulaeHeader', { count: results.formulae.length })}</Text>
               {visibleFormulae.map((name, i) => {
                 const isCurrent = i === cursor;
                 return (
                   <Box key={name} gap={1}>
-                    <Text color={isCurrent ? '#22C55E' : '#9CA3AF'}>{isCurrent ? '\u25B6' : ' '}</Text>
+                    <Text color={isCurrent ? COLORS.success : COLORS.muted}>{isCurrent ? '\u25B6' : ' '}</Text>
                     <Text bold={isCurrent} inverse={isCurrent}>{name}</Text>
                   </Box>
                 );
               })}
               {results.formulae.length > MAX_VISIBLE && (
-                <Text color="#6B7280" dimColor>  {t('scroll_moreBelow', { count: results.formulae.length - MAX_VISIBLE })}</Text>
+                <Text color={COLORS.textSecondary} dimColor>  {t('scroll_moreBelow', { count: results.formulae.length - MAX_VISIBLE })}</Text>
               )}
             </Box>
           )}
 
           {visibleCasks.length > 0 && (
             <Box flexDirection="column">
-              <Text bold color="#A855F7">{t('search_casksHeader', { count: results.casks.length })}</Text>
+              <Text bold color={COLORS.purple}>{t('search_casksHeader', { count: results.casks.length })}</Text>
               {visibleCasks.map((name, i) => {
                 const idx = visibleFormulae.length + i;
                 const isCurrent = idx === cursor;
                 return (
                   <Box key={name} gap={1}>
-                    <Text color={isCurrent ? '#22C55E' : '#9CA3AF'}>{isCurrent ? '\u25B6' : ' '}</Text>
+                    <Text color={isCurrent ? COLORS.success : COLORS.muted}>{isCurrent ? '\u25B6' : ' '}</Text>
                     <Text bold={isCurrent} inverse={isCurrent}>{name}</Text>
                   </Box>
                 );
               })}
               {results.casks.length > MAX_VISIBLE && (
-                <Text color="#6B7280" dimColor>  {t('scroll_moreBelow', { count: results.casks.length - MAX_VISIBLE })}</Text>
+                <Text color={COLORS.textSecondary} dimColor>  {t('scroll_moreBelow', { count: results.casks.length - MAX_VISIBLE })}</Text>
               )}
             </Box>
           )}
 
           {allVisible.length === 0 && (
-            <Box borderStyle="round" borderColor="#6B7280" paddingX={2}>
-              <Text color="#6B7280" italic>{t('search_noResults')}</Text>
+            <Box borderStyle="round" borderColor={COLORS.textSecondary} paddingX={2}>
+              <Text color={COLORS.textSecondary} italic>{t('search_noResults')}</Text>
             </Box>
           )}
 
           <Box marginTop={1}>
-            <Text color="#F9FAFB" bold>
+            <Text color={COLORS.text} bold>
               {allVisible.length > 0 ? `${cursor + 1}/${allVisible.length}` : ''}
             </Text>
           </Box>

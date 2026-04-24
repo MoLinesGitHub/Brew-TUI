@@ -38,6 +38,7 @@ export function checkBundleIntegrity(): boolean {
     const current = createHash('sha256').update(content).digest('hex');
     return current === _baselineHash;
   } catch {
-    return true; // Can't re-read — fail open
+    // SEG-006: Fail closed — if we can't read the bundle, assume tampering
+    return false;
   }
 }

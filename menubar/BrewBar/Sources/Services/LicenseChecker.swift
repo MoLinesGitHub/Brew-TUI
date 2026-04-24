@@ -1,5 +1,6 @@
 import CryptoKit
 import Foundation
+import os
 
 // MARK: - License data models
 
@@ -36,6 +37,8 @@ enum LicenseStatus {
 // MARK: - LicenseChecker
 
 struct LicenseChecker {
+    private static let logger = Logger(subsystem: "com.molinesdesigns.brewbar", category: "LicenseChecker")
+
     private static let licensePath: String = {
         NSHomeDirectory() + "/.brew-tui/license.json"
     }()
@@ -54,27 +57,37 @@ struct LicenseChecker {
     // MARK: - Public API
 
     static func checkLicense() -> LicenseStatus {
+        logger.info("Checking license at \(licensePath, privacy: .public)")
+
         guard let data = FileManager.default.contents(atPath: licensePath) else {
+            logger.info("License file not found")
             return .notFound
         }
 
         guard let file = try? JSONDecoder().decode(LicenseFile.self, from: data) else {
+            logger.error("Failed to decode license file")
             return .notFound
         }
 
         // Try encrypted format first
         if let encrypted = file.encrypted, let iv = file.iv, let tag = file.tag {
             guard let license = decrypt(encrypted: encrypted, iv: iv, tag: tag) else {
+                logger.error("Failed to decrypt license data")
                 return .notFound
             }
-            return evaluate(license)
+            let status = evaluate(license)
+            logger.info("License check result: \(String(describing: status), privacy: .public)")
+            return status
         }
 
         // Fallback: legacy unencrypted format
         if let license = file.license {
-            return evaluate(license)
+            let status = evaluate(license)
+            logger.info("License check result (legacy format): \(String(describing: status), privacy: .public)")
+            return status
         }
 
+        logger.info("License file has no license data")
         return .notFound
     }
 
@@ -123,6 +136,7 @@ struct LicenseChecker {
             let plaintext = try AES.GCM.open(sealedBox, using: encryptionKey)
             return try JSONDecoder().decode(LicenseData.self, from: plaintext)
         } catch {
+            logger.error("Decryption error: \(error.localizedDescription, privacy: .public)")
             return nil
         }
     }

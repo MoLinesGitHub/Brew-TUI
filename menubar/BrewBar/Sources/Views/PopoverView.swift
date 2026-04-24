@@ -5,6 +5,9 @@ struct PopoverView: View {
     let scheduler: SchedulerService
 
     @State private var showSettings = false
+    @Environment(\.legibilityWeight) private var legibilityWeight
+    @Environment(\.colorSchemeContrast) private var colorSchemeContrast
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         VStack(spacing: 0) {
@@ -34,7 +37,7 @@ struct PopoverView: View {
             Divider()
             footerView
         }
-        .frame(width: 340, height: 420)
+        .frame(width: 340, minHeight: 420)
         .sheet(isPresented: $showSettings) {
             SettingsView(scheduler: scheduler)
         }
@@ -46,6 +49,8 @@ struct PopoverView: View {
                 .foregroundStyle(.secondary)
             Text("Homebrew Updates")
                 .font(.headline)
+                .fontWeight(legibilityWeight == .bold ? .bold : .semibold)
+                .accessibilityAddTraits(.isHeader)
 
             Spacer()
 
@@ -65,7 +70,7 @@ struct PopoverView: View {
             }
             .buttonStyle(.borderless)
             .disabled(appState.isLoading)
-            .accessibilityLabel(String(localized: "Retry"))
+            .accessibilityLabel(String(localized: "Refresh"))
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 10)
@@ -103,8 +108,8 @@ struct PopoverView: View {
         VStack(spacing: 8) {
             Spacer()
             Image(systemName: "checkmark.circle.fill")
-                .font(.system(size: 40))
-                .foregroundStyle(.green)
+                .font(.largeTitle)
+                .foregroundStyle(colorSchemeContrast == .increased ? Color(red: 0, green: 0.6, blue: 0) : .green)
             Text("All packages up to date")
                 .font(.headline)
                 .foregroundStyle(.secondary)
@@ -122,7 +127,8 @@ struct PopoverView: View {
         VStack(alignment: .leading, spacing: 4) {
             Label("Service Errors", systemImage: "exclamationmark.triangle")
                 .font(.caption)
-                .foregroundStyle(.orange)
+                .foregroundStyle(colorSchemeContrast == .increased ? Color(red: 0.8, green: 0.4, blue: 0) : .orange)
+                .accessibilityAddTraits(.isHeader)
             if let servicesError = appState.servicesError {
                 Text(servicesError)
                     .font(.caption2)
@@ -170,7 +176,7 @@ struct PopoverView: View {
                 Image(systemName: "gear")
             }
             .buttonStyle(.borderless)
-            .accessibilityLabel(String(localized: "BrewBar Settings"))
+            .accessibilityLabel(String(localized: "Settings"))
 
             Button {
                 NSApp.terminate(nil)

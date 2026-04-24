@@ -9,7 +9,7 @@ export default defineConfig({
   target: 'node18',
   outDir: 'build',
   clean: true,
-  sourcemap: false,
+  sourcemap: 'hidden',
   external: ['react', 'react-devtools-core'],
   define: {
     'process.env.APP_VERSION': JSON.stringify(pkg.version),

@@ -4,6 +4,13 @@ import { parseInstalledJson, parseOutdatedJson, parseServicesJson, parseFormulaI
 import { parseSearchResults, parseDoctorOutput, parseBrewConfig, parseLeavesOutput } from './parsers/text-parser.js';
 import type { Formula, Cask, OutdatedPackage, BrewService, BrewConfig, PackageListItem } from './types.js';
 
+// EP-011: Package name validation
+const PKG_PATTERN = /^[\w@./+-]+$/;
+
+function validatePackageName(name: string): void {
+  if (!PKG_PATTERN.test(name)) throw new Error('Invalid package name: ' + name);
+}
+
 export async function brewUpdate(): Promise<void> {
   // Run brew update WITHOUT HOMEBREW_NO_AUTO_UPDATE so it actually fetches
   return new Promise((resolve, reject) => {
@@ -32,8 +39,21 @@ export async function getServices(): Promise<BrewService[]> {
 }
 
 export async function getFormulaInfo(name: string): Promise<Formula | null> {
+  validatePackageName(name);
   const raw = await execBrew(['info', '--json=v2', name]);
   return parseFormulaInfoJson(raw);
+}
+
+// SCR-008: Cask-specific info endpoint
+export async function getCaskInfo(name: string): Promise<Cask | null> {
+  validatePackageName(name);
+  try {
+    const raw = await execBrew(['info', '--json=v2', '--cask', name]);
+    const data = JSON.parse(raw) as { casks?: Cask[] };
+    return data.casks?.[0] ?? null;
+  } catch {
+    return null;
+  }
 }
 
 export async function search(term: string): Promise<{ formulae: string[]; casks: string[] }> {
@@ -66,10 +86,12 @@ export async function getLeaves(): Promise<string[]> {
 }
 
 export function installPackage(name: string): AsyncGenerator<string> {
+  validatePackageName(name);
   return streamBrew(['install', name]);
 }
 
 export function upgradePackage(name: string): AsyncGenerator<string> {
+  validatePackageName(name);
   return streamBrew(['upgrade', name]);
 }
 
@@ -78,12 +100,24 @@ export function upgradeAll(): AsyncGenerator<string> {
 }
 
 export async function uninstallPackage(name: string): Promise<string> {
+  validatePackageName(name);
   return execBrew(['uninstall', name]);
 }
 
-
 export async function serviceAction(name: string, action: 'start' | 'stop' | 'restart'): Promise<string> {
+  validatePackageName(name);
   return execBrew(['services', action, name]);
+}
+
+// ARQ-008: Pin/unpin operations moved from outdated view
+export async function pinPackage(name: string): Promise<string> {
+  validatePackageName(name);
+  return execBrew(['pin', name]);
+}
+
+export async function unpinPackage(name: string): Promise<string> {
+  validatePackageName(name);
+  return execBrew(['unpin', name]);
 }
 
 export function formulaeToListItems(formulae: Formula[]): PackageListItem[] {

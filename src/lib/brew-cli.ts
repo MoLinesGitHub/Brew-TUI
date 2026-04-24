@@ -1,13 +1,27 @@
 import { spawn } from 'node:child_process';
 
-export async function execBrew(args: string[]): Promise<string> {
+const DEFAULT_TIMEOUT_MS = 30_000; // 30 seconds for instant commands
+const STREAM_IDLE_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes idle timeout for streaming
+
+export async function execBrew(args: string[], timeoutMs = DEFAULT_TIMEOUT_MS): Promise<string> {
   return new Promise((resolve, reject) => {
     const proc = spawn('brew', args, { env: { ...process.env, HOMEBREW_NO_AUTO_UPDATE: '1' } });
     let stdout = '';
     let stderr = '';
+    let killed = false;
+
+    // EP-012: Timeout with AbortController pattern
+    const timer = setTimeout(() => {
+      killed = true;
+      proc.kill();
+      reject(new Error(`brew ${args.join(' ')} timed out after ${timeoutMs}ms`));
+    }, timeoutMs);
+
     proc.stdout.on('data', (d: Buffer) => { stdout += d.toString(); });
     proc.stderr.on('data', (d: Buffer) => { stderr += d.toString(); });
     proc.on('close', (code) => {
+      clearTimeout(timer);
+      if (killed) return;
       if (code === 0) {
         resolve(stdout);
       } else {
@@ -15,6 +29,8 @@ export async function execBrew(args: string[]): Promise<string> {
       }
     });
     proc.on('error', (err) => {
+      clearTimeout(timer);
+      if (killed) return;
       reject(new Error(`Failed to run brew: ${err.message}`));
     });
   });
@@ -30,8 +46,10 @@ export async function* streamBrew(args: string[]): AsyncGenerator<string> {
   const lines: string[] = [];
   let done = false;
   let exitError: string | null = null;
+  let lastOutputAt = Date.now();
 
   const push = (chunk: Buffer) => {
+    lastOutputAt = Date.now();
     buffer += chunk.toString();
     const parts = buffer.split('\n');
     buffer = parts.pop() ?? '';
@@ -61,7 +79,11 @@ export async function* streamBrew(args: string[]): AsyncGenerator<string> {
       if (lines.length > 0) {
         yield lines.shift()!;
       } else if (!done) {
-        // TODO: replace polling with event-driven approach using stdout.on('data')
+        // EP-012: Kill process if idle for too long
+        if (Date.now() - lastOutputAt > STREAM_IDLE_TIMEOUT_MS) {
+          proc.kill();
+          throw new Error(`brew ${args.join(' ')} timed out: no output for ${STREAM_IDLE_TIMEOUT_MS / 1000}s`);
+        }
         await new Promise((r) => setTimeout(r, 100));
       }
     }

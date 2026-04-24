@@ -1,5 +1,8 @@
 import Foundation
 import UserNotifications
+import os
+
+private let schedulerLogger = Logger(subsystem: "com.molinesdesigns.brewbar", category: "SchedulerService")
 
 @MainActor
 @Observable
@@ -68,6 +71,7 @@ final class SchedulerService {
     func start(state: AppState) {
         guard !isPreview else { return }
 
+        schedulerLogger.info("Starting scheduler with interval: \(self.interval.rawValue)s")
         self.state = state
         restartTimer()
         // Sync toggle with actual system permission on each launch
@@ -75,6 +79,7 @@ final class SchedulerService {
     }
 
     func stop() {
+        schedulerLogger.info("Stopping scheduler")
         timer?.invalidate()
         timer = nil
     }
@@ -108,6 +113,7 @@ final class SchedulerService {
         timer?.invalidate()
         guard !isPreview else { return }
 
+        schedulerLogger.info("Restarting timer with interval: \(self.interval.rawValue)s")
         timer = Timer.scheduledTimer(
             withTimeInterval: TimeInterval(interval.rawValue),
             repeats: true
@@ -120,9 +126,17 @@ final class SchedulerService {
 
     private func check() async {
         guard let state else { return }
+        schedulerLogger.info("Scheduled check starting")
         let previousCount = state.outdatedCount
         await state.refresh()
         let newCount = state.outdatedCount
+
+        if let error = state.error {
+            schedulerLogger.error("Scheduler check failed: \(error, privacy: .public)")
+            UserDefaults.standard.set(["message": error, "date": Date().ISO8601Format()], forKey: "lastSchedulerError")
+        } else {
+            schedulerLogger.info("Scheduled check completed: \(newCount) outdated packages")
+        }
 
         if notificationsEnabled && newCount > previousCount {
             // Re-check permission before sending
@@ -150,6 +164,7 @@ final class SchedulerService {
     }
 
     private func sendNotification(count: Int) {
+        schedulerLogger.info("Sending notification for \(count) outdated packages")
         let content = UNMutableNotificationContent()
         content.title = String(localized: "Homebrew Updates")
         content.body = String(format: String(localized: "%lld packages can be updated."), Int64(count))

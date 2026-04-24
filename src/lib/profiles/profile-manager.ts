@@ -1,18 +1,15 @@
-import { readFile, writeFile, readdir, rm } from 'node:fs/promises';
+import { readFile, writeFile, readdir, rm, rename } from 'node:fs/promises';
 import { join, basename } from 'node:path';
 import { PROFILES_DIR, ensureDataDirs } from '../data-dir.js';
 import { execBrew, streamBrew } from '../brew-cli.js';
 import { getInstalled, getLeaves } from '../brew-api.js';
 import { t } from '../../i18n/index.js';
-import { requirePro } from '../license/pro-guard.js';
 import { getWatermark } from '../license/watermark.js';
-import { useLicenseStore } from '../../stores/license-store.js';
 import type { LicenseData } from '../license/types.js';
 import type { Profile, ProfileFile } from './types.js';
 
-function proCheck(): void {
-  const { license, status } = useLicenseStore.getState();
-  requirePro(license, status);
+function proCheck(isPro: boolean): void {
+  if (!isPro) throw new Error('Pro license required');
 }
 
 /**
@@ -41,8 +38,8 @@ function profilePath(name: string): string {
   return join(PROFILES_DIR, `${basename(name)}.json`);
 }
 
-export async function listProfiles(): Promise<string[]> {
-  proCheck();
+export async function listProfiles(isPro: boolean): Promise<string[]> {
+  proCheck(isPro);
   await ensureDataDirs();
   try {
     const files = await readdir(PROFILES_DIR);
@@ -52,8 +49,8 @@ export async function listProfiles(): Promise<string[]> {
   }
 }
 
-export async function loadProfile(name: string): Promise<Profile> {
-  proCheck();
+export async function loadProfile(isPro: boolean, name: string): Promise<Profile> {
+  proCheck(isPro);
   const raw = await readFile(profilePath(name), 'utf-8');
   let file: ProfileFile;
   try {
@@ -71,22 +68,33 @@ export async function loadProfile(name: string): Promise<Profile> {
   return file.profile;
 }
 
-export async function saveProfile(profile: Profile): Promise<void> {
-  proCheck();
+export async function saveProfile(isPro: boolean, profile: Profile): Promise<void> {
+  proCheck(isPro);
   await ensureDataDirs();
+
+  // BK-002: Atomic write via temp file + rename
+  const filePath = profilePath(profile.name);
+  const tmpPath = filePath + '.tmp';
   const file: ProfileFile = { version: 1, profile };
-  await writeFile(profilePath(profile.name), JSON.stringify(file, null, 2), { encoding: 'utf-8', mode: 0o600 });
+  await writeFile(tmpPath, JSON.stringify(file, null, 2), { encoding: 'utf-8', mode: 0o600 });
+  await rename(tmpPath, filePath);
 }
 
-export async function deleteProfile(name: string): Promise<void> {
-  proCheck();
+export async function deleteProfile(isPro: boolean, name: string): Promise<void> {
+  proCheck(isPro);
   try {
     await rm(profilePath(name));
   } catch { /* may not exist */ }
 }
 
-export async function exportCurrentSetup(name: string, description: string, license: LicenseData | null = null): Promise<Profile> {
-  proCheck();
+export async function exportCurrentSetup(isPro: boolean, name: string, description: string, license: LicenseData | null = null, consent = true): Promise<Profile> {
+  proCheck(isPro);
+
+  // BK-007: Check if profile already exists
+  const existingNames = await listProfiles(isPro);
+  if (existingNames.includes(name)) {
+    throw new Error('Profile already exists: ' + name);
+  }
 
   const [installed, leaves, tapsRaw] = await Promise.all([
     getInstalled(),
@@ -108,18 +116,18 @@ export async function exportCurrentSetup(name: string, description: string, lice
     formulae: leaves,
     casks,
     taps,
-    exportedBy: getWatermark(license), // Layer 16: Watermark — who exported this profile
+    exportedBy: consent ? getWatermark(license) : '', // SEG-003: Only embed watermark with consent
   };
 
-  await saveProfile(profile);
+  await saveProfile(isPro, profile);
   return profile;
 }
 
-export async function updateProfile(oldName: string, newName: string, newDescription: string): Promise<void> {
-  proCheck();
-  const profile = await loadProfile(oldName);
+export async function updateProfile(isPro: boolean, oldName: string, newName: string, newDescription: string): Promise<void> {
+  proCheck(isPro);
+  const profile = await loadProfile(isPro, oldName);
   if (oldName !== newName) {
-    await deleteProfile(oldName);
+    await deleteProfile(isPro, oldName);
   }
   const updated: Profile = {
     ...profile,
@@ -127,15 +135,15 @@ export async function updateProfile(oldName: string, newName: string, newDescrip
     description: newDescription,
     updatedAt: new Date().toISOString(),
   };
-  await saveProfile(updated);
+  await saveProfile(isPro, updated);
 }
 
 // Validation patterns for brew package/tap names to prevent command injection
 const TAP_PATTERN = /^[a-z0-9][-a-z0-9]*\/[a-z0-9][-a-z0-9]*$/;
 const PKG_PATTERN = /^[a-z0-9][-a-z0-9_.@+]*$/;
 
-export async function* importProfile(profile: Profile): AsyncGenerator<string> {
-  proCheck();
+export async function* importProfile(isPro: boolean, profile: Profile): AsyncGenerator<string> {
+  proCheck(isPro);
 
   const installed = await getInstalled();
   const installedFormulae = new Set(installed.formulae.map((f) => f.name));

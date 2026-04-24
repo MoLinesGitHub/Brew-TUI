@@ -5,8 +5,10 @@ import { Loading, ErrorMessage } from '../components/common/loading.js';
 import { StatusBadge } from '../components/common/status-badge.js';
 import { ConfirmDialog } from '../components/common/confirm-dialog.js';
 import { SectionHeader } from '../components/common/section-header.js';
+import { COLORS } from '../utils/colors.js';
 import { GRADIENTS } from '../utils/gradient.js';
 import { t } from '../i18n/index.js';
+
 const STATUS_VARIANTS = {
   started: 'success',
   stopped: 'muted',
@@ -19,6 +21,8 @@ export function ServicesView() {
   const [cursor, setCursor] = useState(0);
   const [actionInProgress, setActionInProgress] = useState(false);
   const [confirmAction, setConfirmAction] = useState<{ type: 'stop' | 'restart'; name: string } | null>(null);
+  // SCR-014: Persist last error until explicitly cleared
+  const [lastError, setLastError] = useState<string | null>(null);
   const { stdout } = useStdout();
   const cols = stdout?.columns ?? 80;
   const svcNameWidth = Math.floor(cols * 0.35);
@@ -30,6 +34,9 @@ export function ServicesView() {
   useInput((input, key) => {
     if (actionInProgress) return;
     if (confirmAction) return;
+
+    // Clear last error on any key press
+    if (lastError) { setLastError(null); }
 
     if (input === 'j' || key.downArrow) {
       setCursor((c) => Math.min(c + 1, Math.max(0, services.length - 1)));
@@ -44,17 +51,22 @@ export function ServicesView() {
 
     const doAction = (action: 'start' | 'stop' | 'restart') => {
       setActionInProgress(true);
-      void serviceAction(svc.name, action).finally(() => {
-        setActionInProgress(false);
-      });
+      void serviceAction(svc.name, action)
+        .catch((err) => {
+          setLastError(err instanceof Error ? err.message : String(err));
+        })
+        .finally(() => {
+          setActionInProgress(false);
+          // SCR-014: Check store for errors after action
+          const storeError = useBrewStore.getState().errors['service-action'];
+          if (storeError) setLastError(storeError);
+        });
     };
 
     if (input === 's') doAction('start');
     else if (input === 'S') setConfirmAction({ type: 'stop', name: svc.name });
     else if (input === 'R') setConfirmAction({ type: 'restart', name: svc.name });
   });
-
-  const serviceActionError = useBrewStore(s => s.errors['service-action']);
 
   if (loading.services) return <Loading message={t('loading_services')} />;
   if (errors.services) return <ErrorMessage message={errors.services} />;
@@ -63,7 +75,7 @@ export function ServicesView() {
     return (
       <Box flexDirection="column">
         <SectionHeader emoji={'\u2699\uFE0F'} title={t('services_title')} gradient={GRADIENTS.ocean} />
-        <Text color="#6B7280" italic>{t('services_noServices')}</Text>
+        <Text color={COLORS.textSecondary} italic>{t('services_noServices')}</Text>
       </Box>
     );
   }
@@ -87,9 +99,15 @@ export function ServicesView() {
               const { type, name } = confirmAction;
               setConfirmAction(null);
               setActionInProgress(true);
-              void serviceAction(name, type).finally(() => {
-                setActionInProgress(false);
-              });
+              void serviceAction(name, type)
+                .catch((err) => {
+                  setLastError(err instanceof Error ? err.message : String(err));
+                })
+                .finally(() => {
+                  setActionInProgress(false);
+                  const storeError = useBrewStore.getState().errors['service-action'];
+                  if (storeError) setLastError(storeError);
+                });
             }}
             onCancel={() => setConfirmAction(null)}
           />
@@ -97,14 +115,14 @@ export function ServicesView() {
       )}
 
       <Box flexDirection="column" marginTop={1}>
-        <Box gap={1} borderStyle="single" borderBottom borderTop={false} borderLeft={false} borderRight={false} borderColor="#4B5563" paddingBottom={0}>
-          <Text bold color="#F9FAFB">{'  '}{t('services_name').padEnd(svcNameWidth)}</Text>
-          <Text bold color="#F9FAFB">{t('services_status').padEnd(svcStatusWidth)}</Text>
-          <Text bold color="#F9FAFB">{t('services_user')}</Text>
+        <Box gap={1} borderStyle="single" borderBottom borderTop={false} borderLeft={false} borderRight={false} borderColor={COLORS.border} paddingBottom={0}>
+          <Text bold color={COLORS.text}>{'  '}{t('services_name').padEnd(svcNameWidth)}</Text>
+          <Text bold color={COLORS.text}>{t('services_status').padEnd(svcStatusWidth)}</Text>
+          <Text bold color={COLORS.text}>{t('services_user')}</Text>
         </Box>
 
         {start > 0 && (
-          <Text color="#6B7280" dimColor>  {t('scroll_moreAbove', { count: start })}</Text>
+          <Text color={COLORS.textSecondary} dimColor>  {t('scroll_moreAbove', { count: start })}</Text>
         )}
 
         {visible.map((svc, i) => {
@@ -112,34 +130,35 @@ export function ServicesView() {
           const isCurrent = idx === cursor;
           return (
             <Box key={svc.name} gap={1}>
-              <Text color={isCurrent ? '#22C55E' : '#9CA3AF'}>{isCurrent ? '\u25B6' : ' '}</Text>
-              <Text bold={isCurrent} inverse={isCurrent} color={isCurrent ? '#F9FAFB' : '#9CA3AF'}>
+              <Text color={isCurrent ? COLORS.success : COLORS.muted}>{isCurrent ? '\u25B6' : ' '}</Text>
+              <Text bold={isCurrent} inverse={isCurrent} color={isCurrent ? COLORS.text : COLORS.muted}>
                 {svc.name.padEnd(svcNameWidth - 2)}
               </Text>
               <StatusBadge label={svc.status} variant={STATUS_VARIANTS[svc.status]} />
-              <Text color="#9CA3AF">{svc.user ?? '-'}</Text>
+              <Text color={COLORS.muted}>{svc.user ?? '-'}</Text>
               {svc.exit_code != null && svc.exit_code !== 0 && (
-                <Text color="#EF4444">{t('common_exit', { code: svc.exit_code })}</Text>
+                <Text color={COLORS.error}>{t('common_exit', { code: svc.exit_code })}</Text>
               )}
             </Box>
           );
         })}
 
         {start + MAX_VISIBLE_ROWS < services.length && (
-          <Text color="#6B7280" dimColor>  {t('scroll_moreBelow', { count: services.length - start - MAX_VISIBLE_ROWS })}</Text>
+          <Text color={COLORS.textSecondary} dimColor>  {t('scroll_moreBelow', { count: services.length - start - MAX_VISIBLE_ROWS })}</Text>
         )}
       </Box>
 
-      {actionInProgress && <Text color="#38BDF8">{t('services_processing')}</Text>}
+      {actionInProgress && <Text color={COLORS.sky}>{t('services_processing')}</Text>}
 
-      {serviceActionError && (
+      {/* SCR-014: Persistent error display */}
+      {lastError && (
         <Box marginTop={1}>
-          <Text color="#EF4444">{serviceActionError}</Text>
+          <Text color={COLORS.error}>{lastError}</Text>
         </Box>
       )}
 
       <Box marginTop={1}>
-        <Text color="#F9FAFB" bold>
+        <Text color={COLORS.text} bold>
           {cursor + 1}/{services.length}
         </Text>
       </Box>

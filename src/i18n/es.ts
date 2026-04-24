@@ -339,6 +339,52 @@ const es: Translations = {
   // ── Scroll indicators ──
   scroll_moreAbove: '\u2191 {{count}} m\u00E1s',
   scroll_moreBelow: '\u2193 {{count}} m\u00E1s',
+
+  // ── SCR-001: Cleanup warning ──
+  cleanup_warning_system_tools: 'Advertencia: los hu\u00E9rfanos detectados pueden incluir dependencias de herramientas no gestionadas por Homebrew. Revisa la lista antes de continuar.',
+
+  // ── SCR-002: Installed column headers ──
+  installed_col_package: 'Paquete',
+  installed_col_version: 'Versi\u00F3n',
+  installed_col_status: 'Estado',
+
+  // ── SCR-003: Search failed ──
+  search_failed: 'B\u00FAsqueda fallida',
+
+  // ── SCR-007: Deactivate failed ──
+  deactivate_failed: 'Error al desactivar',
+
+  // ── ACC-005: Version labels ──
+  version_installed: 'instalado:',
+  version_available: 'disponible:',
+
+  // ── SCR-006: Upgrade-all replay warning ──
+  upgrade_all_warning: 'Nota: esto actualizar\u00E1 todos los paquetes desactualizados actualmente, que pueden diferir del conjunto original.',
+
+  // ── SEG-007: Delete account ──
+  delete_account_confirm: '\u00BFEliminar todos los datos de Brew-TUI (~/.brew-tui)? Esto elimina tu licencia, perfiles e historial. Esta acci\u00F3n no se puede deshacer.',
+  delete_account_success: 'Todos los datos de Brew-TUI han sido eliminados.',
+
+  // ── SCR-012: Upgrade All packages list ──
+  outdated_upgradeAllList: 'Paquetes a actualizar: {{list}}',
+
+  // ── SCR-005: Profile import summary ──
+  profiles_importSummary: 'Este perfil contiene {{formulae}} formulae y {{casks}} casks. \u00BFContinuar?',
+
+  // ── SCR-017: Network error ──
+  security_networkError: 'No se pudo conectar con la base de datos de vulnerabilidades OSV.dev. Verifica tu conexi\u00F3n a internet.',
+
+  // ── ARQ-004: Dashboard last updated ──
+  dashboard_lastUpdated: '\u00DAltima actualizaci\u00F3n: {{time}}',
+
+  // ── SCR-014: Services last error ──
+  services_lastError: '\u00DAltimo error: {{error}}',
+
+  // ── SCR-010: Generic network error ──
+  error_network: 'Error de red: no se puede conectar con el servidor.',
+
+  // ── ARQ-005: Security cache ──
+  security_cachedResults: 'Mostrando resultados en cach\u00E9 (hace {{time}}). Presiona r para re-escanear.',
 };
 
 export default es;

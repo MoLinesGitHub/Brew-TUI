@@ -9,6 +9,7 @@ import { SearchInput } from '../components/common/search-input.js';
 import { ConfirmDialog } from '../components/common/confirm-dialog.js';
 import { ProgressLog } from '../components/common/progress-log.js';
 import { SectionHeader } from '../components/common/section-header.js';
+import { COLORS } from '../utils/colors.js';
 import { GRADIENTS } from '../utils/gradient.js';
 import { formatRelativeTime } from '../utils/format.js';
 import { t } from '../i18n/index.js';
@@ -17,10 +18,10 @@ import type { TranslationKey } from '../i18n/en.js';
 import type { HistoryAction, HistoryEntry } from '../lib/history/types.js';
 
 const ACTION_ICONS: Record<HistoryAction, { icon: string; color: string }> = {
-  install: { icon: '+', color: '#22C55E' },
-  uninstall: { icon: '-', color: '#EF4444' },
-  upgrade: { icon: '\u2191', color: '#06B6D4' },
-  'upgrade-all': { icon: '\u21C8', color: '#06B6D4' },
+  install: { icon: '+', color: COLORS.success },
+  uninstall: { icon: '-', color: COLORS.error },
+  upgrade: { icon: '\u2191', color: COLORS.info },
+  'upgrade-all': { icon: '\u21C8', color: COLORS.info },
 };
 
 const ACTION_LABEL_KEYS: Record<HistoryAction, TranslationKey> = {
@@ -108,7 +109,7 @@ export function HistoryView() {
     <Box flexDirection="column">
       <Box gap={2} marginBottom={1}>
         <SectionHeader emoji={'\u{1F4DC}'} title={t('history_title', { count: filtered.length })} gradient={GRADIENTS.gold} />
-        <Text color={filter === 'all' ? '#F9FAFB' : '#FFD700'}>
+        <Text color={filter === 'all' ? COLORS.text : COLORS.gold}>
           {t('history_filterLabel', { filter })}
         </Text>
       </Box>
@@ -131,7 +132,7 @@ export function HistoryView() {
         <ConfirmDialog
           message={
             confirmReplay.action === 'upgrade-all'
-              ? t('history_replayAll')
+              ? t('history_replayAll') + '\n' + t('upgrade_all_warning')
               : t('history_confirmReplay', { action: t(ACTION_LABEL_KEYS[confirmReplay.action]), name: confirmReplay.packageName ?? '' })
           }
           onConfirm={async () => {
@@ -158,7 +159,7 @@ export function HistoryView() {
       )}
 
       {filtered.length === 0 && !confirmClear && (
-        <Text color="#6B7280" italic>
+        <Text color={COLORS.textSecondary} italic>
           {filter !== 'all' ? t('history_noEntriesFor', { filter }) : t('history_noEntries')}
         </Text>
       )}
@@ -166,7 +167,7 @@ export function HistoryView() {
       {filtered.length > 0 && !confirmClear && (
         <Box flexDirection="column">
           {start > 0 && (
-            <Text color="#6B7280" dimColor>  {t('scroll_moreAbove', { count: start })}</Text>
+            <Text color={COLORS.textSecondary} dimColor>  {t('scroll_moreAbove', { count: start })}</Text>
           )}
           {visible.map((entry, i) => {
             const idx = start + i;
@@ -176,25 +177,25 @@ export function HistoryView() {
 
             return (
               <Box key={entry.id} gap={1}>
-                <Text color={isCurrent ? '#22C55E' : '#9CA3AF'}>{isCurrent ? '\u25B6' : ' '}</Text>
+                <Text color={isCurrent ? COLORS.success : COLORS.muted}>{isCurrent ? '\u25B6' : ' '}</Text>
                 <Text color={color} bold>{icon}</Text>
-                <Text bold={isCurrent} inverse={isCurrent} color={isCurrent ? '#F9FAFB' : '#9CA3AF'}>
+                <Text bold={isCurrent} inverse={isCurrent} color={isCurrent ? COLORS.text : COLORS.muted}>
                   {t(ACTION_LABEL_KEYS[entry.action]).padEnd(12)}
                 </Text>
-                <Text color="#F9FAFB">{entry.packageName ?? t('history_all')}</Text>
+                <Text color={COLORS.text}>{entry.packageName ?? t('history_all')}</Text>
                 {entry.success
                   ? <StatusBadge label={t('badge_ok')} variant="success" />
                   : <StatusBadge label={t('badge_fail')} variant="error" />}
-                <Text color="#9CA3AF">{formatRelativeTime(ts)}</Text>
+                <Text color={COLORS.muted}>{formatRelativeTime(ts)}</Text>
               </Box>
             );
           })}
           {start + MAX_VISIBLE_ROWS < filtered.length && (
-            <Text color="#6B7280" dimColor>  {t('scroll_moreBelow', { count: filtered.length - start - MAX_VISIBLE_ROWS })}</Text>
+            <Text color={COLORS.textSecondary} dimColor>  {t('scroll_moreBelow', { count: filtered.length - start - MAX_VISIBLE_ROWS })}</Text>
           )}
 
           <Box marginTop={1}>
-            <Text color="#F9FAFB" bold>
+            <Text color={COLORS.text} bold>
               {cursor + 1}/{filtered.length}
             </Text>
           </Box>

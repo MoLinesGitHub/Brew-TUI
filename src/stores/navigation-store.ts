@@ -3,12 +3,12 @@ import type { ViewId } from '../lib/types.js';
 
 interface NavigationState {
   currentView: ViewId;
-  previousView: ViewId | null;
   selectedPackage: string | null;
+  selectedPackageType: 'formula' | 'cask' | null;
   viewHistory: ViewId[];
   navigate: (view: ViewId) => void;
   goBack: () => void;
-  selectPackage: (name: string | null) => void;
+  selectPackage: (name: string | null, type?: 'formula' | 'cask' | null) => void;
 }
 
 const VIEWS: ViewId[] = [
@@ -18,8 +18,8 @@ const VIEWS: ViewId[] = [
 
 export const useNavigationStore = create<NavigationState>((set, get) => ({
   currentView: 'dashboard',
-  previousView: null,
   selectedPackage: null,
+  selectedPackageType: null,
   viewHistory: [],
 
   navigate: (view) => {
@@ -27,7 +27,6 @@ export const useNavigationStore = create<NavigationState>((set, get) => ({
     if (view === currentView) return;
     set({
       currentView: view,
-      previousView: currentView,
       viewHistory: [...viewHistory.slice(-19), currentView],
     });
   },
@@ -38,12 +37,11 @@ export const useNavigationStore = create<NavigationState>((set, get) => ({
     const prev = viewHistory[viewHistory.length - 1];
     set({
       currentView: prev,
-      previousView: get().currentView,
       viewHistory: viewHistory.slice(0, -1),
     });
   },
 
-  selectPackage: (name) => set({ selectedPackage: name }),
+  selectPackage: (name, type = null) => set({ selectedPackage: name, selectedPackageType: type }),
 }));
 
 export function getNextView(current: ViewId): ViewId {

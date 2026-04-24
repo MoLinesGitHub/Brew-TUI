@@ -1,6 +1,4 @@
 import { queryVulnerabilities } from './osv-api.js';
-import { requirePro } from '../license/pro-guard.js';
-import { useLicenseStore } from '../../stores/license-store.js';
 import type { Formula, Cask } from '../types.js';
 import type { PackageAuditResult, SecurityAuditSummary, Severity } from './types.js';
 
@@ -13,11 +11,11 @@ const SEVERITY_ORDER: Record<Severity, number> = {
 };
 
 export async function runSecurityAudit(
+  isPro: boolean,
   formulae: Formula[],
   casks: Cask[],
 ): Promise<SecurityAuditSummary> {
-  const { license, status } = useLicenseStore.getState();
-  requirePro(license, status);
+  if (!isPro) throw new Error('Pro license required');
 
   const packages: Array<{ name: string; version: string }> = [];
 

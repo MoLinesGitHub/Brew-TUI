@@ -1,11 +1,27 @@
-import { readFile, writeFile, rename } from 'node:fs/promises';
+import { readFile, writeFile, rename, open, unlink } from 'node:fs/promises';
 import { randomUUID } from 'node:crypto';
 import { HISTORY_PATH, ensureDataDirs } from '../data-dir.js';
-import { requirePro } from '../license/pro-guard.js';
-import { useLicenseStore } from '../../stores/license-store.js';
 import type { HistoryEntry, HistoryFile, HistoryAction } from './types.js';
 
 const MAX_ENTRIES = 1000;
+
+function assertPro(isPro: boolean): void {
+  if (!isPro) throw new Error('Pro license required');
+}
+
+// ── BK-004: Simple file locking ──
+const lockPath = HISTORY_PATH + '.lock';
+
+async function withLock<T>(fn: () => Promise<T>): Promise<T> {
+  const lockFd = await open(lockPath, 'wx').catch(() => null);
+  if (!lockFd) throw new Error('History file is locked by another process');
+  try {
+    return await fn();
+  } finally {
+    await lockFd.close();
+    await unlink(lockPath).catch(() => {});
+  }
+}
 
 /** Map brew subcommand to a history action type */
 export function detectAction(args: string[]): { action: HistoryAction; packageName: string | null } | null {
@@ -24,9 +40,8 @@ export function detectAction(args: string[]): { action: HistoryAction; packageNa
   return null;
 }
 
-export async function loadHistory(): Promise<HistoryEntry[]> {
-  const { license, status } = useLicenseStore.getState();
-  requirePro(license, status);
+export async function loadHistory(isPro: boolean): Promise<HistoryEntry[]> {
+  assertPro(isPro);
 
   try {
     const raw = await readFile(HISTORY_PATH, 'utf-8');
@@ -51,35 +66,37 @@ async function saveHistory(entries: HistoryEntry[]): Promise<void> {
 }
 
 export async function appendEntry(
+  isPro: boolean,
   action: HistoryAction,
   packageName: string | null,
   success: boolean,
   error: string | null = null,
 ): Promise<void> {
-  const { license, status } = useLicenseStore.getState();
-  requirePro(license, status);
-  const entries = await loadHistory();
+  assertPro(isPro);
 
-  const entry: HistoryEntry = {
-    id: randomUUID(),
-    action,
-    packageName,
-    timestamp: new Date().toISOString(),
-    success,
-    error,
-  };
+  await withLock(async () => {
+    const entries = await loadHistory(isPro);
 
-  entries.unshift(entry);
+    const entry: HistoryEntry = {
+      id: randomUUID(),
+      action,
+      packageName,
+      timestamp: new Date().toISOString(),
+      success,
+      error,
+    };
 
-  if (entries.length > MAX_ENTRIES) {
-    entries.length = MAX_ENTRIES;
-  }
+    entries.unshift(entry);
 
-  await saveHistory(entries);
+    if (entries.length > MAX_ENTRIES) {
+      entries.length = MAX_ENTRIES;
+    }
+
+    await saveHistory(entries);
+  });
 }
 
-export async function clearHistory(): Promise<void> {
-  const { license, status } = useLicenseStore.getState();
-  requirePro(license, status);
+export async function clearHistory(isPro: boolean): Promise<void> {
+  assertPro(isPro);
   await saveHistory([]);
 }

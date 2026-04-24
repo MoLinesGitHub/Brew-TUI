@@ -9,6 +9,7 @@ import { ResultBanner } from '../components/common/result-banner.js';
 import { StatCard } from '../components/common/stat-card.js';
 import { SectionHeader } from '../components/common/section-header.js';
 import { COLORS } from '../utils/colors.js';
+import { SelectableRow } from '../components/common/selectable-row.js';
 import { GRADIENTS } from '../utils/gradient.js';
 import { t } from '../i18n/index.js';
 
@@ -146,13 +147,12 @@ export function SmartCleanupView() {
             const isCurrent = i === cursor;
             const isSelected = selected.has(c.name);
             return (
-              <Box key={c.name} gap={1}>
-                <Text color={isCurrent ? COLORS.success : COLORS.muted}>{isCurrent ? '\u25B6' : ' '}</Text>
+              <SelectableRow key={c.name} isCurrent={isCurrent}>
                 <Text color={isSelected ? COLORS.success : COLORS.muted}>{isSelected ? '\u2611' : '\u2610'}</Text>
                 <Text bold={isCurrent} inverse={isCurrent} color={isCurrent ? COLORS.text : COLORS.muted}>{c.name}</Text>
                 <Text color={COLORS.warning}>{c.diskUsageFormatted}</Text>
                 <Text color={COLORS.textSecondary}>[{c.reason}]</Text>
-              </Box>
+              </SelectableRow>
             );
           })}
           <Box marginTop={1}>

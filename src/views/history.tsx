@@ -5,6 +5,7 @@ import { useBrewStream } from '../hooks/use-brew-stream.js';
 import { useDebounce } from '../hooks/use-debounce.js';
 import { Loading, ErrorMessage } from '../components/common/loading.js';
 import { StatusBadge } from '../components/common/status-badge.js';
+import { SelectableRow } from '../components/common/selectable-row.js';
 import { SearchInput } from '../components/common/search-input.js';
 import { ConfirmDialog } from '../components/common/confirm-dialog.js';
 import { ProgressLog } from '../components/common/progress-log.js';
@@ -176,8 +177,7 @@ export function HistoryView() {
             const ts = new Date(entry.timestamp).getTime() / 1000;
 
             return (
-              <Box key={entry.id} gap={1}>
-                <Text color={isCurrent ? COLORS.success : COLORS.muted}>{isCurrent ? '\u25B6' : ' '}</Text>
+              <SelectableRow key={entry.id} isCurrent={isCurrent}>
                 <Text color={color} bold>{icon}</Text>
                 <Text bold={isCurrent} inverse={isCurrent} color={isCurrent ? COLORS.text : COLORS.muted}>
                   {t(ACTION_LABEL_KEYS[entry.action]).padEnd(12)}
@@ -187,7 +187,7 @@ export function HistoryView() {
                   ? <StatusBadge label={t('badge_ok')} variant="success" />
                   : <StatusBadge label={t('badge_fail')} variant="error" />}
                 <Text color={COLORS.muted}>{formatRelativeTime(ts)}</Text>
-              </Box>
+              </SelectableRow>
             );
           })}
           {start + MAX_VISIBLE_ROWS < filtered.length && (

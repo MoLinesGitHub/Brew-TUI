@@ -3,6 +3,7 @@ import { Box, Text } from 'ink';
 import { ConfirmDialog } from '../../components/common/confirm-dialog.js';
 import { SectionHeader } from '../../components/common/section-header.js';
 import { COLORS } from '../../utils/colors.js';
+import { SelectableRow } from '../../components/common/selectable-row.js';
 import { GRADIENTS } from '../../utils/gradient.js';
 import { t } from '../../i18n/index.js';
 
@@ -51,10 +52,9 @@ export function ProfileListMode({ profileNames, cursor, confirmDelete, loadError
           {profileNames.map((name, i) => {
             const isCurrent = i === cursor;
             return (
-              <Box key={name} gap={1}>
-                <Text color={isCurrent ? COLORS.success : COLORS.muted}>{isCurrent ? '\u25B6' : ' '}</Text>
+              <SelectableRow key={name} isCurrent={isCurrent}>
                 <Text bold={isCurrent} inverse={isCurrent}>{name}</Text>
-              </Box>
+              </SelectableRow>
             );
           })}
           <Box marginTop={1}>

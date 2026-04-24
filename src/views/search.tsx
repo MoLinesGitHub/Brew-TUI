@@ -8,6 +8,7 @@ import { ProgressLog } from '../components/common/progress-log.js';
 import { ConfirmDialog } from '../components/common/confirm-dialog.js';
 import { ResultBanner } from '../components/common/result-banner.js';
 import { COLORS } from '../utils/colors.js';
+import { SelectableRow } from '../components/common/selectable-row.js';
 import { t } from '../i18n/index.js';
 import { useModalStore } from '../stores/modal-store.js';
 import { useNavigationStore } from '../stores/navigation-store.js';
@@ -179,10 +180,9 @@ export function SearchView() {
               {visibleFormulae.map((name, i) => {
                 const isCurrent = i === cursor;
                 return (
-                  <Box key={name} gap={1}>
-                    <Text color={isCurrent ? COLORS.success : COLORS.muted}>{isCurrent ? '\u25B6' : ' '}</Text>
+                  <SelectableRow key={name} isCurrent={isCurrent}>
                     <Text bold={isCurrent} inverse={isCurrent}>{name}</Text>
-                  </Box>
+                  </SelectableRow>
                 );
               })}
               {results.formulae.length > MAX_VISIBLE && (
@@ -198,10 +198,9 @@ export function SearchView() {
                 const idx = visibleFormulae.length + i;
                 const isCurrent = idx === cursor;
                 return (
-                  <Box key={name} gap={1}>
-                    <Text color={isCurrent ? COLORS.success : COLORS.muted}>{isCurrent ? '\u25B6' : ' '}</Text>
+                  <SelectableRow key={name} isCurrent={isCurrent}>
                     <Text bold={isCurrent} inverse={isCurrent}>{name}</Text>
-                  </Box>
+                  </SelectableRow>
                 );
               })}
               {results.casks.length > MAX_VISIBLE && (

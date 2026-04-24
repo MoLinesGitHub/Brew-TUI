@@ -10,6 +10,7 @@ import { StatusBadge } from '../components/common/status-badge.js';
 import { ConfirmDialog } from '../components/common/confirm-dialog.js';
 import { ProgressLog } from '../components/common/progress-log.js';
 import { ResultBanner } from '../components/common/result-banner.js';
+import { SelectableRow } from '../components/common/selectable-row.js';
 import { Loading, ErrorMessage } from '../components/common/loading.js';
 import { COLORS } from '../utils/colors.js';
 import { truncate } from '../utils/format.js';
@@ -204,8 +205,7 @@ export function InstalledView() {
           const idx = start + i;
           const isCurrent = idx === cursor;
           return (
-            <Box key={item.name} gap={1}>
-              <Text color={isCurrent ? COLORS.success : COLORS.muted}>{isCurrent ? '\u25B6' : ' '}</Text>
+            <SelectableRow key={item.name} isCurrent={isCurrent}>
               <Text bold={isCurrent} inverse={isCurrent} color={isCurrent ? COLORS.text : COLORS.muted}>
                 {truncate(item.name, nameWidth).padEnd(nameWidth)}
               </Text>
@@ -217,7 +217,7 @@ export function InstalledView() {
               {!item.outdated && !item.pinned && !item.kegOnly && !item.installedAsDependency && (
                 <Text color={COLORS.textSecondary} dimColor>{truncate(item.desc, 30)}</Text>
               )}
-            </Box>
+            </SelectableRow>
           );
         })}
         {start + MAX_VISIBLE_ROWS < allItems.length && (

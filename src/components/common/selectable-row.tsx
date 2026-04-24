@@ -4,19 +4,17 @@ import { COLORS } from '../../utils/colors.js';
 
 interface SelectableRowProps {
   isCurrent: boolean;
-  label: string;
-  dimColor?: boolean;
+  children: React.ReactNode;
+  gap?: number;
 }
 
-export function SelectableRow({ isCurrent, label, dimColor }: SelectableRowProps) {
+export function SelectableRow({ isCurrent, children, gap = 1 }: SelectableRowProps) {
   return (
-    <Box>
+    <Box gap={gap}>
       <Text color={isCurrent ? COLORS.success : COLORS.muted}>
-        {isCurrent ? '\u25B6 ' : '  '}
+        {isCurrent ? '\u25B6' : ' '}
       </Text>
-      <Text color={isCurrent ? COLORS.text : COLORS.muted} dimColor={dimColor}>
-        {label}
-      </Text>
+      {children}
     </Box>
   );
 }

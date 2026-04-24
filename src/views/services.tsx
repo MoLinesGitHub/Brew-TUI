@@ -3,6 +3,7 @@ import { Box, Text, useInput, useStdout } from 'ink';
 import { useBrewStore } from '../stores/brew-store.js';
 import { Loading, ErrorMessage } from '../components/common/loading.js';
 import { StatusBadge } from '../components/common/status-badge.js';
+import { SelectableRow } from '../components/common/selectable-row.js';
 import { ConfirmDialog } from '../components/common/confirm-dialog.js';
 import { SectionHeader } from '../components/common/section-header.js';
 import { COLORS } from '../utils/colors.js';
@@ -129,8 +130,7 @@ export function ServicesView() {
           const idx = start + i;
           const isCurrent = idx === cursor;
           return (
-            <Box key={svc.name} gap={1}>
-              <Text color={isCurrent ? COLORS.success : COLORS.muted}>{isCurrent ? '\u25B6' : ' '}</Text>
+            <SelectableRow key={svc.name} isCurrent={isCurrent}>
               <Text bold={isCurrent} inverse={isCurrent} color={isCurrent ? COLORS.text : COLORS.muted}>
                 {svc.name.padEnd(svcNameWidth - 2)}
               </Text>
@@ -139,7 +139,7 @@ export function ServicesView() {
               {svc.exit_code != null && svc.exit_code !== 0 && (
                 <Text color={COLORS.error}>{t('common_exit', { code: svc.exit_code })}</Text>
               )}
-            </Box>
+            </SelectableRow>
           );
         })}
 

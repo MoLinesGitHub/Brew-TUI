@@ -10,6 +10,7 @@ import { ConfirmDialog } from '../components/common/confirm-dialog.js';
 import { ResultBanner } from '../components/common/result-banner.js';
 import { SectionHeader } from '../components/common/section-header.js';
 import { VersionArrow } from '../components/common/version-arrow.js';
+import { SelectableRow } from '../components/common/selectable-row.js';
 import { COLORS } from '../utils/colors.js';
 import { GRADIENTS } from '../utils/gradient.js';
 import { t } from '../i18n/index.js';
@@ -152,14 +153,13 @@ export function OutdatedView() {
             const idx = start + i;
             const isCurrent = idx === cursor;
             return (
-              <Box key={pkg.name} gap={1}>
-                <Text color={isCurrent ? COLORS.success : COLORS.muted}>{isCurrent ? '\u25B6' : ' '}</Text>
+              <SelectableRow key={pkg.name} isCurrent={isCurrent}>
                 <Text bold={isCurrent} inverse={isCurrent} color={isCurrent ? COLORS.text : COLORS.muted}>
                   {pkg.name}
                 </Text>
                 <VersionArrow current={pkg.installed_versions[0] ?? ''} latest={pkg.current_version} />
                 {pkg.pinned && <StatusBadge label={t('outdated_pinned')} variant="info" />}
-              </Box>
+              </SelectableRow>
             );
           })}
           {start + MAX_VISIBLE_ROWS < allOutdated.length && (

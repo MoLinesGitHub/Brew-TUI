@@ -10,6 +10,7 @@ import { ProgressLog } from '../components/common/progress-log.js';
 import { ResultBanner } from '../components/common/result-banner.js';
 import { SectionHeader } from '../components/common/section-header.js';
 import { COLORS } from '../utils/colors.js';
+import { SelectableRow } from '../components/common/selectable-row.js';
 import { GRADIENTS } from '../utils/gradient.js';
 import { t, tp } from '../i18n/index.js';
 import { formatRelativeTime } from '../utils/format.js';
@@ -133,8 +134,7 @@ export function SecurityAuditView() {
 
             return (
               <Box key={pkg.packageName} flexDirection="column">
-                <Box gap={1}>
-                  <Text color={isCurrent ? COLORS.success : COLORS.muted}>{isCurrent ? '\u25B6' : ' '}</Text>
+                <SelectableRow isCurrent={isCurrent}>
                   <StatusBadge label={pkg.maxSeverity} variant={SEVERITY_BADGE[pkg.maxSeverity]} />
                   <Text bold={isCurrent} inverse={isCurrent} color={isCurrent ? COLORS.text : COLORS.muted}>
                     {pkg.packageName}
@@ -142,7 +142,7 @@ export function SecurityAuditView() {
                   <Text color={COLORS.muted}>{pkg.installedVersion}</Text>
                   <Text color={COLORS.muted}>{tp('plural_vulns', pkg.vulnerabilities.length)}</Text>
                   <Text color={COLORS.muted}>{isExpanded ? '\u25BC' : '\u25B6'}</Text>
-                </Box>
+                </SelectableRow>
 
                 {isExpanded && (
                   <Box flexDirection="column" paddingLeft={4} marginBottom={1}>

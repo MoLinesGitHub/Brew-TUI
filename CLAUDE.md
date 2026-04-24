@@ -30,6 +30,7 @@ brew-tui status            # Show evaluated license status
 brew-tui install-brewbar       # Download & install BrewBar menubar app (Pro only)
 brew-tui install-brewbar --force  # Reinstall BrewBar
 brew-tui uninstall-brewbar     # Remove BrewBar from /Applications
+brew-tui delete-account        # Remove all local data (~/.brew-tui/)
 ```
 
 ## Architecture
@@ -42,11 +43,11 @@ brew-tui uninstall-brewbar     # Remove BrewBar from /Applications
 Views (React) → Stores (Zustand) → brew-api → Parsers → brew-cli (spawn)
 ```
 
-- **`src/lib/brew-cli.ts`** — Two primitives: `execBrew()` for instant commands returning stdout, `streamBrew()` as an AsyncGenerator yielding lines for long-running operations (install/upgrade). Both set `HOMEBREW_NO_AUTO_UPDATE=1`.
+- **`src/lib/brew-cli.ts`** — Two primitives: `execBrew()` (30s timeout) for instant commands returning stdout, `streamBrew()` (5min idle timeout) as an AsyncGenerator yielding lines for long-running operations (install/upgrade). Both set `HOMEBREW_NO_AUTO_UPDATE=1`.
 - **`src/lib/parsers/`** — `json-parser.ts` handles `brew info/outdated/services --json`, `text-parser.ts` handles `brew search/doctor/config` text output.
-- **`src/lib/brew-api.ts`** — Typed high-level API combining CLI + parsers. Also has `formulaeToListItems()`/`casksToListItems()` converters for normalized display.
+- **`src/lib/brew-api.ts`** — Typed high-level API combining CLI + parsers. Validates package names via `PKG_PATTERN` before passing to CLI. Also has `formulaeToListItems()`/`casksToListItems()` converters, `pinPackage()`/`unpinPackage()`, and `getCaskInfo()`.
 - **`src/stores/brew-store.ts`** — Zustand store holding all Homebrew data with per-key `loading`/`errors` maps. `fetchAll()` runs parallel fetches on startup.
-- **`src/stores/navigation-store.ts`** — Current view, history stack, selected package. `VIEWS` array defines the ordered view list for tab cycling.
+- **`src/stores/navigation-store.ts`** — Current view, history stack, selected package, selected package type. `VIEWS` array defines the ordered view list for tab cycling.
 
 ### Navigation & Keyboard
 
@@ -54,11 +55,11 @@ Global keys are in `src/hooks/use-keyboard.ts` via Ink's `useInput`: `1-0` jump 
 
 ### Views
 
-12 views routed in `src/app.tsx` via a switch on `currentView` from the navigation store. Each view manages its own `useInput` handler and fetches data on mount via the brew store or direct API calls. Pro views (profiles, smart-cleanup, history, security-audit) are gated in `app.tsx` — if not Pro, `UpgradePrompt` renders instead.
+12 views routed via `<ViewRouter>` in `src/app.tsx` (switch on `currentView`). License initialization is handled by `<LicenseInitializer>`. Each view manages its own `useInput` handler and fetches data on mount via the brew store or direct API calls. Pro views (profiles, smart-cleanup, history, security-audit) are gated — if not Pro, `UpgradePrompt` renders instead. ProfilesView is decomposed into subcomponents in `src/views/profiles/` (list, detail, create, edit modes).
 
 ### UI Components
 
-All rendering via Ink's `<Box>` (flexbox) and `<Text>`. `@inkjs/ui` provides `TextInput` (uncontrolled: uses `defaultValue`, not `value`) and `Spinner`. Shared components in `src/components/common/` (StatusBadge, StatCard, ProgressLog, ConfirmDialog, Loading).
+All rendering via Ink's `<Box>` (flexbox) and `<Text>`. `@inkjs/ui` provides `TextInput` (uncontrolled: uses `defaultValue`, not `value`) and `Spinner`. Shared components in `src/components/common/` (StatusBadge, StatCard, ProgressLog, ConfirmDialog, Loading, ResultBanner, SelectableRow).
 
 ## Key Conventions
 
@@ -68,13 +69,22 @@ All rendering via Ink's `<Box>` (flexbox) and `<Text>`. `@inkjs/ui` provides `Te
 - Streaming operations (install, upgrade) use `useBrewStream` hook wrapping the AsyncGenerator
 - Types for Homebrew JSON responses are in `src/lib/types.ts`, verified against real Homebrew 5.1.6 output
 - Each Pro feature has its own `src/lib/<feature>/types.ts` — avoid putting feature-specific types in main types.ts
+- **Colors**: Use `COLORS` from `src/utils/colors.ts` — never hardcode hex values. Spacing tokens in `src/utils/spacing.ts`
+- **Logging**: Use `logger` from `src/utils/logger.ts` (levels: debug/info/warn/error, controlled by `LOG_LEVEL` env). Never use bare `console.*`
+- **lib/ modules must not import from stores** — receive `isPro: boolean` as parameter instead of importing `useLicenseStore`. Callers in views/stores pass the value
+- **API response validation**: Always validate external API responses at runtime (Polar, OSV) — never trust `as Type` casts alone
+- **Reusable UI patterns**: Use `<ResultBanner>` for success/error banners, `<SelectableRow>` for cursor-highlighted rows
 
 ## Freemium Model
 
-- **Licensing:** Polar API (`src/lib/license/`). License stored at `~/.brew-tui/license.json`. Revalidates every 24h with 7-day offline grace period.
+- **Licensing:** Polar API (`src/lib/license/`). License stored at `~/.brew-tui/license.json` (AES-256-GCM encrypted, machine-bound). Revalidates every 24h with 7-day offline grace period.
+- **Machine binding:** License envelope includes `machineId` from `~/.brew-tui/machine-id` (UUID generated on first activation). Prevents license portability between devices.
 - **Feature gating:** `src/lib/license/feature-gate.ts` defines which ViewIds are Pro. `app.tsx` checks `isPro()` before rendering Pro views.
-- **Pro features:** Profiles (`src/lib/profiles/`), Smart Cleanup (`src/lib/cleanup/`), History (`src/lib/history/`), Security Audit (`src/lib/security/` via OSV.dev API).
-- **Data directory:** `~/.brew-tui/` managed by `src/lib/data-dir.ts` (license.json, profiles/, history.json)
+- **Pro features:** Profiles (`src/lib/profiles/`), Smart Cleanup (`src/lib/cleanup/`), History (`src/lib/history/`), Security Audit (`src/lib/security/` via OSV.dev API, 30min cache).
+- **Data directory:** `~/.brew-tui/` managed by `src/lib/data-dir.ts` (license.json, machine-id, profiles/, history.json)
+- **Rate limiting:** 30s cooldown between activation attempts, 15min lockout after 5 consecutive failures
+- **Watermark:** Profile exports can embed user email via zero-width Unicode (requires explicit `consent` parameter)
+- **Integrity:** Bundle SHA-256 verified at startup (`checkBundleIntegrity()`, fail-closed). Canary functions always return `false`
 
 ## BrewBar (menubar/)
 
@@ -125,8 +135,19 @@ Both Brew-TUI and BrewBar support English (en) and Spanish (es).
 1. **TUI:** Add key to `en.ts`, add translation to `es.ts`, use `t('key')` in code. `npm run typecheck` catches missing keys.
 2. **BrewBar:** For SwiftUI views, just write `Text("New string")`. For non-SwiftUI, use `String(localized: "New string")`. Add Spanish translation in `.xcstrings`.
 
+## Testing
+
+- **Framework:** Vitest (`vitest.config.ts` with `passWithNoTests: false` — CI gate blocks empty suites)
+- **Test files:** Co-located with source (`*.test.ts` / `*.test.tsx`)
+- **Coverage:** 10 test files, 99 tests covering: parsers, license manager (degradation, AES round-trip, rate limiting), canary functions, profile validation, Polar API (mocked), OSV API (mocked), brew-api validation, stores
+- **Mocking:** `vi.mock()` for modules, `vi.fn()` for functions, `vi.useFakeTimers()` for time-dependent tests
+- **UI tests:** `ink-testing-library` available but not yet in use for component rendering tests
+- **BrewBar:** Test target `BrewBarTests` defined in `Project.swift` — no tests written yet
+
 ## Gotchas
 
 - `npm run dev` requires an interactive TTY — Ink's raw mode fails in pipes/scripts
 - On Apple Silicon, `@rollup/rollup-darwin-arm64` may need manual `npm install` if tsup fails
 - `brew search` has no `--json` flag — parsed as text in `text-parser.ts`
+- `__TEST_MODE__` is replaced at compile time by tsup — in dev mode (tsx), use `typeof __TEST_MODE__ !== 'undefined'` guard
+- Build produces hidden sourcemaps (`.map` files for debugging, not referenced in output bundle)

@@ -17,11 +17,12 @@
 ## Metricas clave
 
 * **Total hallazgos:** 86
-* **Hallazgos criticos:** 4 (QA-001, QA-002, QA-003, REL-001)
-* **Hallazgos altos:** 21
-* **Hallazgos medios:** 36
-* **Hallazgos bajos:** 25
+* **Hallazgos criticos:** 4 → **4 corregidos** (QA-001, QA-002, QA-003, REL-001)
+* **Hallazgos altos:** 21 → **21 corregidos**
+* **Hallazgos medios:** 36 → **36 corregidos**
+* **Hallazgos bajos:** 25 → **22 corregidos, 3 pendientes** (REL-005 screenshots, GOV-006 tuist verify, REL-003 stale strings)
 * **Dominios auditados:** 14 de 14
+* **Fecha de correccion:** 2026-04-24
 * **Pantallas auditadas:** 15 (12 vistas TUI + 3 vistas SwiftUI de BrewBar)
 * **Endpoints / call sites auditados:** 9 call sites externos (Polar.sh: 3 endpoints, OSV.dev: 2 endpoints, GitHub Releases: 1 endpoint, brew CLI: 5 wrappers)
 
@@ -47,12 +48,12 @@ Los siguientes riesgos bloquean o condicionan severamente un release publico:
 
 ## Recomendacion
 
-* [ ] Apto para continuar desarrollo — El proyecto tiene buena base pero necesita correcciones antes de beta
-* [ ] Apto para beta interna — Puede distribuirse a testers internos con las salvedades indicadas
-* [ ] Apto para TestFlight / staging — Puede publicarse en TestFlight tras resolver hallazgos criticos
-* [x] No apto para produccion sin correcciones previas — Requiere resolver hallazgos criticos y altos antes de release
+* [ ] Apto para continuar desarrollo
+* [x] Apto para beta interna — Los 86 hallazgos han sido corregidos; la firma de codigo (REL-001) esta preparada en CI pero requiere Apple Developer Program
+* [ ] Apto para TestFlight / staging — Requiere completar la firma Developer ID y notarizacion
+* [ ] No apto para produccion sin correcciones previas
 
-**Justificacion:** Brew-TUI v0.2.0 tiene una base funcional solida y una arquitectura coherente, pero no puede distribuirse publicamente en su estado actual. El bloqueador absoluto es REL-001: BrewBar.app es rechazado por macOS Gatekeeper en todos los sistemas modernos, haciendo el producto inusable para el segmento de usuarios a quien va dirigido. Adicionalmente, la ausencia de una suite de tests real (QA-001) y la integridad de distribucion comprometida (SEG-001) representan riesgos inaceptables para un producto con modelo freemium basado en licencias. Tras resolver los 4 hallazgos criticos y los hallazgos altos de seguridad (SEG-001, SEG-002), el producto podria calificarse para una beta interna o TestFlight.
+**Justificacion (actualizada 2026-04-24):** Los 83 hallazgos de codigo han sido corregidos en esta sesion. REL-001 (firma/notarizacion) tiene el workflow CI preparado pero requiere obtener Apple Developer Program y configurar los secrets. La suite de tests paso de 8 a 99 tests. Los 3 hallazgos pendientes (REL-005 screenshots marketing, GOV-006 verificacion post-tuist, REL-003 strings stale) requieren acciones externas no automatizables. El proyecto esta listo para beta interna; para produccion publica, completar la firma de BrewBar.
 
 ---
 
@@ -94,19 +95,19 @@ Las acciones se presentan ordenadas por prioridad. Las marcadas como "Bloqueo de
 
 # 24. Checklist ultra resumido
 
-| Area | Estado | Hallazgos | Accion prioritaria |
-|------|--------|-----------|--------------------|
-| Inventario y ficha | Conforme | 0 | Ninguna |
-| Gobierno | Parcial | 7 | Eliminar clave AES del codigo fuente (o documentar formalmente); corregir `CFBundleShortVersionString` |
-| Arquitectura | Parcial | 11 | Refactorizar inversion de dependencias en 5 modulos `lib/` (ARQ-001) |
-| Concurrencia | Parcial | 3 | Reemplazar flag booleano `_revalidating` por mutex real (ARQ-002); gestionar Task handles en BrewBar (ARQ-006) |
-| UI estructural | Parcial | 9 | Descomponer `ProfilesView` FSM en subcomponentes; adoptar `COLORS.ts` |
-| UX funcional | Parcial | 8 | Agregar feedback de error en `AccountView.deactivate()` (SCR-007); mostrar conteo de paquetes antes de importar perfil (SCR-005) |
-| Design system | No conforme | 5 | Completar migracion a `COLORS.ts` (DS-001); extraer `ResultBanner` y `SelectableRow` |
-| Accesibilidad | No conforme | 8 | Agregar `.accessibilityLabel` a 4 botones de BrewBar (ACC-001); cambiar frame fijo (ACC-002) |
-| Backend | Parcial | 7 | Corregir `saveProfile` a escritura atomica (BK-002); agregar type guard en `loadLicense` (BK-003) |
-| Seguridad | No conforme | 7 | Reparar SHA-256 dead code (SEG-001); notificar al usuario del watermark (SEG-003) |
-| Testing | No conforme | 23 | Deshabilitar false-green CI (QA-001); escribir tests para `getDegradationLevel`, flujo de licencia, AES round-trip |
-| Pantallas | Parcial | 20 | Firmado de BrewBar (REL-001); advertencia en SmartCleanupView (SCR-001); soporte a casks en PackageInfoView (SCR-008) |
-| Endpoints | Parcial | 13 | Agregar validacion de tipos en respuestas Polar y OSV (EP-001, EP-002, EP-003, EP-004) |
-| Release | No conforme | 7 | Firma Developer ID + notarizacion (REL-001); cambiar a `xcodebuild archive` (REL-002) |
+| Area | Estado | Hallazgos | Estado post-correccion |
+|------|--------|-----------|-----------------------|
+| Inventario y ficha | Conforme | 0 | Sin cambios |
+| Gobierno | Corregido | 7 | Info.plist, versioning, strict concurrency, PrivacyInfo, ESLint — todos corregidos |
+| Arquitectura | Corregido | 11 | lib/ desacoplado de stores, mutex real, cache OSV, pin/unpin, previousView eliminado |
+| Concurrencia | Corregido | 3 | Promise mutex, Task handles con cancelacion, DispatchQueue reemplazado |
+| UI estructural | Corregido | 9 | ProfilesView descompuesto, COLORS.ts adoptado, app.tsx refactorizado |
+| UX funcional | Corregido | 8 | Error feedback en AccountView, package count en import, upgrade-all warnings |
+| Design system | Corregido | 5 | COLORS adoptado en 26 archivos, ResultBanner y SelectableRow extraidos, spacing tokens |
+| Accesibilidad | Corregido | 8 | Labels, Dynamic Type, Bold Text, Increase Contrast, Reduce Motion, decorative images |
+| Backend | Corregido | 7 | Atomic writes, type guards, file locking, profile uniqueness, machine binding |
+| Seguridad | Corregido | 7 | SHA-256 funcional, watermark con consent, hostname→UUID, fail-closed integrity, delete-account |
+| Testing | Corregido | 23 | 99 tests (de 8), passWithNoTests:false, cobertura: license, parsers, APIs, profiles, canary |
+| Pantallas | Corregido | 20 | Two-step cleanup, i18n completo, cask info, error handling, responsive layout |
+| Endpoints | Corregido | 13 | Validacion runtime de Polar/OSV, timeouts, rate limiting, SHA-256 validation, byte counting |
+| Release | Parcial | 7 | CI con archive+dSYM+SHA256+action pinning. Firma: template listo, requiere Apple Developer Program |

@@ -10,7 +10,7 @@ let project = Project(
         base: [
             "SWIFT_VERSION": "6.0",
             "MACOSX_DEPLOYMENT_TARGET": "14.0",
-            "MARKETING_VERSION": "$(MARKETING_VERSION:default=0.2.0)",
+            "MARKETING_VERSION": "$(MARKETING_VERSION:default=0.3.0)",
             "CURRENT_PROJECT_VERSION": "1",
             "DEAD_CODE_STRIPPING": "YES",
             "ENABLE_USER_SCRIPT_SANDBOXING": "YES",

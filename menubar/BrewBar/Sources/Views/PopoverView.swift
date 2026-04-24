@@ -37,7 +37,7 @@ struct PopoverView: View {
             Divider()
             footerView
         }
-        .frame(width: 340, minHeight: 420)
+        .frame(minWidth: 340, maxWidth: 340, minHeight: 420)
         .onDisappear { refreshTask?.cancel() }
         .sheet(isPresented: $showSettings) {
             SettingsView(scheduler: scheduler)

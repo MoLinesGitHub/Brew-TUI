@@ -84,7 +84,7 @@ export function Header() {
   useLocaleStore((s) => s.locale);
 
   return (
-    <Box flexDirection="row" paddingX={1}>
+    <Box flexDirection="row" paddingX={1} alignItems="center">
       <Box flexDirection="column" flexShrink={0}>
         {LOGO_BREW.map((brew, i) => (
           <Box key={i}>

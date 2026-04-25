@@ -8,6 +8,7 @@ const mockNeedsRevalidation = vi.fn();
 const mockGetDegradationLevel = vi.fn();
 const mockActivate = vi.fn();
 const mockDeactivate = vi.fn();
+const mockGetBuiltinAccountType = vi.fn().mockReturnValue(null);
 const mockEnsureDataDirs = vi.fn<() => Promise<void>>();
 const mockInitStoreIntegrity = vi.fn();
 
@@ -17,6 +18,7 @@ vi.mock('../lib/license/license-manager.js', () => ({
   isExpired: mockIsExpired,
   needsRevalidation: mockNeedsRevalidation,
   getDegradationLevel: mockGetDegradationLevel,
+  getBuiltinAccountType: mockGetBuiltinAccountType,
   activate: mockActivate,
   deactivate: mockDeactivate,
 }));
@@ -55,6 +57,7 @@ beforeEach(() => {
   mockGetDegradationLevel.mockReset();
   mockActivate.mockReset();
   mockDeactivate.mockReset();
+  mockGetBuiltinAccountType.mockReset().mockReturnValue(null);
   mockEnsureDataDirs.mockReset().mockResolvedValue(undefined);
   mockInitStoreIntegrity.mockReset();
 });

@@ -5,6 +5,16 @@ import { activateLicense as apiActivate, validateLicense as apiValidate, deactiv
 import { t } from '../../i18n/index.js';
 import type { LicenseData, LicenseFile } from './types.js';
 
+// ── Built-in perennial accounts (bypass Polar validation) ──
+const BUILTIN_ACCOUNTS: Record<string, 'pro' | 'free'> = {
+  'admin@molinesdesigns.com': 'pro',
+  'artax1983@icloud.com': 'free',
+};
+
+export function getBuiltinAccountType(email: string): 'pro' | 'free' | null {
+  return BUILTIN_ACCOUNTS[email] ?? null;
+}
+
 const REVALIDATION_INTERVAL_MS = 24 * 60 * 60 * 1000; // 24h
 const GRACE_PERIOD_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 

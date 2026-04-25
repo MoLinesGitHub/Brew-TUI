@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import type { LicenseData, LicenseStatus } from '../lib/license/types.js';
 import * as manager from '../lib/license/license-manager.js';
-import { getDegradationLevel } from '../lib/license/license-manager.js';
+import { getDegradationLevel, getBuiltinAccountType } from '../lib/license/license-manager.js';
 import type { DegradationLevel } from '../lib/license/license-manager.js';
 import { ensureDataDirs } from '../lib/data-dir.js';
 import { initStoreIntegrity } from '../lib/license/anti-tamper.js';
@@ -50,6 +50,17 @@ export const useLicenseStore = create<LicenseState>((set, get) => ({
     const license = await manager.loadLicense();
 
     if (!license) {
+      set({ status: 'free', license: null, degradation: 'none' });
+      return;
+    }
+
+    // Built-in perennial accounts: skip all Polar validation
+    const builtinType = getBuiltinAccountType(license.customerEmail);
+    if (builtinType === 'pro') {
+      set({ status: 'pro', license, degradation: 'none' });
+      return;
+    }
+    if (builtinType === 'free') {
       set({ status: 'free', license: null, degradation: 'none' });
       return;
     }

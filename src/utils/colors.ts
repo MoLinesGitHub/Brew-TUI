@@ -21,5 +21,6 @@ export const COLORS = {
   gold: '#FFD700',
   purple: '#A855F7',
   blue: '#3B82F6',
+  lavender: '#C4B5FD',
   border: '#4B5563',
 } as const;

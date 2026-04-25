@@ -53,13 +53,39 @@ const TAB_VIEWS: ViewId[] = [
   'profiles', 'smart-cleanup', 'history', 'security-audit', 'account',
 ];
 
+function MenuItem({ view, currentView }: { view: ViewId; currentView: ViewId }) {
+  const key = VIEW_KEYS[view];
+  const viewLabel = t(VIEW_LABEL_KEYS[view]);
+  const isPro = isProView(view);
+  const isActive = view === currentView;
+  const isAccount = view === 'account';
+
+  return (
+    <Box>
+      {isActive ? <Text color={COLORS.sky}>{'\u25CF'} </Text> : <Text>  </Text>}
+      {key ? (
+        <>
+          <Text bold color="#FFFFFF">{key}</Text>
+          <Text bold={isActive} underline={isActive} color={isActive ? COLORS.success : isAccount ? COLORS.gold : COLORS.textSecondary}> {viewLabel}</Text>
+        </>
+      ) : (
+        <Text bold={isActive} underline={isActive} color={isActive ? COLORS.success : isAccount ? COLORS.gold : COLORS.textSecondary}>  {viewLabel}</Text>
+      )}
+      {isPro && <Text color={COLORS.brand} bold> {t('pro_badge')}</Text>}
+    </Box>
+  );
+}
+
+const COL1_VIEWS = TAB_VIEWS.slice(0, 6);
+const COL2_VIEWS = TAB_VIEWS.slice(6);
+
 export function Header() {
   const currentView = useNavigationStore((s) => s.currentView);
   useLocaleStore((s) => s.locale);
 
   return (
-    <Box flexDirection="column">
-      <Box flexDirection="column" paddingX={1}>
+    <Box flexDirection="row" paddingX={1}>
+      <Box flexDirection="column" flexShrink={0}>
         {LOGO_BREW.map((brew, i) => (
           <Box key={i}>
             <GradientText colors={GRADIENTS.gold}>{brew}</GradientText>
@@ -67,31 +93,17 @@ export function Header() {
           </Box>
         ))}
       </Box>
-      <Text> </Text>
-      <Box borderStyle="single" borderBottom borderLeft={false} borderRight={false} borderTop={false} borderColor={COLORS.gold} paddingX={1} flexWrap="wrap">
-        {TAB_VIEWS.map((view, i) => {
-          const key = VIEW_KEYS[view];
-          const viewLabel = t(VIEW_LABEL_KEYS[view]);
-          const isPro = isProView(view);
-          const isActive = view === currentView;
-          const isAccount = view === 'account';
-
-          return (
-            <React.Fragment key={view}>
-              {i > 0 && <Text color={COLORS.border}> {'\u2502'} </Text>}
-              {isActive && <Text color={COLORS.sky}>{'\u25CF'} </Text>}
-              {key ? (
-                <>
-                  <Text bold color="#FFFFFF">{key}</Text>
-                  <Text bold={isActive} underline={isActive} color={isActive ? COLORS.success : isAccount ? COLORS.gold : COLORS.textSecondary}> {viewLabel}</Text>
-                </>
-              ) : (
-                <Text bold={isActive} underline={isActive} color={isActive ? COLORS.success : isAccount ? COLORS.gold : COLORS.textSecondary}>{viewLabel}</Text>
-              )}
-              {isPro && <Text color={COLORS.brand} bold> {t('pro_badge')}</Text>}
-            </React.Fragment>
-          );
-        })}
+      <Box borderStyle="round" borderColor={COLORS.lavender} paddingX={1} marginLeft={2} flexDirection="row" alignSelf="center">
+        <Box flexDirection="column">
+          {COL1_VIEWS.map((view) => (
+            <MenuItem key={view} view={view} currentView={currentView} />
+          ))}
+        </Box>
+        <Box flexDirection="column" marginLeft={2}>
+          {COL2_VIEWS.map((view) => (
+            <MenuItem key={view} view={view} currentView={currentView} />
+          ))}
+        </Box>
       </Box>
     </Box>
   );

@@ -35,7 +35,7 @@ brew-tui delete-account        # Remove all local data (~/.brew-tui/)
 
 ## Architecture
 
-**Brew-TUI** is a visual TUI for Homebrew built with React 18 + Ink 5.x (terminal renderer). ESM-only (`"type": "module"`), TypeScript strict mode.
+**Brew-TUI** is a visual TUI for Homebrew built with React 18 + Ink 5.x (terminal renderer). ESM-only (`"type": "module"`), TypeScript strict mode. Requires Node ≥ 22.
 
 ### Data Flow
 
@@ -48,6 +48,8 @@ Views (React) → Stores (Zustand) → brew-api → Parsers → brew-cli (spawn)
 - **`src/lib/brew-api.ts`** — Typed high-level API combining CLI + parsers. Validates package names via `PKG_PATTERN` before passing to CLI. Also has `formulaeToListItems()`/`casksToListItems()` converters, `pinPackage()`/`unpinPackage()`, and `getCaskInfo()`.
 - **`src/stores/brew-store.ts`** — Zustand store holding all Homebrew data with per-key `loading`/`errors` maps. `fetchAll()` runs parallel fetches on startup.
 - **`src/stores/navigation-store.ts`** — Current view, history stack, selected package, selected package type. `VIEWS` array defines the ordered view list for tab cycling.
+- **`src/stores/modal-store.ts`** — Global modal state using a reference counter (not boolean) to handle nested suppressors correctly.
+- **Pro feature stores:** `cleanup-store.ts`, `history-store.ts`, `security-store.ts`, `profile-store.ts` — each wraps its feature's lib module and manages loading/error state.
 
 ### Navigation & Keyboard
 
@@ -59,7 +61,7 @@ Global keys are in `src/hooks/use-keyboard.ts` via Ink's `useInput`: `1-0` jump 
 
 ### UI Components
 
-All rendering via Ink's `<Box>` (flexbox) and `<Text>`. `@inkjs/ui` provides `TextInput` (uncontrolled: uses `defaultValue`, not `value`) and `Spinner`. Shared components in `src/components/common/` (StatusBadge, StatCard, ProgressLog, ConfirmDialog, Loading, ResultBanner, SelectableRow).
+All rendering via Ink's `<Box>` (flexbox) and `<Text>`. `@inkjs/ui` provides `TextInput` (uncontrolled: uses `defaultValue`, not `value`) and `Spinner`. Layout components in `src/components/layout/` (AppLayout, Header, Footer). Shared components in `src/components/common/` (StatusBadge, StatCard, ProgressLog, ConfirmDialog, Loading, ResultBanner, SelectableRow, SearchInput, SectionHeader, ProBadge, UpgradePrompt, VersionArrow).
 
 ## Key Conventions
 
@@ -67,6 +69,7 @@ All rendering via Ink's `<Box>` (flexbox) and `<Text>`. `@inkjs/ui` provides `Te
 - `@inkjs/ui` `TextInput` is **uncontrolled** — use `defaultValue` + `onChange`/`onSubmit`, not `value`
 - Zustand stores accessed directly via `useXxxStore()` hooks, no React Context
 - Streaming operations (install, upgrade) use `useBrewStream` hook wrapping the AsyncGenerator
+- Debounced values use `useDebounce` hook (e.g. search input)
 - Types for Homebrew JSON responses are in `src/lib/types.ts`, verified against real Homebrew 5.1.6 output
 - Each Pro feature has its own `src/lib/<feature>/types.ts` — avoid putting feature-specific types in main types.ts
 - **Colors**: Use `COLORS` from `src/utils/colors.ts` — never hardcode hex values. Spacing tokens in `src/utils/spacing.ts`
@@ -85,6 +88,8 @@ All rendering via Ink's `<Box>` (flexbox) and `<Text>`. `@inkjs/ui` provides `Te
 - **Rate limiting:** 30s cooldown between activation attempts, 15min lockout after 5 consecutive failures
 - **Watermark:** Profile exports can embed user email via zero-width Unicode (requires explicit `consent` parameter)
 - **Integrity:** Bundle SHA-256 verified at startup (`checkBundleIntegrity()`, fail-closed). Canary functions always return `false`
+- **Built-in accounts:** `getBuiltinAccountType()` in `license-manager.ts` — perennial accounts that bypass Polar validation entirely (e.g. always-PRO admin, always-free test account). Checked in `license-store.ts` `initialize()` after loading the license file.
+- **Promo codes:** `src/lib/license/promo.ts` — promotional code redemption via brewtui-api backend
 
 ## BrewBar (menubar/)
 
@@ -139,7 +144,7 @@ Both Brew-TUI and BrewBar support English (en) and Spanish (es).
 
 - **Framework:** Vitest (`vitest.config.ts` with `passWithNoTests: false` — CI gate blocks empty suites)
 - **Test files:** Co-located with source (`*.test.ts` / `*.test.tsx`)
-- **Coverage:** 10 test files, 99 tests covering: parsers, license manager (degradation, AES round-trip, rate limiting), canary functions, profile validation, Polar API (mocked), OSV API (mocked), brew-api validation, stores
+- **Coverage:** parsers, license manager (degradation, AES round-trip, rate limiting, built-in accounts), canary functions, profile validation, Polar API (mocked), OSV API (mocked), brew-api validation, stores
 - **Mocking:** `vi.mock()` for modules, `vi.fn()` for functions, `vi.useFakeTimers()` for time-dependent tests
 - **UI tests:** `ink-testing-library` available but not yet in use for component rendering tests
 - **BrewBar:** Test target `BrewBarTests` defined in `Project.swift` — no tests written yet
@@ -149,10 +154,14 @@ Both Brew-TUI and BrewBar support English (en) and Spanish (es).
 - `npm run dev` requires an interactive TTY — Ink's raw mode fails in pipes/scripts
 - On Apple Silicon, `@rollup/rollup-darwin-arm64` may need manual `npm install` if tsup fails
 - `brew search` has no `--json` flag — parsed as text in `text-parser.ts`
-- `__TEST_MODE__` is replaced at compile time by tsup — in dev mode (tsx), use `typeof __TEST_MODE__ !== 'undefined'` guard
+- `__TEST_MODE__` and `process.env.APP_VERSION` are replaced at compile time by tsup (`tsup.config.ts` defines) — in dev mode (tsx), use `typeof __TEST_MODE__ !== 'undefined'` guard
 - Build produces hidden sourcemaps (`.map` files for debugging, not referenced in output bundle)
+- TUI clears the entire terminal (including scrollback) on startup for a clean display
 
 ## Publishing
 
+All three channels must be updated on each release:
 - **npm:** `npm publish` (prepublishOnly runs typecheck + build automatically)
+- **GitHub Releases:** `gh release create vX.Y.Z` on MoLinesGitHub/Brew-TUI
+- **Homebrew Tap:** Update `Formula/brew-tui.rb` in MoLinesGitHub/homebrew-tap with new tarball URL and SHA256
 - **npm token:** Stored at `/Users/molinesmac/Documents/Secrets/npm token.md` — update `~/.npmrc` if expired

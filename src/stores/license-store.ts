@@ -57,7 +57,7 @@ export const useLicenseStore = create<LicenseState>((set, get) => ({
     // Built-in perennial accounts: skip all Polar validation
     const builtinType = getBuiltinAccountType(license.customerEmail);
     if (builtinType === 'pro') {
-      set({ status: 'pro', license, degradation: 'none' });
+      set({ status: 'pro', license: { ...license, status: 'active' }, degradation: 'none' });
       return;
     }
     if (builtinType === 'free') {

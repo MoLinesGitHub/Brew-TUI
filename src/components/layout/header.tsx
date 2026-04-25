@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Text } from 'ink';
+import { Box, Text, useStdout } from 'ink';
 import { useNavigationStore } from '../../stores/navigation-store.js';
 import { isProView } from '../../lib/license/feature-gate.js';
 import { COLORS } from '../../utils/colors.js';
@@ -59,18 +59,14 @@ function MenuItem({ view, currentView }: { view: ViewId; currentView: ViewId }) 
   const isPro = isProView(view);
   const isActive = view === currentView;
   const isAccount = view === 'account';
+  // Indicator for keyless views: package-info uses Enter, account uses 0
+  const indicator = key || (view === 'package-info' ? '\u21B2' : ' ');
 
   return (
     <Box>
-      {isActive ? <Text color={COLORS.sky}>{'\u25CF'} </Text> : <Text>  </Text>}
-      {key ? (
-        <>
-          <Text bold color="#FFFFFF">{key}</Text>
-          <Text bold={isActive} underline={isActive} color={isActive ? COLORS.success : isAccount ? COLORS.gold : COLORS.textSecondary}> {viewLabel}</Text>
-        </>
-      ) : (
-        <Text bold={isActive} underline={isActive} color={isActive ? COLORS.success : isAccount ? COLORS.gold : COLORS.textSecondary}>  {viewLabel}</Text>
-      )}
+      {isActive ? <Text color={COLORS.success} bold>{'\u25B6'} </Text> : <Text>  </Text>}
+      <Text bold color={key ? '#FFFFFF' : COLORS.textSecondary}>{indicator}</Text>
+      <Text bold={isActive} underline={isActive} color={isActive ? COLORS.success : isAccount ? COLORS.gold : COLORS.textSecondary}> {viewLabel}</Text>
       {isPro && <Text color={COLORS.brand} bold> {t('pro_badge')}</Text>}
     </Box>
   );
@@ -82,18 +78,24 @@ const COL2_VIEWS = TAB_VIEWS.slice(6);
 export function Header() {
   const currentView = useNavigationStore((s) => s.currentView);
   useLocaleStore((s) => s.locale);
+  const { stdout } = useStdout();
+  const cols = stdout?.columns ?? 80;
+  const isNarrow = cols < 95;
 
-  return (
-    <Box flexDirection="row" paddingX={1} alignItems="center">
-      <Box flexDirection="column" flexShrink={0}>
-        {LOGO_BREW.map((brew, i) => (
-          <Box key={i}>
-            <GradientText colors={GRADIENTS.gold}>{brew}</GradientText>
-            <GradientText colors={['#B8860B', '#8B6914', '#6B4F10']}>{LOGO_TUI[i]}</GradientText>
-          </Box>
-        ))}
-      </Box>
-      <Box borderStyle="round" borderColor={COLORS.lavender} paddingX={1} marginLeft={2} flexDirection="row" alignSelf="center">
+  const logoBlock = (
+    <Box flexDirection="column" flexShrink={0}>
+      {LOGO_BREW.map((brew, i) => (
+        <Box key={i}>
+          <GradientText colors={GRADIENTS.gold}>{brew}</GradientText>
+          <GradientText colors={['#B8860B', '#8B6914', '#6B4F10']}>{LOGO_TUI[i]}</GradientText>
+        </Box>
+      ))}
+    </Box>
+  );
+
+  const menuBlock = (
+    <Box borderStyle="round" borderColor={COLORS.lavender} paddingX={1} flexDirection="column" alignSelf={isNarrow ? 'flex-start' : 'center'}>
+      <Box flexDirection="row">
         <Box flexDirection="column">
           {COL1_VIEWS.map((view) => (
             <MenuItem key={view} view={view} currentView={currentView} />
@@ -105,6 +107,29 @@ export function Header() {
           ))}
         </Box>
       </Box>
+      <Box borderStyle="single" borderTop borderBottom={false} borderLeft={false} borderRight={false} borderColor={COLORS.lavender} marginTop={0}>
+        <Text bold color="#FFFFFF">S</Text>
+        <Text color={COLORS.textSecondary}> {t('hint_search')}</Text>
+        <Text color={COLORS.lavender}> {'\u2503'} </Text>
+        <Text bold color="#FFFFFF">L</Text>
+        <Text color={COLORS.textSecondary}> {t('hint_lang')}</Text>
+      </Box>
+    </Box>
+  );
+
+  if (isNarrow) {
+    return (
+      <Box flexDirection="column" paddingX={1}>
+        {logoBlock}
+        <Box marginTop={1}>{menuBlock}</Box>
+      </Box>
+    );
+  }
+
+  return (
+    <Box flexDirection="row" paddingX={1} alignItems="center">
+      {logoBlock}
+      <Box marginLeft={2}>{menuBlock}</Box>
     </Box>
   );
 }

@@ -65,7 +65,7 @@ export function ServicesView() {
     };
 
     if (input === 's') doAction('start');
-    else if (input === 'S') setConfirmAction({ type: 'stop', name: svc.name });
+    else if (input === 'x') setConfirmAction({ type: 'stop', name: svc.name });
     else if (input === 'R') setConfirmAction({ type: 'restart', name: svc.name });
   });
 

@@ -12,7 +12,7 @@ interface NavigationState {
 }
 
 const VIEWS: ViewId[] = [
-  'dashboard', 'installed', 'search', 'outdated', 'package-info', 'services', 'doctor',
+  'dashboard', 'installed', 'outdated', 'package-info', 'services', 'doctor',
   'profiles', 'smart-cleanup', 'history', 'security-audit', 'account',
 ];
 

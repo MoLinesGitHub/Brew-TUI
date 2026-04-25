@@ -7,14 +7,14 @@ import type { ViewId } from '../lib/types.js';
 const VIEW_KEYS: Record<string, ViewId> = {
   '1': 'dashboard',
   '2': 'installed',
-  '3': 'search',
-  '4': 'outdated',
-  '5': 'services',
-  '6': 'doctor',
-  '7': 'profiles',
-  '8': 'smart-cleanup',
-  '9': 'history',
-  '0': 'security-audit',
+  '3': 'outdated',
+  '4': 'services',
+  '5': 'doctor',
+  '6': 'profiles',
+  '7': 'smart-cleanup',
+  '8': 'history',
+  '9': 'security-audit',
+  '0': 'account',
 };
 
 export function useGlobalKeyboard(opts?: { onQuit?: () => void; disabled?: boolean }) {
@@ -47,6 +47,11 @@ export function useGlobalKeyboard(opts?: { onQuit?: () => void; disabled?: boole
     }
     if (key.tab) {
       navigate(getNextView(currentView));
+      return;
+    }
+
+    if (input === 'S') {
+      navigate('search');
       return;
     }
 

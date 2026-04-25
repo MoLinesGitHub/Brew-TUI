@@ -42,14 +42,14 @@ const VIEW_LABEL_KEYS: Record<ViewId, TranslationKey> = {
 };
 
 const VIEW_KEYS: Record<ViewId, string> = {
-  dashboard: '1', installed: '2', search: '3', outdated: '4',
-  'package-info': '', services: '5', doctor: '6',
-  profiles: '7', 'smart-cleanup': '8', history: '9', 'security-audit': '0',
-  account: '',
+  dashboard: '1', installed: '2', search: '', outdated: '3',
+  'package-info': '', services: '4', doctor: '5',
+  profiles: '6', 'smart-cleanup': '7', history: '8', 'security-audit': '9',
+  account: '0',
 };
 
 const TAB_VIEWS: ViewId[] = [
-  'dashboard', 'installed', 'search', 'outdated', 'package-info', 'services', 'doctor',
+  'dashboard', 'installed', 'outdated', 'package-info', 'services', 'doctor',
   'profiles', 'smart-cleanup', 'history', 'security-audit', 'account',
 ];
 

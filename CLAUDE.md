@@ -151,3 +151,8 @@ Both Brew-TUI and BrewBar support English (en) and Spanish (es).
 - `brew search` has no `--json` flag — parsed as text in `text-parser.ts`
 - `__TEST_MODE__` is replaced at compile time by tsup — in dev mode (tsx), use `typeof __TEST_MODE__ !== 'undefined'` guard
 - Build produces hidden sourcemaps (`.map` files for debugging, not referenced in output bundle)
+
+## Publishing
+
+- **npm:** `npm publish` (prepublishOnly runs typecheck + build automatically)
+- **npm token:** Stored at `/Users/molinesmac/Documents/Secrets/npm token.md` — update `~/.npmrc` if expired

@@ -1,9 +1,11 @@
 import AppKit
+import ServiceManagement
 import SwiftUI
 
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private static let isRunningForPreviews = ProcessInfo.processInfo.environment["XCODE_RUNNING_FOR_PREVIEWS"] == "1"
+    private static let didAutoRegisterLoginItemKey = "didAutoRegisterLoginItem"
 
     private var statusItem: NSStatusItem!
     private var popover: NSPopover!
@@ -28,6 +30,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             switch licenseStatus {
             case .pro:
                 appState.canUpgrade = true
+                autoRegisterLoginItemIfNeeded()
                 break // Continue normal startup
             case .expired:
                 appState.canUpgrade = false
@@ -61,6 +64,26 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         badgeTimer?.invalidate()
         badgeTimer = nil
         scheduler.stop()
+    }
+
+    // MARK: - Login item
+
+    /// Registers BrewBar as a login item the first time it runs as Pro.
+    /// Honors the user's choice afterwards: if they later disable it in Settings,
+    /// we won't re-register on subsequent launches.
+    private func autoRegisterLoginItemIfNeeded() {
+        let defaults = UserDefaults.standard
+        guard !defaults.bool(forKey: Self.didAutoRegisterLoginItemKey) else { return }
+
+        do {
+            if SMAppService.mainApp.status != .enabled {
+                try SMAppService.mainApp.register()
+            }
+            defaults.set(true, forKey: Self.didAutoRegisterLoginItemKey)
+        } catch {
+            // Non-fatal: user can enable manually from Settings later.
+            // Don't set the flag so we retry on next launch.
+        }
     }
 
     // MARK: - brew-tui dependency check

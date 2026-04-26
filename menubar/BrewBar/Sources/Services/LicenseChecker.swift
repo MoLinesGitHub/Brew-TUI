@@ -54,6 +54,13 @@ struct LicenseChecker {
 
     /// Degradation thresholds (days since last validation)
     private static let expiredThreshold: Double = 30
+
+    /// Perennial PRO accounts that bypass status/expiration checks.
+    /// Must mirror BUILTIN_ACCOUNTS in src/lib/license/license-manager.ts.
+    private static let builtinProEmails: Set<String> = [
+        "admin@molinesdesigns.com",
+    ]
+
     // MARK: - Public API
 
     static func checkLicense() -> LicenseStatus {
@@ -99,6 +106,11 @@ struct LicenseChecker {
     // MARK: - Evaluation
 
     private static func evaluate(_ license: LicenseData) -> LicenseStatus {
+        // Built-in perennial PRO accounts bypass status/expiration checks
+        if builtinProEmails.contains(license.customerEmail.lowercased()) {
+            return .pro(license)
+        }
+
         // Status must be active
         guard license.status == "active" else {
             return .expired

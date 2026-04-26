@@ -335,6 +335,7 @@ const es: Translations = {
   cli_brewbarRevalidateRequired: '\u2718 BrewBar requiere una licencia Pro v\u00E1lida.\n  Ejecuta: brew-tui revalidate',
   cli_brewbarMacOnly: '\u2718 BrewBar solo est\u00E1 disponible en macOS.',
   cli_brewbarDownloadFailed: '\u2718 Error al descargar BrewBar: {{error}}',
+  cli_brewbarAutoFailed: '\u26A0 No se pudo lanzar BrewBar automáticamente: {{error}}',
   cli_deactivateRemoteFailed: '\u26A0 Advertencia: No se pudo contactar al servidor para desactivar remotamente. La licencia se elimin\u00F3 localmente pero puede seguir contando como activa.',
 
   // ── License degradation (Layer 15) ──

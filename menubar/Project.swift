@@ -10,7 +10,7 @@ let project = Project(
         base: [
             "SWIFT_VERSION": "6.0",
             "MACOSX_DEPLOYMENT_TARGET": "14.0",
-            "MARKETING_VERSION": "$(MARKETING_VERSION:default=0.3.3)",
+            "MARKETING_VERSION": "$(MARKETING_VERSION:default=0.4.1)",
             "CURRENT_PROJECT_VERSION": "1",
             "DEAD_CODE_STRIPPING": "YES",
             "ENABLE_USER_SCRIPT_SANDBOXING": "YES",
@@ -40,7 +40,17 @@ let project = Project(
                 "NSHumanReadableCopyright": "MoLines Designs",
             ]),
             sources: ["BrewBar/Sources/**"],
-            resources: ["BrewBar/Resources/**"]
+            resources: ["BrewBar/Resources/**"],
+            settings: .settings(
+                base: [
+                    "DEVELOPMENT_TEAM": "GD6M44DYPQ",
+                    "CODE_SIGN_STYLE": "Manual",
+                    "CODE_SIGN_IDENTITY": "Developer ID Application",
+                    "ENABLE_HARDENED_RUNTIME": "YES",
+                    "CODE_SIGN_INJECT_BASE_ENTITLEMENTS": "NO",
+                    "OTHER_CODE_SIGN_FLAGS": "--timestamp",
+                ]
+            )
         ),
         .target(
             name: "BrewBarTests",

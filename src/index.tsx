@@ -154,9 +154,34 @@ async function runCli() {
     return;
   }
 
+  // Auto-install + auto-launch BrewBar for Pro users on macOS.
+  // Runs before the TUI clears the screen so progress messages are visible on cold install.
+  await ensureBrewBarRunning();
+
   // Default: launch TUI
   process.stdout.write('\x1B[2J\x1B[3J\x1B[H');
   render(<App />);
+}
+
+async function ensureBrewBarRunning() {
+  if (process.platform !== 'darwin') return;
+
+  await useLicenseStore.getState().initialize();
+  if (!useLicenseStore.getState().isPro()) return;
+
+  const { isBrewBarInstalled, installBrewBar, launchBrewBar } = await import('./lib/brewbar-installer.js');
+
+  try {
+    if (!await isBrewBarInstalled()) {
+      console.log(t('cli_brewbarInstalling'));
+      await installBrewBar(true, false);
+      console.log(t('cli_brewbarInstalled'));
+    }
+    await launchBrewBar();
+  } catch (err) {
+    // Non-fatal: log a single line and continue to TUI so brew-tui stays usable.
+    console.warn(t('cli_brewbarAutoFailed', { error: err instanceof Error ? err.message : String(err) }));
+  }
 }
 
 runCli().catch((err) => {

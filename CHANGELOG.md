@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.4.1] - 2026-04-27
+
+### Added
+- BrewBar auto-install + auto-launch on every `brew-tui` run for Pro users (macOS only).
+- BrewBar auto-registers as a login item the first time it runs as Pro (idempotent; respects later opt-out from Settings).
+
+### Changed
+- BrewBar binary now signed with Developer ID + hardened runtime, notarized by Apple, and stapled — installs cleanly without Gatekeeper warnings.
+- `LicenseChecker` (Swift) now recognizes built-in PRO accounts so they pass the Pro check in BrewBar.
+
 ## [0.2.0] - 2026-04-23
 
 ### Security

@@ -129,6 +129,18 @@ export async function installBrewBar(isPro: boolean, force = false): Promise<voi
   }
 }
 
+/// Launches BrewBar detached from the parent process so it survives terminal close.
+/// `open -g -a` runs the app in the background without bringing it to foreground.
+export async function launchBrewBar(): Promise<void> {
+  if (process.platform !== 'darwin') return;
+  if (!await isBrewBarInstalled()) return;
+  try {
+    await execFileAsync('open', ['-g', '-a', BREWBAR_APP_PATH]);
+  } catch {
+    // Non-fatal: BrewBar may already be running, or LaunchServices may need a moment.
+  }
+}
+
 export async function uninstallBrewBar(): Promise<void> {
   if (!await isBrewBarInstalled()) {
     throw new Error(t('cli_brewbarNotInstalled'));

@@ -145,6 +145,19 @@ final class SchedulerService {
                 sendNotification(count: newCount)
             }
         }
+
+        // CVE check (runs on same schedule as outdated check)
+        let newCVEs = await SecurityMonitor.shared.checkForNewVulnerabilities()
+        if !newCVEs.isEmpty {
+            let allAlerts = await SecurityMonitor.shared.loadCachedAlerts()
+            state.updateCVEAlerts(allAlerts)
+            if notificationsEnabled {
+                await syncNotificationPermission()
+                if notificationsEnabled {
+                    sendCVENotification(alerts: newCVEs)
+                }
+            }
+        }
     }
 
     private func requestNotificationPermission() {
@@ -172,6 +185,45 @@ final class SchedulerService {
 
         let request = UNNotificationRequest(
             identifier: "brewbar-outdated",
+            content: content,
+            trigger: nil
+        )
+        UNUserNotificationCenter.current().add(request)
+    }
+
+    private func sendCVENotification(alerts: [CVEAlert]) {
+        guard !alerts.isEmpty else { return }
+
+        let sorted = alerts.sorted { $0.severity.sortOrder < $1.severity.sortOrder }
+        let hasCriticalOrHigh = sorted.first.map { $0.severity == .critical || $0.severity == .high } ?? false
+        let count = alerts.count
+
+        schedulerLogger.info("Sending CVE notification for \(count) new vulnerabilities")
+
+        let content = UNMutableNotificationContent()
+        content.sound = .default
+
+        if hasCriticalOrHigh, let worst = sorted.first {
+            content.title = String(localized: "Security Alert — Brew-TUI")
+            content.body = String(
+                format: String(localized: "%lld vulnerable packages found, including %@"),
+                Int64(count),
+                worst.packageName
+            )
+            content.userInfo = ["cveId": worst.id]
+        } else {
+            content.title = String(localized: "Security Notice — Brew-TUI")
+            content.body = String(
+                format: String(localized: "%lld vulnerable packages found"),
+                Int64(count)
+            )
+            if let worst = sorted.first {
+                content.userInfo = ["cveId": worst.id]
+            }
+        }
+
+        let request = UNNotificationRequest(
+            identifier: "brewbar-cve",
             content: content,
             trigger: nil
         )

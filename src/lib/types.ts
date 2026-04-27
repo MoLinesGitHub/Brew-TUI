@@ -9,6 +9,8 @@ export type ViewId =
   | 'profiles'
   | 'smart-cleanup'
   | 'history'
+  | 'rollback'
+  | 'brewfile'
   | 'security-audit'
   | 'account';
 

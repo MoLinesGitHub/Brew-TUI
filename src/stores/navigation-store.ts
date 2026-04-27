@@ -13,7 +13,7 @@ interface NavigationState {
 
 const VIEWS: ViewId[] = [
   'dashboard', 'installed', 'outdated', 'package-info', 'services', 'doctor',
-  'profiles', 'smart-cleanup', 'history', 'security-audit', 'account',
+  'profiles', 'smart-cleanup', 'history', 'rollback', 'brewfile', 'security-audit', 'account',
 ];
 
 export const useNavigationStore = create<NavigationState>((set, get) => ({

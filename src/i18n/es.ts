@@ -17,6 +17,8 @@ const es: Translations = {
   view_profiles: 'Perfiles',
   view_smartCleanup: 'Limpieza',
   view_history: 'Historial',
+  view_rollback: 'Rollback',
+  view_brewfile: 'Brewfile',
   view_securityAudit: 'Seguridad',
   view_account: 'Cuenta',
 
@@ -57,6 +59,11 @@ const es: Translations = {
   hint_replay: 'repetir',
   hint_edit: 'editar',
   hint_pin: 'fijar/desfijar',
+  hint_rollback_confirm: 'revertir',
+  hint_add: 'a\u00F1adir',
+  hint_reconcile: 'reconciliar',
+  hint_export: 'exportar',
+  hint_select: 'seleccionar',
 
   // ── Loading / progress ──
   loading_default: 'Cargando...',
@@ -396,6 +403,56 @@ const es: Translations = {
 
   // ── ARQ-005: Security cache ──
   security_cachedResults: 'Mostrando resultados en cach\u00E9 (hace {{time}}). Presiona r para re-escanear.',
+
+  // ── Impact Analysis ──
+  impact_analyzing: 'Analizando impacto de actualizaci\u00F3n...',
+  impact_high: 'RIESGO ALTO',
+  impact_medium: 'RIESGO MEDIO',
+  impact_low: 'RIESGO BAJO',
+  impact_affects: 'afecta {{count}} paquetes instalados',
+  impact_usedBy: 'Usado por: {{packages}}',
+  impact_hint: 'Selecciona un paquete para ver el impacto',
+  impact_reason_critical_package: 'Paquete cr\u00EDtico del sistema',
+  impact_reason_major_bump: 'Cambio de versi\u00F3n mayor',
+  impact_reason_many_deps: '{{count}} paquetes dependen de este',
+
+  // ── Rollback ──
+  rollback_title: 'Rollback \u2014 Restaurar Estado Anterior',
+  rollback_no_snapshots: 'No hay snapshots disponibles. Los snapshots se capturan autom\u00E1ticamente tras cada operaci\u00F3n.',
+  rollback_select_snapshot: 'Selecciona un snapshot para restaurar',
+  rollback_snapshot_label: '{{label}} \u2014 {{date}}',
+  rollback_snapshot_auto: 'Auto',
+  rollback_diff_empty: 'No se detectaron cambios entre este snapshot y el estado actual',
+  rollback_confirm: '\u00BFRevertir {{count}} paquete(s) a este estado?',
+  rollback_strategy_bottle: 'desde cach\u00E9 de bottle',
+  rollback_strategy_versioned: 'desde formula versionada',
+  rollback_strategy_pin: 'solo fijar (versi\u00F3n no restaurable)',
+  rollback_strategy_unavailable: 'no se puede restaurar',
+  rollback_executing: 'Revirtiendo...',
+  rollback_success: 'Rollback completado',
+  rollback_error: 'Rollback fallido: {{error}}',
+  rollback_item_downgrade: '{{name}}: {{from}} \u2192 {{to}}',
+  rollback_item_remove: 'Eliminar: {{name}}',
+  rollback_item_install: 'Instalar: {{name}} {{version}}',
+  rollback_warning_cask: 'Los Casks solo se fijar\u00E1n (restauraci\u00F3n de versi\u00F3n no disponible)',
+  rollback_capturing: 'Capturando snapshot actual...',
+
+  // ── Brewfile ──
+  brewfile_title: 'Brewfile Declarativo',
+  brewfile_compliant: 'en conformidad',
+  brewfile_no_brewfile: 'No se encontró Brewfile. Pulsa n para crear uno desde tu instalación actual.',
+  brewfile_create_name: 'Nombre del Brewfile (Enter para confirmar):',
+  brewfile_created: 'Brewfile creado: {{name}}',
+  brewfile_drift_missing: '{{count}} paquetes faltantes',
+  brewfile_drift_extra: '{{count}} paquetes extra',
+  brewfile_drift_wrong: '{{count}} versiones incorrectas',
+  brewfile_reconciling: 'Reconciliando...',
+  brewfile_reconcile_success: 'Reconciliación completa',
+  brewfile_reconcile_error: 'Reconciliación fallida: {{error}}',
+  brewfile_exported: 'Exportado a {{path}}',
+  brewfile_formulae_count: '{{count}} formulae',
+  brewfile_casks_count: '{{count}} casks',
+  brewfile_strict_mode: 'Modo estricto',
 };
 
 export default es;

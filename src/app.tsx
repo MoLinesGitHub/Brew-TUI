@@ -18,6 +18,8 @@ import { SmartCleanupView } from './views/smart-cleanup.js';
 import { HistoryView } from './views/history.js';
 import { SecurityAuditView } from './views/security-audit.js';
 import { AccountView } from './views/account.js';
+import { RollbackView } from './views/rollback.js';
+import { BrewfileView } from './views/brewfile.js';
 import type { ViewId } from './lib/types.js';
 
 // FE-009: Extracted LicenseInitializer component
@@ -47,6 +49,8 @@ function ViewRouter({ currentView }: { currentView: ViewId }) {
     case 'profiles': return <ProfilesView />;
     case 'smart-cleanup': return <SmartCleanupView />;
     case 'history': return <HistoryView />;
+    case 'rollback': return <RollbackView />;
+    case 'brewfile': return <BrewfileView />;
     case 'security-audit': return <SecurityAuditView />;
     case 'account': return <AccountView />;
   }

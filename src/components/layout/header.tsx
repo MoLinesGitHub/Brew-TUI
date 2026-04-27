@@ -37,6 +37,8 @@ const VIEW_LABEL_KEYS: Record<ViewId, TranslationKey> = {
   profiles: 'view_profiles',
   'smart-cleanup': 'view_smartCleanup',
   history: 'view_history',
+  rollback: 'view_rollback',
+  brewfile: 'view_brewfile',
   'security-audit': 'view_securityAudit',
   account: 'view_account',
 };
@@ -45,12 +47,13 @@ const VIEW_KEYS: Record<ViewId, string> = {
   dashboard: '1', installed: '2', search: '', outdated: '3',
   'package-info': '', services: '4', doctor: '5',
   profiles: '6', 'smart-cleanup': '7', history: '8', 'security-audit': '9',
+  rollback: '', brewfile: '',
   account: '0',
 };
 
 const TAB_VIEWS: ViewId[] = [
   'dashboard', 'installed', 'outdated', 'package-info', 'services', 'doctor',
-  'profiles', 'smart-cleanup', 'history', 'security-audit', 'account',
+  'profiles', 'smart-cleanup', 'history', 'rollback', 'brewfile', 'security-audit', 'account',
 ];
 
 function MenuItem({ view, currentView }: { view: ViewId; currentView: ViewId }) {

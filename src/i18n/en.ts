@@ -15,6 +15,8 @@ const en = {
   view_profiles: 'Profiles',
   view_smartCleanup: 'Cleanup',
   view_history: 'History',
+  view_rollback: 'Rollback',
+  view_brewfile: 'Brewfile',
   view_securityAudit: 'Security',
   view_account: 'Account',
 
@@ -55,6 +57,11 @@ const en = {
   hint_replay: 'replay',
   hint_edit: 'edit',
   hint_pin: 'pin/unpin',
+  hint_rollback_confirm: 'rollback',
+  hint_add: 'add',
+  hint_reconcile: 'reconcile',
+  hint_export: 'export',
+  hint_select: 'select',
 
   // ── Loading / progress ──
   loading_default: 'Loading...',
@@ -394,6 +401,56 @@ const en = {
 
   // ── ARQ-005: Security cache ──
   security_cachedResults: 'Showing cached results ({{time}} ago). Press r to rescan.',
+
+  // ── Impact Analysis ──
+  impact_analyzing: 'Analyzing upgrade impact...',
+  impact_high: 'HIGH RISK',
+  impact_medium: 'MEDIUM RISK',
+  impact_low: 'LOW RISK',
+  impact_affects: 'affects {{count}} installed packages',
+  impact_usedBy: 'Used by: {{packages}}',
+  impact_hint: 'Select package to see upgrade impact',
+  impact_reason_critical_package: 'Critical system package',
+  impact_reason_major_bump: 'Major version change',
+  impact_reason_many_deps: '{{count}} packages depend on this',
+
+  // ── Rollback ──
+  rollback_title: 'Rollback \u2014 Restore Previous State',
+  rollback_no_snapshots: 'No snapshots available. Snapshots are captured automatically after each operation.',
+  rollback_select_snapshot: 'Select a snapshot to restore',
+  rollback_snapshot_label: '{{label}} \u2014 {{date}}',
+  rollback_snapshot_auto: 'Auto',
+  rollback_diff_empty: 'No changes detected between this snapshot and current state',
+  rollback_confirm: 'Roll back {{count}} package(s) to this state?',
+  rollback_strategy_bottle: 'from bottle cache',
+  rollback_strategy_versioned: 'from versioned formula',
+  rollback_strategy_pin: 'pin only (version not restorable)',
+  rollback_strategy_unavailable: 'cannot restore',
+  rollback_executing: 'Rolling back...',
+  rollback_success: 'Rollback completed',
+  rollback_error: 'Rollback failed: {{error}}',
+  rollback_item_downgrade: '{{name}}: {{from}} \u2192 {{to}}',
+  rollback_item_remove: 'Remove: {{name}}',
+  rollback_item_install: 'Install: {{name}} {{version}}',
+  rollback_warning_cask: 'Casks will be pinned only (version restoration not supported)',
+  rollback_capturing: 'Capturing current snapshot...',
+
+  // ── Brewfile ──
+  brewfile_title: 'Declarative Brewfile',
+  brewfile_compliant: 'compliant',
+  brewfile_no_brewfile: 'No Brewfile found. Press n to create one from your current installation.',
+  brewfile_create_name: 'Brewfile name (Enter to confirm):',
+  brewfile_created: 'Brewfile created: {{name}}',
+  brewfile_drift_missing: '{{count}} packages missing',
+  brewfile_drift_extra: '{{count}} extra packages',
+  brewfile_drift_wrong: '{{count}} wrong versions',
+  brewfile_reconciling: 'Reconciling...',
+  brewfile_reconcile_success: 'Reconciliation complete',
+  brewfile_reconcile_error: 'Reconciliation failed: {{error}}',
+  brewfile_exported: 'Exported to {{path}}',
+  brewfile_formulae_count: '{{count}} formulae',
+  brewfile_casks_count: '{{count}} casks',
+  brewfile_strict_mode: 'Strict mode',
 };
 
 export default en;

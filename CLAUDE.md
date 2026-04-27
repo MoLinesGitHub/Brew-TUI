@@ -83,7 +83,8 @@ All rendering via Ink's `<Box>` (flexbox) and `<Text>`. `@inkjs/ui` provides `Te
 - **Licensing:** Polar API (`src/lib/license/`). License stored at `~/.brew-tui/license.json` (AES-256-GCM encrypted, machine-bound). Revalidates every 24h with 7-day offline grace period.
 - **Machine binding:** License envelope includes `machineId` from `~/.brew-tui/machine-id` (UUID generated on first activation). Prevents license portability between devices.
 - **Feature gating:** `src/lib/license/feature-gate.ts` defines which ViewIds are Pro. `app.tsx` checks `isPro()` before rendering Pro views.
-- **Pro features:** Profiles (`src/lib/profiles/`), Smart Cleanup (`src/lib/cleanup/`), History (`src/lib/history/`), Security Audit (`src/lib/security/` via OSV.dev API, 30min cache).
+- **Pro features:** Profiles (`src/lib/profiles/`), Smart Cleanup (`src/lib/cleanup/`), History (`src/lib/history/`), Security Audit (`src/lib/security/` via OSV.dev API, 30min cache), Smart Rollback (`src/lib/rollback/` + `src/lib/state-snapshot/`), Declarative Brewfile (`src/lib/brewfile/`, YAML), Cross-machine Sync (`src/lib/sync/` via iCloud + AES-256-GCM), Impact Analysis (`src/lib/impact/`).
+- **Team tier (separate from Pro):** Compliance (`src/lib/compliance/`, PolicyFile JSON, gated via `TEAM_VIEWS` in `feature-gate.ts`).
 - **Data directory:** `~/.brew-tui/` managed by `src/lib/data-dir.ts` (license.json, machine-id, profiles/, history.json)
 - **Rate limiting:** 30s cooldown between activation attempts, 15min lockout after 5 consecutive failures
 - **Watermark:** Profile exports can embed user email via zero-width Unicode (requires explicit `consent` parameter)
@@ -112,7 +113,7 @@ macOS menu bar companion app (Swift 6 / macOS 14+ / Tuist). Fully independent fr
 4. Add the route case in `src/app.tsx`'s switch
 5. Add keybinding hints in `src/components/layout/footer.tsx`
 6. Add the label in `src/components/layout/header.tsx`
-7. If Pro-only: add the ViewId to `PRO_VIEWS` set in `src/lib/license/feature-gate.ts`
+7. If Pro-only: add the ViewId to `PRO_VIEWS` set in `src/lib/license/feature-gate.ts`. If Team-only: add to `TEAM_VIEWS` instead (separate tier from Pro)
 8. Add all user-facing strings to `src/i18n/en.ts` and `src/i18n/es.ts`
 
 ## Internationalization (i18n)

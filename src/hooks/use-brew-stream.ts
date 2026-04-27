@@ -79,6 +79,14 @@ export function useBrewStream(): BrewStreamState {
     if (!cancelRef.current) {
       void logToHistory(args, streamError === null, streamError);
     }
+
+    // Auto-capture snapshot after mutating brew operations
+    const MUTATING_COMMANDS = new Set(['install', 'uninstall', 'upgrade', 'pin', 'unpin', 'tap', 'untap']);
+    if (!cancelRef.current && MUTATING_COMMANDS.has(args[0] ?? '')) {
+      void import('../lib/state-snapshot/snapshot.js').then(({ captureSnapshot, saveSnapshot }) => {
+        captureSnapshot().then((s) => saveSnapshot(s)).catch(() => {});
+      });
+    }
   }, []);
 
   const cancel = useCallback(() => {

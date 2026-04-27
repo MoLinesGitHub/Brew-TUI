@@ -4,7 +4,7 @@ import { AppLayout } from './components/layout/app-layout.js';
 import { useNavigationStore } from './stores/navigation-store.js';
 import { useLicenseStore } from './stores/license-store.js';
 import { useGlobalKeyboard } from './hooks/use-keyboard.js';
-import { isProView } from './lib/license/feature-gate.js';
+import { isProView, isTeamView } from './lib/license/feature-gate.js';
 import { UpgradePrompt } from './components/common/upgrade-prompt.js';
 import { DashboardView } from './views/dashboard.js';
 import { InstalledView } from './views/installed.js';
@@ -20,6 +20,8 @@ import { SecurityAuditView } from './views/security-audit.js';
 import { AccountView } from './views/account.js';
 import { RollbackView } from './views/rollback.js';
 import { BrewfileView } from './views/brewfile.js';
+import { SyncView } from './views/sync.js';
+import { ComplianceView } from './views/compliance.js';
 import type { ViewId } from './lib/types.js';
 
 // FE-009: Extracted LicenseInitializer component
@@ -32,9 +34,15 @@ function LicenseInitializer() {
 // FE-009: Extracted ViewRouter component
 function ViewRouter({ currentView }: { currentView: ViewId }) {
   const isPro = useLicenseStore((s) => s.isPro);
+  const isTeam = useLicenseStore((s) => s.isTeam);
 
   // Gate Pro views
   if (isProView(currentView) && !isPro()) {
+    return <UpgradePrompt viewId={currentView} />;
+  }
+
+  // Gate Team views
+  if (isTeamView(currentView) && !isTeam()) {
     return <UpgradePrompt viewId={currentView} />;
   }
 
@@ -51,7 +59,9 @@ function ViewRouter({ currentView }: { currentView: ViewId }) {
     case 'history': return <HistoryView />;
     case 'rollback': return <RollbackView />;
     case 'brewfile': return <BrewfileView />;
+    case 'sync': return <SyncView />;
     case 'security-audit': return <SecurityAuditView />;
+    case 'compliance': return <ComplianceView />;
     case 'account': return <AccountView />;
   }
 }

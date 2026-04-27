@@ -19,6 +19,7 @@ const es: Translations = {
   view_history: 'Historial',
   view_rollback: 'Rollback',
   view_brewfile: 'Brewfile',
+  view_sync: 'Sync',
   view_securityAudit: 'Seguridad',
   view_account: 'Cuenta',
 
@@ -64,6 +65,10 @@ const es: Translations = {
   hint_reconcile: 'reconciliar',
   hint_export: 'exportar',
   hint_select: 'seleccionar',
+  hint_sync: 'sincronizar',
+  hint_conflict: 'resolver',
+  hint_rollback: 'revertir',
+  hint_check_compliance: 'verificar conformidad',
 
   // ── Loading / progress ──
   loading_default: 'Cargando...',
@@ -111,6 +116,17 @@ const es: Translations = {
   badge_error: 'error',
 
   // ── Dashboard ──
+  dashboard_pro_status: 'Estado Pro',
+  dashboard_security: 'Seguridad',
+  dashboard_cves: '{{count}} CVEs',
+  dashboard_no_cves: 'Sin CVEs',
+  dashboard_brewfile: 'Brewfile',
+  dashboard_sync: 'Sync',
+  dashboard_sync_never: 'Nunca sincronizado',
+  dashboard_sync_ago: 'hace {{time}}',
+  dashboard_compliance: 'Conformidad',
+  dashboard_compliance_violations: '{{count}} violaciones',
+  dashboard_compliance_ok: 'OK',
   dashboard_overview: 'Resumen',
   dashboard_formulae: 'Formulae',
   dashboard_casks: 'Casks',
@@ -402,9 +418,11 @@ const es: Translations = {
   error_network: 'Error de red: no se puede conectar con el servidor.',
 
   // ── ARQ-005: Security cache ──
+  security_rollback_hint: 'R: abrir Rollback para restaurar versiones',
   security_cachedResults: 'Mostrando resultados en cach\u00E9 (hace {{time}}). Presiona r para re-escanear.',
 
   // ── Impact Analysis ──
+  impact_brewfile_hint: '\u{1F4A1} Añade al Brewfile para fijar esta versión antes de actualizar',
   impact_analyzing: 'Analizando impacto de actualizaci\u00F3n...',
   impact_high: 'RIESGO ALTO',
   impact_medium: 'RIESGO MEDIO',
@@ -437,6 +455,30 @@ const es: Translations = {
   rollback_warning_cask: 'Los Casks solo se fijar\u00E1n (restauraci\u00F3n de versi\u00F3n no disponible)',
   rollback_capturing: 'Capturando snapshot actual...',
 
+  // ── Sync ──
+  sync_title: 'Sincronización entre máquinas',
+  sync_disabled: 'Sync no está configurado. Pulsa s para configurar iCloud sync.',
+  sync_status_ok: 'Sincronizado',
+  sync_status_drift: '{{count}} cambio(s) desde otras máquinas',
+  sync_status_conflict: '{{count}} conflicto(s) requieren resolución',
+  sync_last_sync: 'Última sync: {{date}}',
+  sync_machine: 'Esta máquina: {{name}}',
+  sync_other_machines: 'Otras máquinas: {{names}}',
+  sync_syncing: 'Sincronizando...',
+  sync_success: 'Sincronización completa',
+  sync_error: 'Sync fallida: {{error}}',
+  sync_conflict_title: 'Conflicto: {{package}}',
+  sync_conflict_local: 'Esta máquina: {{version}}',
+  sync_conflict_remote: '{{machine}}: {{version}}',
+  sync_conflict_use_local: 'Mantener local',
+  sync_conflict_use_remote: 'Usar remoto',
+  sync_setup_icloud: 'Configurando iCloud sync...',
+  sync_no_icloud: 'iCloud Drive no encontrado. Asegúrate de que iCloud Drive está activado en Ajustes del Sistema.',
+
+  // ── Upgrade Prompt — Sync ──
+  upgrade_sync: 'Sincronización entre máquinas',
+  upgrade_syncDesc: 'Mantén tu configuración de Homebrew sincronizada entre varios Macs mediante iCloud Drive. Fusiona instalaciones automáticamente y resuelve conflictos.',
+
   // ── Brewfile ──
   brewfile_title: 'Brewfile Declarativo',
   brewfile_compliant: 'en conformidad',
@@ -453,6 +495,31 @@ const es: Translations = {
   brewfile_formulae_count: '{{count}} formulae',
   brewfile_casks_count: '{{count}} casks',
   brewfile_strict_mode: 'Modo estricto',
+
+  // ── Compliance ──
+  view_compliance: 'Compliance',
+  compliance_title: 'Conformidad de Equipo',
+  compliance_no_policy: 'No hay política cargada. Pulsa i para importar un archivo de política.',
+  compliance_score: '{{score}}% en conformidad',
+  compliance_violations: '{{count}} violación(es)',
+  compliance_ok: 'Totalmente en conformidad',
+  compliance_import_prompt: 'Ruta del archivo de política (Enter para confirmar):',
+  compliance_import_error: 'Error al cargar la política: {{error}}',
+  compliance_violation_missing: 'Faltante: {{name}} (requerido)',
+  compliance_violation_forbidden: 'Prohibido: {{name}} — {{reason}}',
+  compliance_violation_version: 'Versión incorrecta: {{name}} (requerida {{required}}, instalada {{installed}})',
+  compliance_violation_extra: 'Paquete extra: {{name}}',
+  compliance_remediating: 'Remediando...',
+  compliance_remediate_success: 'Remediación completa',
+  compliance_remediate_error: 'Remediación fallida: {{error}}',
+  compliance_export_done: 'Informe exportado a {{path}}',
+  compliance_machine: 'Máquina: {{name}}',
+  compliance_policy_name: 'Política: {{name}}',
+  compliance_policy_by: 'Mantenida por: {{maintainer}}',
+
+  // ── Upgrade Prompt — Compliance ──
+  upgrade_compliance: 'Conformidad de Equipo',
+  upgrade_complianceDesc: 'Aplica políticas de paquetes en todo tu equipo. Define paquetes requeridos, prohibidos y con versión fijada, y remedia desviaciones automáticamente.',
 };
 
 export default es;

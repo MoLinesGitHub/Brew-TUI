@@ -92,7 +92,7 @@ function PlanView({ plan }: { plan: RollbackPlan }) {
 
 export function RollbackView() {
   const isPro = useLicenseStore((s) => s.isPro);
-  const { snapshots, loading, error, selectedSnapshot, plan, planLoading, planError, fetchSnapshots, selectSnapshot, clearPlan } = useRollbackStore();
+  const { snapshots, loading, error, plan, planLoading, planError, fetchSnapshots, selectSnapshot, clearPlan } = useRollbackStore();
 
   const [cursor, setCursor] = useState(0);
   const [phase, setPhase] = useState<Phase>('list');

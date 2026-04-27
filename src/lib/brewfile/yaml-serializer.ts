@@ -10,7 +10,7 @@ import type { BrewfileSchema } from './types.js';
  * Inside single-quoted YAML, ' is escaped as ''.
  */
 
-const MUST_QUOTE_RE = /[:'"#\[\]{}?!@&*>|%]/;
+const MUST_QUOTE_RE = /[:'"#[\]{}?!@&*>|%]/;
 const STARTS_SPECIAL_RE = /^[-\s]|^\d/;
 
 function needsQuoting(s: string): boolean {

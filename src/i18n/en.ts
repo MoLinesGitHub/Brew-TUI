@@ -17,6 +17,7 @@ const en = {
   view_history: 'History',
   view_rollback: 'Rollback',
   view_brewfile: 'Brewfile',
+  view_sync: 'Sync',
   view_securityAudit: 'Security',
   view_account: 'Account',
 
@@ -62,6 +63,10 @@ const en = {
   hint_reconcile: 'reconcile',
   hint_export: 'export',
   hint_select: 'select',
+  hint_sync: 'sync now',
+  hint_conflict: 'resolve',
+  hint_rollback: 'rollback',
+  hint_check_compliance: 'check compliance',
 
   // ── Loading / progress ──
   loading_default: 'Loading...',
@@ -109,6 +114,17 @@ const en = {
   badge_error: 'error',
 
   // ── Dashboard ──
+  dashboard_pro_status: 'Pro Status',
+  dashboard_security: 'Security',
+  dashboard_cves: '{{count}} CVEs',
+  dashboard_no_cves: 'No CVEs',
+  dashboard_brewfile: 'Brewfile',
+  dashboard_sync: 'Sync',
+  dashboard_sync_never: 'Never synced',
+  dashboard_sync_ago: '{{time}} ago',
+  dashboard_compliance: 'Compliance',
+  dashboard_compliance_violations: '{{count}} violations',
+  dashboard_compliance_ok: 'OK',
   dashboard_overview: 'Overview',
   dashboard_formulae: 'Formulae',
   dashboard_casks: 'Casks',
@@ -237,6 +253,7 @@ const en = {
   history_replayAll: 'Re-run: upgrade all packages?',
 
   // ── Security Audit ──
+  security_rollback_hint: 'R: open Rollback for version restoration',
   security_title: 'Security Audit',
   security_scanned: 'Scanned',
   security_vulnerable: 'Vulnerable',
@@ -403,6 +420,7 @@ const en = {
   security_cachedResults: 'Showing cached results ({{time}} ago). Press r to rescan.',
 
   // ── Impact Analysis ──
+  impact_brewfile_hint: '\u{1F4A1} Add to Brewfile to pin this version before upgrading',
   impact_analyzing: 'Analyzing upgrade impact...',
   impact_high: 'HIGH RISK',
   impact_medium: 'MEDIUM RISK',
@@ -435,6 +453,30 @@ const en = {
   rollback_warning_cask: 'Casks will be pinned only (version restoration not supported)',
   rollback_capturing: 'Capturing current snapshot...',
 
+  // ── Sync ──
+  sync_title: 'Cross-machine Sync',
+  sync_disabled: 'Sync is not configured. Press s to set up iCloud sync.',
+  sync_status_ok: 'In sync',
+  sync_status_drift: '{{count}} change(s) from other machines',
+  sync_status_conflict: '{{count}} conflict(s) need resolution',
+  sync_last_sync: 'Last sync: {{date}}',
+  sync_machine: 'This machine: {{name}}',
+  sync_other_machines: 'Other machines: {{names}}',
+  sync_syncing: 'Syncing...',
+  sync_success: 'Sync complete',
+  sync_error: 'Sync failed: {{error}}',
+  sync_conflict_title: 'Conflict: {{package}}',
+  sync_conflict_local: 'This machine: {{version}}',
+  sync_conflict_remote: '{{machine}}: {{version}}',
+  sync_conflict_use_local: 'Keep local',
+  sync_conflict_use_remote: 'Use remote',
+  sync_setup_icloud: 'Setting up iCloud sync...',
+  sync_no_icloud: 'iCloud Drive not found. Ensure iCloud Drive is enabled in System Settings.',
+
+  // ── Upgrade Prompt — Sync ──
+  upgrade_sync: 'Cross-machine Sync',
+  upgrade_syncDesc: 'Keep your Homebrew setup in sync across multiple Macs via iCloud Drive. Automatically merge installations and resolve conflicts.',
+
   // ── Brewfile ──
   brewfile_title: 'Declarative Brewfile',
   brewfile_compliant: 'compliant',
@@ -451,6 +493,31 @@ const en = {
   brewfile_formulae_count: '{{count}} formulae',
   brewfile_casks_count: '{{count}} casks',
   brewfile_strict_mode: 'Strict mode',
+
+  // ── Compliance ──
+  view_compliance: 'Compliance',
+  compliance_title: 'Team Compliance',
+  compliance_no_policy: 'No policy loaded. Press i to import a policy file.',
+  compliance_score: '{{score}}% compliant',
+  compliance_violations: '{{count}} violation(s)',
+  compliance_ok: 'Fully compliant',
+  compliance_import_prompt: 'Policy file path (Enter to confirm):',
+  compliance_import_error: 'Failed to load policy: {{error}}',
+  compliance_violation_missing: 'Missing: {{name}} (required)',
+  compliance_violation_forbidden: 'Forbidden: {{name}} — {{reason}}',
+  compliance_violation_version: 'Wrong version: {{name}} (required {{required}}, installed {{installed}})',
+  compliance_violation_extra: 'Extra package: {{name}}',
+  compliance_remediating: 'Remediating...',
+  compliance_remediate_success: 'Remediation complete',
+  compliance_remediate_error: 'Remediation failed: {{error}}',
+  compliance_export_done: 'Report exported to {{path}}',
+  compliance_machine: 'Machine: {{name}}',
+  compliance_policy_name: 'Policy: {{name}}',
+  compliance_policy_by: 'Maintained by: {{maintainer}}',
+
+  // ── Upgrade Prompt — Compliance ──
+  upgrade_compliance: 'Team Compliance',
+  upgrade_complianceDesc: 'Enforce package policies across your team. Define required, forbidden, and version-pinned packages and automatically remediate deviations.',
 };
 
 export default en;

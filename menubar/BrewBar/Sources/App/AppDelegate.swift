@@ -53,6 +53,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             let cachedAlerts = await SecurityMonitor.shared.loadCachedAlerts()
             appState.updateCVEAlerts(cachedAlerts)
 
+            // Check sync activity on launch
+            let hasSyncActivity = await SyncMonitor.shared.checkForSyncActivity()
+            let machineCount = await SyncMonitor.shared.getKnownMachineCount()
+            appState.updateSyncStatus(hasActivity: hasSyncActivity, machineCount: machineCount)
+
             updateBadge()
 
             badgeTimer = Timer.scheduledTimer(withTimeInterval: 30, repeats: true) { [weak self] _ in
@@ -198,14 +203,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         let outdated = appState.outdatedCount
         let cve = appState.criticalCveCount
+        let sync = appState.syncActivity
 
-        // Badge format: "3↑ 2⚠" o solo "3↑" o solo "2⚠" o vacío
         var parts: [String] = []
         if outdated > 0 { parts.append("\(outdated)↑") }
-        if cve > 0 { parts.append("\(cve)⚠") }
+        if cve > 0      { parts.append("\(cve)⚠") }
+        if sync         { parts.append("⟳") }
         let badge = parts.isEmpty ? "" : " " + parts.joined(separator: " ")
 
-        // Solo actualizar si cambió
         guard badge != button.title else { return }
         button.title = badge
 

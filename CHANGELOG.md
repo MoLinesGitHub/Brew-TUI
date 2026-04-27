@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.5.0] - 2026-04-28
+
+### Added — Power Release (Phase 1-6)
+
+- **CVE Real-time monitoring (Pro):** BrewBar polls OSV.dev hourly, shows ⚠N badge in menu bar and sends macOS notifications for new critical/high CVEs in installed packages. Click notification jumps to security-audit view.
+- **Impact Analysis (Pro):** pre-upgrade risk panel (low/medium/high) showing dependency tree, breaking changes hint, and reverse-deps that will be affected. Surfaced in `outdated` view before each upgrade.
+- **Smart Rollback (Pro):** automatic snapshots after every install/upgrade/uninstall/pin. Rollback view generates plans using bottle/versioned/pin strategies. `R` key in security-audit jumps to rollback for vulnerable packages.
+- **Declarative Brewfile (Pro):** YAML-based desired state with drift score 0-100 and interactive reconciliation. High-risk upgrades hint to add the package to Brewfile first.
+- **Cross-machine Sync (Pro):** iCloud Drive backend with AES-256-GCM encryption, per-machine identity, interactive conflict resolution, ⟳ drift badge in BrewBar. Post-sync success offers `c` shortcut to Compliance.
+- **Team Compliance (Team tier):** PolicyFile JSON, score 0-100, severity-graded violations, automatic remediation plans. New `compliance` view (Team-gated, separate from Pro).
+- **Dashboard Pro Status panel:** unified state of the 4 power modules (snapshots, Brewfile drift, sync, compliance).
+- **`brew-tui status` CLI:** now shows snapshot count, Brewfile drift, sync state and compliance score.
+
+### Internal
+- New shared modules: `state-snapshot/`, `diff-engine/`, `impact/`, `rollback/`, `brewfile/`, `sync/` (with `crypto` + iCloud backend), `compliance/`.
+- BrewBar `SyncMonitor.swift` + scheduler hooks for `cveMonitor` and `syncDriftCheck`.
+- 205 tests across 20 test files (all passing).
+
 ## [0.4.1] - 2026-04-27
 
 ### Added

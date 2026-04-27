@@ -22,6 +22,8 @@ const VIEW_HINT_DEFS: Record<ViewId, HintDef[]> = {
   'security-audit': [['r', 'hint_scan'], ['enter', 'hint_details'], ['u', 'hint_upgrade'], ['S', 'hint_search'], ['q', 'hint_quit']],
   rollback: [['j/k', 'hint_navigate'], ['enter', 'hint_select'], ['r', 'hint_rollback_confirm'], ['esc', 'hint_back'], ['q', 'hint_quit']],
   brewfile: [['j/k', 'hint_navigate'], ['a', 'hint_add'], ['d', 'hint_delete'], ['r', 'hint_reconcile'], ['e', 'hint_export'], ['q', 'hint_quit']],
+  sync: [['s', 'hint_sync'], ['r', 'hint_refresh'], ['c', 'hint_conflict'], ['esc', 'hint_back'], ['q', 'hint_quit']],
+  compliance: [['r', 'hint_scan'], ['i', 'hint_import'], ['e', 'hint_export'], ['c', 'hint_clean'], ['q', 'hint_quit']],
   account: [['p', 'hint_promo'], ['d', 'hint_deactivate'], ['S', 'hint_search'], ['q', 'hint_quit']],
 };
 

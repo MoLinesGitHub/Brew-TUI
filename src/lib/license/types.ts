@@ -4,7 +4,7 @@ export interface LicenseData {
   status: 'active' | 'expired' | 'inactive';
   customerEmail: string;
   customerName: string;
-  plan: 'pro';
+  plan: 'pro' | 'team';
   activatedAt: string;
   expiresAt: string | null;
   lastValidatedAt: string;
@@ -19,7 +19,7 @@ export interface LicenseFile {
   tag?: string;
 }
 
-export type LicenseStatus = 'free' | 'pro' | 'expired' | 'validating';
+export type LicenseStatus = 'free' | 'pro' | 'team' | 'expired' | 'validating';
 
 export interface PolarActivateResponse {
   activated: boolean;

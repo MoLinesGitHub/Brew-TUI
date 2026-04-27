@@ -14,6 +14,8 @@ final class AppState {
     var onRefreshComplete: (() -> Void)?
     var cveAlerts: [CVEAlert] = []
     var cveCheckError: String?
+    var syncActivity = false
+    var syncMachineCount = 0
 
     private let checker = BrewChecker()
 
@@ -60,6 +62,11 @@ final class AppState {
 
     func updateCVEAlerts(_ alerts: [CVEAlert]) {
         cveAlerts = alerts.sorted { $0.severity.sortOrder < $1.severity.sortOrder }
+    }
+
+    func updateSyncStatus(hasActivity: Bool, machineCount: Int) {
+        syncActivity = hasActivity
+        syncMachineCount = machineCount
     }
 
     func upgrade(package name: String) async {

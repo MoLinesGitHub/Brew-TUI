@@ -733,6 +733,57 @@
           }
         }
       }
+    },
+    "Brew-TUI Sync" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Brew-TUI Sync"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Brew-TUI Sync"
+          }
+        }
+      }
+    },
+    "Changes from %lld machine(s) available. Open Brew-TUI to sync." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Changes from %lld machine(s) available. Open Brew-TUI to sync."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cambios de %lld máquina(s) disponibles. Abre Brew-TUI para sincronizar."
+          }
+        }
+      }
+    },
+    "Sync activity detected. Open Brew-TUI to review." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sync activity detected. Open Brew-TUI to review."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Actividad de sync detectada. Abre Brew-TUI para revisar."
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

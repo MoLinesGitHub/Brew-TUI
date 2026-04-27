@@ -49,6 +49,9 @@ function ImpactPanel({ impact }: { impact: UpgradeImpact }) {
           {t('impact_usedBy', { packages: impact.reverseDeps.join(', ') })}
         </Text>
       )}
+      {impact.risk === 'high' && (
+        <Text color={COLORS.info}>{t('impact_brewfile_hint')}</Text>
+      )}
     </Box>
   );
 }
@@ -99,8 +102,6 @@ export function OutdatedView() {
       .then(setImpact)
       .catch(() => setImpact(null))
       .finally(() => setImpactLoading(false));
-  // allOutdated changes identity every render — using debouncedCursor + stream.isRunning is sufficient
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [debouncedCursor, stream.isRunning]);
 
   useInput((input, key) => {

@@ -1,6 +1,6 @@
 # Brew-TUI
 
-**Manage Homebrew visually from your terminal and macOS menu bar.**
+### Your Homebrew, finally visible.
 
 [![npm](https://img.shields.io/npm/v/brew-tui)](https://www.npmjs.com/package/brew-tui)
 [![Node](https://img.shields.io/badge/node-%3E%3D22-brightgreen)](https://nodejs.org/)
@@ -8,9 +8,26 @@
 [![Homebrew](https://img.shields.io/badge/homebrew-tap-orange)](https://github.com/MoLinesGitHub/homebrew-tap)
 [![Tests](https://img.shields.io/badge/tests-99%20passing-brightgreen)]()
 
-> Two tools, one workflow: **Brew-TUI** is a keyboard-driven terminal UI, and **BrewBar** is a native macOS menu bar companion. Both call `brew` directly — no middleware, no daemons.
+A keyboard-driven terminal UI for Homebrew, with a native macOS menu bar companion that watches updates in the background. No daemons, no middleware — both tools call `brew` directly.
 
-**Website:** [molinesdesigns.com/brewtui](https://molinesdesigns.com/brewtui/)
+![Brew-TUI demo](assets/demo.gif)
+
+```bash
+npm install -g brew-tui    # then just type:  brew-tui
+```
+
+---
+
+## Why Brew-TUI?
+
+You don't memorize `brew outdated && brew upgrade && brew services list && brew leaves`. You forget half of them. Brew-TUI puts every command behind one keystroke and shows you what `brew` never tells you until something breaks: orphans, vulnerabilities, services that died last Tuesday.
+
+| Without Brew-TUI | With Brew-TUI |
+|---|---|
+| `brew outdated` → wall of text → grep | View **4** → list with version arrows → `Enter` to upgrade |
+| `brew services list` → restart by hand | View **6** → toggle with one key |
+| Vulnerable packages? | View **0** → cross-checked against [OSV.dev](https://osv.dev) (Pro) |
+| Forgot to update? | **BrewBar** lives in your menu bar and tells you (Pro) |
 
 ---
 
@@ -44,15 +61,29 @@ npx brew-tui
 | **Doctor** | Run `brew doctor` and see warnings at a glance |
 | **Package Info** | Detailed view with dependencies, caveats, and quick actions |
 
-### Pro Features
+### Pro Features — $19 once, lifetime
 
-| Feature | Description |
-|---------|-------------|
-| **Profiles** | Export and import your Homebrew setup across machines |
-| **Smart Cleanup** | Find orphaned packages and reclaim disk space |
-| **Action History** | Track every install, uninstall, and upgrade |
-| **Security Audit** | Scan packages against the [OSV](https://osv.dev) vulnerability database |
-| **BrewBar** | Native macOS menu bar app with notifications and one-click upgrades |
+| Feature | What it solves |
+|---------|----------------|
+| **Profiles** | Replicate your exact setup on a new Mac in one command |
+| **Smart Cleanup** | Reclaim gigabytes by listing orphans ranked by size |
+| **Action History** | "What did I install last week?" — answered |
+| **Security Audit** | Get notified when [OSV.dev](https://osv.dev) flags something you have installed |
+| **BrewBar** | A menu bar app that watches your packages while you sleep — auto-installs and auto-launches the moment you go Pro |
+
+> Pro is one-time payment, lifetime updates, machine-bound. No subscription. [Activate →](https://molinesdesigns.com/brewtui/pro)
+
+---
+
+## Screenshots
+
+| Dashboard | Outdated | Smart Cleanup |
+|---|---|---|
+| ![Dashboard](assets/screenshots/dashboard.png) | ![Outdated](assets/screenshots/outdated.png) | ![Smart Cleanup](assets/screenshots/smart-cleanup.png) |
+
+| Security Audit | Services | BrewBar |
+|---|---|---|
+| ![Security Audit](assets/screenshots/security-audit.png) | ![Services](assets/screenshots/services.png) | ![BrewBar](assets/screenshots/brewbar.png) |
 
 ---
 

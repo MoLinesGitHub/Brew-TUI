@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { BrewSnapshot } from '../state-snapshot/snapshot.js';
-import type { SyncPayload, MachineState } from './types.js';
+import type { SyncPayload, MachineState, SyncConflict } from './types.js';
 
 // Mock modules before importing the tested module
 vi.mock('../state-snapshot/snapshot.js', () => ({
@@ -36,7 +36,7 @@ vi.mock('node:os', async (importOriginal) => {
   };
 });
 
-import { sync } from './sync-engine.js';
+import { sync, applyConflictResolutions } from './sync-engine.js';
 import { captureSnapshot } from '../state-snapshot/snapshot.js';
 import { isICloudAvailable, readSyncEnvelope, writeSyncEnvelope } from './backends/icloud-backend.js';
 import { encryptPayload, decryptPayload } from './crypto.js';
@@ -191,8 +191,11 @@ describe('sync()', () => {
       remoteMachine: 'OtherMac',
       remoteVersion: '21.0.0',
     });
-    // Should NOT write to iCloud when conflicts are pending
-    expect(mockWriteSyncEnvelope).not.toHaveBeenCalled();
+    // Local machine state must be persisted even when conflicts exist, so that
+    // applyConflictResolutions() can update an existing local entry. Without
+    // this, the iCloud envelope would only contain remote machines and every
+    // 'use-remote' resolution would be silently dropped.
+    expect(mockWriteSyncEnvelope).toHaveBeenCalledTimes(1);
   });
 
   it('merge-union: formula only on machine B appears in merged payload', async () => {
@@ -270,5 +273,106 @@ describe('sync()', () => {
     expect(result.conflicts).toHaveLength(1);
     expect(result.conflicts[0]?.packageType).toBe('cask');
     expect(result.conflicts[0]?.packageName).toBe('firefox');
+  });
+
+  // Regression: persisting local machine on conflict (Codex bug #1).
+  it('writes local machine to envelope even when conflicts are detected', async () => {
+    mockIsICloudAvailable.mockResolvedValue(true);
+    mockEncryptPayload.mockReturnValue(FAKE_ENCRYPTED);
+    mockReadFile.mockRejectedValue(new Error('ENOENT'));
+    mockWriteFile.mockResolvedValue(undefined);
+    mockRename.mockResolvedValue(undefined);
+
+    const localSnapshot = makeSnapshot({
+      formulae: [{ name: 'node', version: '20.0.0', pinned: false }],
+    });
+    mockCaptureSnapshot.mockResolvedValue(localSnapshot);
+
+    const remoteSnapshot = makeSnapshot({
+      formulae: [{ name: 'node', version: '21.0.0', pinned: false }],
+    });
+    const existingPayload: SyncPayload = {
+      machines: { 'machine-other': makeMachineState('machine-other', 'OtherMac', remoteSnapshot) },
+    };
+    mockReadSyncEnvelope.mockResolvedValue({
+      schemaVersion: 1,
+      encrypted: 'enc==',
+      iv: 'iv==',
+      tag: 'tag==',
+      updatedAt: new Date().toISOString(),
+    });
+    mockDecryptPayload.mockReturnValue(existingPayload);
+
+    const result = await sync(true);
+    expect(result.success).toBe(false);
+    expect(result.conflicts).toHaveLength(1);
+
+    const encryptedPayload = mockEncryptPayload.mock.calls[0]?.[0] as SyncPayload | undefined;
+    expect(encryptedPayload).toBeDefined();
+    const localMachineEntries = Object.values(encryptedPayload!.machines).filter(
+      (m) => m.machineId !== 'machine-other',
+    );
+    expect(localMachineEntries).toHaveLength(1);
+  });
+});
+
+// Regression: applyConflictResolutions accumulates updates across iterations (Codex bug #2).
+describe('applyConflictResolutions()', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockEncryptPayload.mockReturnValue(FAKE_ENCRYPTED);
+    mockWriteFile.mockResolvedValue(undefined);
+    mockRename.mockResolvedValue(undefined);
+  });
+
+  it('preserves all use-remote resolutions when applied in sequence', async () => {
+    const localSnapshot = makeSnapshot({
+      formulae: [
+        { name: 'node', version: '20.0.0', pinned: false },
+        { name: 'git', version: '2.40.0', pinned: false },
+      ],
+      casks: [{ name: 'firefox', version: '120.0' }],
+    });
+    const localId = 'machine-local';
+    const payload: SyncPayload = {
+      machines: { [localId]: makeMachineState(localId, 'LocalMac', localSnapshot) },
+    };
+
+    const conflicts: SyncConflict[] = [
+      {
+        packageName: 'node',
+        packageType: 'formula',
+        localVersion: '20.0.0',
+        remoteVersion: '21.0.0',
+        remoteMachine: 'OtherMac',
+      },
+      {
+        packageName: 'git',
+        packageType: 'formula',
+        localVersion: '2.40.0',
+        remoteVersion: '2.43.0',
+        remoteMachine: 'OtherMac',
+      },
+      {
+        packageName: 'firefox',
+        packageType: 'cask',
+        localVersion: '120.0',
+        remoteVersion: '125.0',
+        remoteMachine: 'OtherMac',
+      },
+    ];
+
+    await applyConflictResolutions(
+      payload,
+      conflicts.map((c) => ({ conflict: c, resolution: 'use-remote' as const })),
+      localId,
+    );
+
+    const written = mockEncryptPayload.mock.calls[0]?.[0] as SyncPayload | undefined;
+    expect(written).toBeDefined();
+    const updatedSnapshot = written!.machines[localId]?.snapshot;
+    expect(updatedSnapshot?.formulae.find((f) => f.name === 'node')?.version).toBe('21.0.0');
+    expect(updatedSnapshot?.formulae.find((f) => f.name === 'git')?.version).toBe('2.43.0');
+    expect(updatedSnapshot?.casks.find((c) => c.name === 'firefox')?.version).toBe('125.0');
   });
 });

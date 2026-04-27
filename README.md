@@ -24,9 +24,9 @@ You don't memorize `brew outdated && brew upgrade && brew services list && brew 
 
 | Without Brew-TUI | With Brew-TUI |
 |---|---|
-| `brew outdated` → wall of text → grep | View **4** → list with version arrows → `Enter` to upgrade |
-| `brew services list` → restart by hand | View **6** → toggle with one key |
-| Vulnerable packages? | View **0** → cross-checked against [OSV.dev](https://osv.dev) (Pro) |
+| `brew outdated` → wall of text → grep | Press **3** → list with version arrows → `Enter` to upgrade |
+| `brew services list` → restart by hand | Press **4** → toggle services with one key |
+| Vulnerable packages? | Press **9** → cross-checked against [OSV.dev](https://osv.dev) (Pro) |
 | Forgot to update? | **BrewBar** lives in your menu bar and tells you (Pro) |
 
 ---
@@ -77,13 +77,15 @@ npx brew-tui
 
 ## Screenshots
 
-| Dashboard | Outdated | Smart Cleanup |
-|---|---|---|
-| ![Dashboard](assets/screenshots/dashboard.png) | ![Outdated](assets/screenshots/outdated.png) | ![Smart Cleanup](assets/screenshots/smart-cleanup.png) |
+| Dashboard | Outdated |
+|---|---|
+| ![Dashboard](assets/screenshots/dashboard.png) | ![Outdated](assets/screenshots/outdated.png) |
+| **Services** | **Doctor** |
+| ![Services](assets/screenshots/services.png) | ![Doctor](assets/screenshots/doctor.png) |
+| **Smart Cleanup (Pro)** | **Security Audit (Pro)** |
+| ![Smart Cleanup](assets/screenshots/smart-cleanup.png) | ![Security Audit](assets/screenshots/security-audit.png) |
 
-| Security Audit | Services | BrewBar |
-|---|---|---|
-| ![Security Audit](assets/screenshots/security-audit.png) | ![Services](assets/screenshots/services.png) | ![BrewBar](assets/screenshots/brewbar.png) |
+> Smart Cleanup ranks orphans by size — find your 34 MB unused `jpeg-xl` in 2 seconds. Security Audit cross-checks every installed package against [OSV.dev](https://osv.dev) live.
 
 ---
 

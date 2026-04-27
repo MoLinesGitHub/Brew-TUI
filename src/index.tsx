@@ -158,7 +158,9 @@ async function runCli() {
   // Runs before the TUI clears the screen so progress messages are visible on cold install.
   await ensureBrewBarRunning();
 
-  // Default: launch TUI
+  // Default: launch TUI. Mark TUI mode so the logger redirects to a file
+  // instead of stdout/stderr (which would corrupt the Ink-rendered frame).
+  process.env.BREW_TUI_TUI_MODE = '1';
   process.stdout.write('\x1B[2J\x1B[3J\x1B[H');
   render(<App />);
 }

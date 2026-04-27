@@ -31,7 +31,7 @@ describe('loadPolicy', () => {
   });
 
   it('parses valid policy JSON correctly', async () => {
-    vi.mocked(readFile).mockResolvedValue(validPolicyJson as unknown as Buffer);
+    vi.mocked(readFile).mockResolvedValue(validPolicyJson);
     const policy = await loadPolicy('/path/to/policy.json');
 
     expect(policy.version).toBe(1);
@@ -50,7 +50,7 @@ describe('loadPolicy', () => {
       forbidden: [],
       requiredTaps: [],
     });
-    vi.mocked(readFile).mockResolvedValue(noVersion as unknown as Buffer);
+    vi.mocked(readFile).mockResolvedValue(noVersion);
     await expect(loadPolicy('/path/to/policy.json')).rejects.toThrow('Invalid policy file');
   });
 
@@ -62,12 +62,12 @@ describe('loadPolicy', () => {
       forbidden: [],
       requiredTaps: [],
     });
-    vi.mocked(readFile).mockResolvedValue(noTeamName as unknown as Buffer);
+    vi.mocked(readFile).mockResolvedValue(noTeamName);
     await expect(loadPolicy('/path/to/policy.json')).rejects.toThrow('Invalid policy file');
   });
 
   it('throws on non-object JSON', async () => {
-    vi.mocked(readFile).mockResolvedValue('"just a string"' as unknown as Buffer);
+    vi.mocked(readFile).mockResolvedValue('"just a string"');
     await expect(loadPolicy('/path/to/policy.json')).rejects.toThrow('Invalid policy file');
   });
 });

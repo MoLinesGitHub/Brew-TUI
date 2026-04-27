@@ -8,7 +8,7 @@ function safeParse<T>(raw: string, context: string): T {
     }
     return result as T;
   } catch (err) {
-    throw new Error(`Failed to parse ${context} JSON: ${err instanceof Error ? err.message : String(err)}`);
+    throw new Error(`Failed to parse ${context} JSON: ${err instanceof Error ? err.message : String(err)}`, { cause: err });
   }
 }
 

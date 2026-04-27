@@ -68,7 +68,7 @@ describe('brewfile-manager', () => {
     });
 
     it('returns null when file is invalid (parse error)', async () => {
-      vi.mocked(readFile).mockResolvedValue('invalid: yaml: content: that: fails: version\n' as unknown as Buffer);
+      vi.mocked(readFile).mockResolvedValue('invalid: yaml: content: that: fails: version\n');
 
       const result = await loadBrewfile();
       expect(result).toBeNull();
@@ -78,7 +78,7 @@ describe('brewfile-manager', () => {
       // Build valid YAML from our serializer
       const { serializeBrewfile } = await import('./yaml-serializer.js');
       const yaml = serializeBrewfile(MOCK_SCHEMA);
-      vi.mocked(readFile).mockResolvedValue(yaml as unknown as Buffer);
+      vi.mocked(readFile).mockResolvedValue(yaml);
 
       const result = await loadBrewfile();
       expect(result).not.toBeNull();

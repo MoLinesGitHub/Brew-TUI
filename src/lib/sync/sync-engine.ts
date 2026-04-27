@@ -102,6 +102,20 @@ function detectConflicts(
 
 // ── Merge ────────────────────────────────────────────────────────────────────
 
+async function writeEnvelope(payload: SyncPayload): Promise<string> {
+  const now = new Date().toISOString();
+  const { encrypted, iv, tag } = encryptPayload(payload);
+  const envelope: SyncEnvelope = {
+    schemaVersion: 1,
+    encrypted,
+    iv,
+    tag,
+    updatedAt: now,
+  };
+  await writeSyncEnvelope(envelope);
+  return now;
+}
+
 function mergePayload(existing: SyncPayload, localState: MachineState): SyncPayload {
   return {
     machines: {
@@ -163,8 +177,16 @@ export async function sync(
 
   const conflicts = detectConflicts(snapshot, otherMachines, machineId);
 
+  // Always write the local machine state to the payload, even when conflicts
+  // exist, so that applyConflictResolutions() has a local entry to update.
+  // Without this, the iCloud envelope keeps only remote machines, and
+  // resolution updates are silently dropped (they require localMachine to exist).
+  const basePayload: SyncPayload = existingPayload ?? { machines: {} };
+  const mergedPayload = mergePayload(basePayload, localState);
+
   if (conflicts.length > 0) {
-    // Return without writing — user must resolve conflicts in the UI
+    // Persist local state, then surface conflicts so the user can resolve them.
+    await writeEnvelope(mergedPayload);
     return {
       success: false,
       conflicts,
@@ -172,21 +194,7 @@ export async function sync(
     };
   }
 
-  // No conflicts — merge and write
-  const basePayload: SyncPayload = existingPayload ?? { machines: {} };
-  const mergedPayload = mergePayload(basePayload, localState);
-
-  const now = new Date().toISOString();
-  const { encrypted, iv, tag } = encryptPayload(mergedPayload);
-  const envelope: SyncEnvelope = {
-    schemaVersion: 1,
-    encrypted,
-    iv,
-    tag,
-    updatedAt: now,
-  };
-
-  await writeSyncEnvelope(envelope);
+  const now = await writeEnvelope(mergedPayload);
 
   // Update local sync config
   const existingConfig = await loadSyncConfig();
@@ -219,53 +227,42 @@ export async function applyConflictResolutions(
     machines: { ...payload.machines },
   };
 
-  const localMachine = updatedPayload.machines[localMachineId];
-
   for (const { conflict, resolution } of resolutions) {
-    if (resolution === 'use-remote') {
-      // Record that local now "has" the remote version in the payload entry.
-      // This does NOT install the package — it records the resolution intent.
-      if (localMachine) {
-        if (conflict.packageType === 'formula') {
-          updatedPayload.machines[localMachineId] = {
-            ...localMachine,
-            snapshot: {
-              ...localMachine.snapshot,
-              formulae: localMachine.snapshot.formulae.map((f) =>
-                f.name === conflict.packageName
-                  ? { ...f, version: conflict.remoteVersion }
-                  : f,
-              ),
-            },
-          };
-        } else {
-          updatedPayload.machines[localMachineId] = {
-            ...localMachine,
-            snapshot: {
-              ...localMachine.snapshot,
-              casks: localMachine.snapshot.casks.map((c) =>
-                c.name === conflict.packageName
-                  ? { ...c, version: conflict.remoteVersion }
-                  : c,
-              ),
-            },
-          };
-        }
-      }
+    if (resolution !== 'use-remote') continue;
+    // Re-read latest local machine on every iteration so consecutive resolutions
+    // build on top of each other instead of overwriting prior changes.
+    const localMachine = updatedPayload.machines[localMachineId];
+    if (!localMachine) {
+      logger.warn('sync: cannot apply resolution, local machine missing in payload', { localMachineId });
+      continue;
     }
-    // 'use-local': local version stays; nothing to change in payload
+    if (conflict.packageType === 'formula') {
+      updatedPayload.machines[localMachineId] = {
+        ...localMachine,
+        snapshot: {
+          ...localMachine.snapshot,
+          formulae: localMachine.snapshot.formulae.map((f) =>
+            f.name === conflict.packageName
+              ? { ...f, version: conflict.remoteVersion }
+              : f,
+          ),
+        },
+      };
+    } else {
+      updatedPayload.machines[localMachineId] = {
+        ...localMachine,
+        snapshot: {
+          ...localMachine.snapshot,
+          casks: localMachine.snapshot.casks.map((c) =>
+            c.name === conflict.packageName
+              ? { ...c, version: conflict.remoteVersion }
+              : c,
+          ),
+        },
+      };
+    }
   }
 
-  const now = new Date().toISOString();
-  const { encrypted, iv, tag } = encryptPayload(updatedPayload);
-  const envelope: SyncEnvelope = {
-    schemaVersion: 1,
-    encrypted,
-    iv,
-    tag,
-    updatedAt: now,
-  };
-
-  await writeSyncEnvelope(envelope);
+  await writeEnvelope(updatedPayload);
   logger.info('sync: conflict resolutions applied', { count: resolutions.length });
 }

@@ -13,7 +13,8 @@ A keyboard-driven terminal UI for Homebrew, with a native macOS menu bar compani
 ![Brew-TUI demo](assets/demo.gif)
 
 ```bash
-npm install -g brew-tui    # then just type:  brew-tui
+brew tap MoLinesGitHub/tap
+brew install brew-tui      # then just type:  brew-tui
 ```
 
 ---
@@ -34,18 +35,18 @@ You don't memorize `brew outdated && brew upgrade && brew services list && brew 
 ## Install
 
 ```bash
-# npm (recommended)
-npm install -g brew-tui
-
-# Homebrew
+# Homebrew (recommended)
 brew tap MoLinesGitHub/tap
 brew install brew-tui
+
+# npm
+npm install -g brew-tui
 
 # Run without installing
 npx brew-tui
 ```
 
-**Requirements:** Node.js >= 22, Homebrew, macOS
+**Requirements:** Homebrew, macOS. The Homebrew formula installs the required Node.js runtime dependency.
 
 ---
 

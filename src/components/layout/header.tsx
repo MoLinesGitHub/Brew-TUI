@@ -1,7 +1,7 @@
 import React from 'react';
 import { Box, Text, useStdout } from 'ink';
 import { useNavigationStore } from '../../stores/navigation-store.js';
-import { isProView } from '../../lib/license/feature-gate.js';
+import { isProView, isTeamView } from '../../lib/license/feature-gate.js';
 import { COLORS } from '../../utils/colors.js';
 import { t, useLocaleStore } from '../../i18n/index.js';
 import { GradientText, GRADIENTS } from '../../utils/gradient.js';
@@ -37,7 +37,11 @@ const VIEW_LABEL_KEYS: Record<ViewId, TranslationKey> = {
   profiles: 'view_profiles',
   'smart-cleanup': 'view_smartCleanup',
   history: 'view_history',
+  rollback: 'view_rollback',
+  brewfile: 'view_brewfile',
+  sync: 'view_sync',
   'security-audit': 'view_securityAudit',
+  compliance: 'view_compliance',
   account: 'view_account',
 };
 
@@ -45,18 +49,19 @@ const VIEW_KEYS: Record<ViewId, string> = {
   dashboard: '1', installed: '2', search: '', outdated: '3',
   'package-info': '', services: '4', doctor: '5',
   profiles: '6', 'smart-cleanup': '7', history: '8', 'security-audit': '9',
+  rollback: '', brewfile: '', sync: '', compliance: '',
   account: '0',
 };
 
 const TAB_VIEWS: ViewId[] = [
   'dashboard', 'installed', 'outdated', 'package-info', 'services', 'doctor',
-  'profiles', 'smart-cleanup', 'history', 'security-audit', 'account',
+  'profiles', 'smart-cleanup', 'history', 'rollback', 'brewfile', 'sync', 'security-audit', 'compliance', 'account',
 ];
 
 function MenuItem({ view, currentView }: { view: ViewId; currentView: ViewId }) {
   const key = VIEW_KEYS[view];
   const viewLabel = t(VIEW_LABEL_KEYS[view]);
-  const isPro = isProView(view);
+  const isPro = isProView(view) || isTeamView(view);
   const isActive = view === currentView;
   const isAccount = view === 'account';
   // Indicator for keyless views: package-info uses Enter, account uses 0

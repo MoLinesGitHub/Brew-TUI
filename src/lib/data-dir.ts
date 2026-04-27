@@ -6,8 +6,11 @@ export const DATA_DIR = join(homedir(), '.brew-tui');
 export const PROFILES_DIR = join(DATA_DIR, 'profiles');
 export const LICENSE_PATH = join(DATA_DIR, 'license.json');
 export const HISTORY_PATH = join(DATA_DIR, 'history.json');
+export const SNAPSHOTS_DIR = join(DATA_DIR, 'snapshots');
+export const CVE_CACHE_PATH = join(DATA_DIR, 'cve-cache.json');
 
 export async function ensureDataDirs(): Promise<void> {
   await mkdir(DATA_DIR, { recursive: true, mode: 0o700 });
   await mkdir(PROFILES_DIR, { recursive: true, mode: 0o700 });
+  await mkdir(SNAPSHOTS_DIR, { recursive: true, mode: 0o700 });
 }

@@ -13,7 +13,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let scheduler = SchedulerService()
     private var badgeTimer: Timer?
     private var launchTask: Task<Void, Never>?
-    private var lastBadgeCount = -1
     private var hostingController: NSHostingController<PopoverView>?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -49,6 +48,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
             scheduler.start(state: appState)
             await appState.refresh()
+
+            // Load cached CVE alerts on launch (no network, just cache)
+            let cachedAlerts = await SecurityMonitor.shared.loadCachedAlerts()
+            appState.updateCVEAlerts(cachedAlerts)
+
+            // Check sync activity on launch
+            let hasSyncActivity = await SyncMonitor.shared.checkForSyncActivity()
+            let machineCount = await SyncMonitor.shared.getKnownMachineCount()
+            appState.updateSyncStatus(hasActivity: hasSyncActivity, machineCount: machineCount)
+
             updateBadge()
 
             badgeTimer = Timer.scheduledTimer(withTimeInterval: 30, repeats: true) { [weak self] _ in
@@ -192,14 +201,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func updateBadge() {
         guard let button = statusItem.button else { return }
 
-        let count = appState.outdatedCount
-        guard count != lastBadgeCount else { return } // Skip if unchanged
-        lastBadgeCount = count
+        let outdated = appState.outdatedCount
+        let cve = appState.criticalCveCount
+        let sync = appState.syncActivity
 
-        button.title = count > 0 ? " \(count)" : ""
+        var parts: [String] = []
+        if outdated > 0 { parts.append("\(outdated)↑") }
+        if cve > 0      { parts.append("\(cve)⚠") }
+        if sync         { parts.append("⟳") }
+        let badge = parts.isEmpty ? "" : " " + parts.joined(separator: " ")
+
+        guard badge != button.title else { return }
+        button.title = badge
+
         let icon = NSImage(named: "MenuBarIcon")
         icon?.isTemplate = true
-        icon?.accessibilityDescription = count > 0 ? String(format: String(localized: "BrewBar — %lld updates"), Int64(count)) : String(localized: "BrewBar")
+        let desc = parts.isEmpty
+            ? String(localized: "BrewBar")
+            : String(format: String(localized: "BrewBar — %@"), parts.joined(separator: ", "))
+        icon?.accessibilityDescription = desc
         button.image = icon
     }
 

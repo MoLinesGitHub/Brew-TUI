@@ -6,12 +6,13 @@ import { t } from '../../i18n/index.js';
 import type { LicenseData, LicenseFile } from './types.js';
 
 // ── Built-in perennial accounts (bypass Polar validation) ──
-const BUILTIN_ACCOUNTS: Record<string, 'pro' | 'free'> = {
+const BUILTIN_ACCOUNTS: Record<string, 'pro' | 'team' | 'free'> = {
   'admin@molinesdesigns.com': 'pro',
+  'team@molinesdesigns.com': 'team', // Team tier test/admin account
   'artax1983@icloud.com': 'free',
 };
 
-export function getBuiltinAccountType(email: string): 'pro' | 'free' | null {
+export function getBuiltinAccountType(email: string): 'pro' | 'team' | 'free' | null {
   return BUILTIN_ACCOUNTS[email] ?? null;
 }
 

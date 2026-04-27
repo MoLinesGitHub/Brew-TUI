@@ -9,7 +9,11 @@ export type ViewId =
   | 'profiles'
   | 'smart-cleanup'
   | 'history'
+  | 'rollback'
+  | 'brewfile'
+  | 'sync'
   | 'security-audit'
+  | 'compliance'
   | 'account';
 
 export interface Formula {

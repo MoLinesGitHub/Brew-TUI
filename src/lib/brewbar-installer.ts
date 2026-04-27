@@ -122,7 +122,7 @@ export async function installBrewBar(isPro: boolean, force = false): Promise<voi
   try {
     await execFileAsync('ditto', ['-xk', TMP_ZIP, '/Applications/']);
   } catch (err) {
-    throw new Error(t('cli_brewbarDownloadFailed', { error: err instanceof Error ? err.message : String(err) }));
+    throw new Error(t('cli_brewbarDownloadFailed', { error: err instanceof Error ? err.message : String(err) }), { cause: err });
   } finally {
     // Clean up tmp zip
     await rm(TMP_ZIP, { force: true }).catch(() => {});

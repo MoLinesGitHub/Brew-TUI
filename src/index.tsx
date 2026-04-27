@@ -83,6 +83,7 @@ async function runCli() {
   if (command === 'status') {
     await useLicenseStore.getState().initialize();
     const { status, license, degradation } = useLicenseStore.getState();
+    const isPro = useLicenseStore.getState().isPro();
 
     if (status === 'free') {
       console.log(t('cli_planFree'));
@@ -111,6 +112,61 @@ async function runCli() {
         console.log(t('cli_revalidateHint'));
       }
     }
+
+    // Pro-only status sections
+    if (isPro) {
+      // Snapshots
+      try {
+        const { loadSnapshots } = await import('./lib/state-snapshot/snapshot.js');
+        const snapshots = await loadSnapshots();
+        if (snapshots.length > 0) {
+          const latest = snapshots[0];
+          console.log(`\nSnapshots: ${snapshots.length} (latest: ${latest ? formatDate(latest.capturedAt) : '—'})`);
+        } else {
+          console.log('\nSnapshots: none');
+        }
+      } catch {
+        // Non-fatal: snapshot dir may not exist yet
+      }
+
+      // Brewfile drift
+      try {
+        const { loadBrewfile, computeDrift } = await import('./lib/brewfile/brewfile-manager.js');
+        const schema = await loadBrewfile();
+        if (schema) {
+          const drift = await computeDrift(schema);
+          console.log(`Brewfile: ${drift.score}% compliant (${drift.missingPackages.length} missing, ${drift.extraPackages.length} extra)`);
+        }
+      } catch {
+        // Non-fatal
+      }
+
+      // Sync last sync date
+      try {
+        const { loadSyncConfig } = await import('./lib/sync/sync-engine.js');
+        const syncConfig = await loadSyncConfig();
+        if (syncConfig?.lastSync) {
+          console.log(`Sync: last sync ${formatDate(syncConfig.lastSync)}`);
+        }
+      } catch {
+        // Non-fatal
+      }
+
+      // Compliance score
+      try {
+        const { loadPolicy } = await import('./lib/compliance/policy-io.js');
+        const { checkCompliance } = await import('./lib/compliance/compliance-checker.js');
+        // Try loading from default location
+        const policy = await loadPolicy(`${process.env['HOME'] ?? '~'}/.brew-tui/policy.yaml`).catch(() => null);
+        if (policy) {
+          const report = await checkCompliance(policy, true);
+          console.log(`Compliance: ${report.score}% (${report.violations.length} violation(s))`);
+        }
+      } catch {
+        // Non-fatal: no policy loaded
+      }
+    }
+
     return;
   }
 

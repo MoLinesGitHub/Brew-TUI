@@ -10,6 +10,8 @@ const FEATURE_KEYS: Record<string, { title: TranslationKey; desc: TranslationKey
   'smart-cleanup': { title: 'upgrade_cleanup', desc: 'upgrade_cleanupDesc' },
   history: { title: 'upgrade_history', desc: 'upgrade_historyDesc' },
   'security-audit': { title: 'upgrade_security', desc: 'upgrade_securityDesc' },
+  sync: { title: 'upgrade_sync', desc: 'upgrade_syncDesc' },
+  compliance: { title: 'upgrade_compliance', desc: 'upgrade_complianceDesc' },
 };
 
 interface UpgradePromptProps {

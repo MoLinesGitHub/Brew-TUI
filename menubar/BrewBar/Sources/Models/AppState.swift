@@ -12,11 +12,16 @@ final class AppState {
     var servicesError: String?
     var canUpgrade = true
     var onRefreshComplete: (() -> Void)?
+    var cveAlerts: [CVEAlert] = []
+    var cveCheckError: String?
+    var syncActivity = false
+    var syncMachineCount = 0
 
     private let checker = BrewChecker()
 
     var outdatedCount: Int { outdatedPackages.count }
     var errorServices: [BrewService] { services.filter(\.hasError) }
+    var criticalCveCount: Int { cveAlerts.filter { $0.severity == .critical || $0.severity == .high }.count }
 
     var lastSchedulerError: (message: String, date: String)? {
         guard let dict = UserDefaults.standard.dictionary(forKey: "lastSchedulerError"),
@@ -53,6 +58,15 @@ final class AppState {
         } catch {
             servicesError = error.localizedDescription
         }
+    }
+
+    func updateCVEAlerts(_ alerts: [CVEAlert]) {
+        cveAlerts = alerts.sorted { $0.severity.sortOrder < $1.severity.sortOrder }
+    }
+
+    func updateSyncStatus(hasActivity: Bool, machineCount: Int) {
+        syncActivity = hasActivity
+        syncMachineCount = machineCount
     }
 
     func upgrade(package name: String) async {

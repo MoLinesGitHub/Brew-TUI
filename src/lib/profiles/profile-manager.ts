@@ -56,7 +56,7 @@ export async function loadProfile(isPro: boolean, name: string): Promise<Profile
   try {
     file = JSON.parse(raw) as ProfileFile;
   } catch (err) {
-    throw new Error(`Profile "${name}" is corrupted: ${err instanceof Error ? err.message : String(err)}`);
+    throw new Error(`Profile "${name}" is corrupted: ${err instanceof Error ? err.message : String(err)}`, { cause: err });
   }
   if (file.version !== 1) {
     // Future: add migration logic here

@@ -1,6 +1,11 @@
 import React, { useEffect, useMemo } from 'react';
 import { Box, Text, useStdout } from 'ink';
 import { useBrewStore } from '../stores/brew-store.js';
+import { useSecurityStore } from '../stores/security-store.js';
+import { useBrewfileStore } from '../stores/brewfile-store.js';
+import { useSyncStore } from '../stores/sync-store.js';
+import { useComplianceStore } from '../stores/compliance-store.js';
+import { useLicenseStore } from '../stores/license-store.js';
 import { StatCard } from '../components/common/stat-card.js';
 import { Loading, ErrorMessage } from '../components/common/loading.js';
 import { StatusBadge } from '../components/common/status-badge.js';
@@ -11,8 +16,71 @@ import { GRADIENTS } from '../utils/gradient.js';
 import { t } from '../i18n/index.js';
 import { formatRelativeTime } from '../utils/format.js';
 
+function ProStatusPanel() {
+  const security = useSecurityStore((s) => s.summary);
+  const drift = useBrewfileStore((s) => s.drift);
+  const syncConfig = useSyncStore((s) => s.config);
+  const complianceReport = useComplianceStore((s) => s.report);
+
+  const cveCount = security ? security.vulnerablePackages : null;
+  const criticalCount = security ? security.criticalCount : null;
+
+  const driftScore = drift ? drift.score : null;
+
+  const lastSync = syncConfig?.lastSync ?? null;
+  const syncAgo = lastSync ? formatRelativeTime(new Date(lastSync).getTime() / 1000) : null;
+
+  const violationCount = complianceReport ? complianceReport.violations.length : null;
+
+  return (
+    <Box flexDirection="column" borderStyle="round" borderColor={COLORS.purple} paddingX={2} paddingY={0} marginTop={1}>
+      <Text bold color={COLORS.purple}>{t('dashboard_pro_status')}</Text>
+      <Box gap={1}>
+        <Text color={COLORS.muted}>{t('dashboard_security')}</Text>
+        {cveCount === null ? (
+          <Text color={COLORS.muted}>—</Text>
+        ) : cveCount === 0 ? (
+          <Text color={COLORS.success}>{t('dashboard_no_cves')}</Text>
+        ) : (
+          <Text color={COLORS.error}>
+            {t('dashboard_cves', { count: String(cveCount) })}
+            {criticalCount && criticalCount > 0 ? ` (${criticalCount} critical)` : ''}
+          </Text>
+        )}
+      </Box>
+      <Box gap={1}>
+        <Text color={COLORS.muted}>{t('dashboard_brewfile')}</Text>
+        {driftScore === null ? (
+          <Text color={COLORS.muted}>—</Text>
+        ) : (
+          <Text color={driftScore >= 80 ? COLORS.success : COLORS.warning}>{driftScore}%</Text>
+        )}
+      </Box>
+      <Box gap={1}>
+        <Text color={COLORS.muted}>{t('dashboard_sync')}</Text>
+        {syncAgo === null ? (
+          <Text color={COLORS.muted}>{t('dashboard_sync_never')}</Text>
+        ) : (
+          <Text color={COLORS.info}>{t('dashboard_sync_ago', { time: syncAgo })}</Text>
+        )}
+      </Box>
+      <Box gap={1}>
+        <Text color={COLORS.muted}>{t('dashboard_compliance')}</Text>
+        {violationCount === null ? (
+          <Text color={COLORS.muted}>—</Text>
+        ) : violationCount === 0 ? (
+          <Text color={COLORS.success}>{t('dashboard_compliance_ok')}</Text>
+        ) : (
+          <Text color={COLORS.warning}>{t('dashboard_compliance_violations', { count: String(violationCount) })}</Text>
+        )}
+      </Box>
+    </Box>
+  );
+}
+
 export function DashboardView() {
   const { formulae, casks, outdated, services, config, loading, errors, lastFetchedAt, fetchAll } = useBrewStore();
+  const isPro = useLicenseStore((s) => s.isPro);
   const { stdout } = useStdout();
   const columns = stdout?.columns ?? 80;
 
@@ -131,6 +199,8 @@ export function DashboardView() {
           </Box>
         </Box>
       )}
+
+      {isPro() && <ProStatusPanel />}
     </Box>
   );
 }

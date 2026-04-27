@@ -22,6 +22,7 @@ interface LicenseState {
   activate: (key: string) => Promise<boolean>;
   deactivate: () => Promise<void>;
   isPro: () => boolean;
+  isTeam: () => boolean;
 }
 
 async function doRevalidation(
@@ -58,6 +59,10 @@ export const useLicenseStore = create<LicenseState>((set, get) => ({
     const builtinType = getBuiltinAccountType(license.customerEmail);
     if (builtinType === 'pro') {
       set({ status: 'pro', license: { ...license, status: 'active' }, degradation: 'none' });
+      return;
+    }
+    if (builtinType === 'team') {
+      set({ status: 'team', license: { ...license, status: 'active', plan: 'team' }, degradation: 'none' });
       return;
     }
     if (builtinType === 'free') {
@@ -126,5 +131,7 @@ export const useLicenseStore = create<LicenseState>((set, get) => ({
     set({ status: 'free', license: null, degradation: 'none', error: null });
   },
 
-  isPro: () => get().status === 'pro',
+  // Team is a superset of Pro — team users have full Pro access plus team features
+  isPro: () => { const s = get().status; return s === 'pro' || s === 'team'; },
+  isTeam: () => { const s = get().status; return s === 'team' || s === 'pro'; },
 }));

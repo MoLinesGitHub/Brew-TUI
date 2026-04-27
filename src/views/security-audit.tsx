@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Box, Text, useInput } from 'ink';
 import { useSecurityStore } from '../stores/security-store.js';
+import { useNavigationStore } from '../stores/navigation-store.js';
 import { useBrewStream } from '../hooks/use-brew-stream.js';
 import { Loading, ErrorMessage } from '../components/common/loading.js';
 import { StatCard } from '../components/common/stat-card.js';
@@ -39,6 +40,7 @@ function isNetworkError(msg: string): boolean {
 
 export function SecurityAuditView() {
   const { summary, loading, error, scan, cachedAt } = useSecurityStore();
+  const navigate = useNavigationStore((s) => s.navigate);
   const [cursor, setCursor] = useState(0);
   const [expandedPkg, setExpandedPkg] = useState<string | null>(null);
   const [confirmUpgrade, setConfirmUpgrade] = useState<string | null>(null);
@@ -53,6 +55,8 @@ export function SecurityAuditView() {
 
     // ARQ-005: Manual refresh forces cache invalidation
     if (input === 'r') { void scan(true); return; }
+    // Navigate to rollback view (capital R to avoid conflict with rescan)
+    if (input === 'R') { navigate('rollback'); return; }
     if (input === 'u' && results[cursor]) {
       setConfirmUpgrade(results[cursor].packageName);
       return;
@@ -141,6 +145,9 @@ export function SecurityAuditView() {
                   </Text>
                   <Text color={COLORS.muted}>{pkg.installedVersion}</Text>
                   <Text color={COLORS.muted}>{tp('plural_vulns', pkg.vulnerabilities.length)}</Text>
+                  {pkg.vulnerabilities.some((v) => v.fixedVersion) && (
+                    <Text color={COLORS.textSecondary}>[R:{t('hint_rollback')}]</Text>
+                  )}
                   <Text color={COLORS.muted}>{isExpanded ? '\u25BC' : '\u25B6'}</Text>
                 </SelectableRow>
 
@@ -168,6 +175,9 @@ export function SecurityAuditView() {
             <Text color={COLORS.text} bold>
               {cursor + 1}/{results.length}
             </Text>
+          </Box>
+          <Box marginTop={1}>
+            <Text color={COLORS.textSecondary}>{t('security_rollback_hint')}</Text>
           </Box>
         </Box>
       )}

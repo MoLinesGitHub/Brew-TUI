@@ -3,6 +3,8 @@ import { execBrew, streamBrew } from './brew-cli.js';
 import { parseInstalledJson, parseOutdatedJson, parseServicesJson, parseFormulaInfoJson } from './parsers/json-parser.js';
 import { parseSearchResults, parseDoctorOutput, parseBrewConfig, parseLeavesOutput } from './parsers/text-parser.js';
 import type { Formula, Cask, OutdatedPackage, BrewService, BrewConfig, PackageListItem } from './types.js';
+import { analyzeUpgradeImpact } from './impact/impact-analyzer.js';
+import type { UpgradeImpact } from './impact/types.js';
 
 // EP-011: Package name validation
 const PKG_PATTERN = /^[\w@./+-]+$/;
@@ -135,6 +137,16 @@ export function formulaeToListItems(formulae: Formula[]): PackageListItem[] {
       installedTime: installed?.time ?? null,
     };
   });
+}
+
+export async function getUpgradeImpact(
+  packageName: string,
+  fromVersion: string,
+  toVersion: string,
+  packageType: 'formula' | 'cask',
+): Promise<UpgradeImpact> {
+  validatePackageName(packageName);
+  return analyzeUpgradeImpact(packageName, fromVersion, toVersion, packageType);
 }
 
 export function casksToListItems(casks: Cask[]): PackageListItem[] {

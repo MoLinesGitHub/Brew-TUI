@@ -1,0 +1,35 @@
+name: Feature request
+description: Suggest an improvement for Brew-TUI.
+title: "[Feature]: "
+labels:
+  - enhancement
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What workflow or pain point should this solve?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposal
+      description: What should Brew-TUI do differently?
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - TUI
+        - BrewBar
+        - Licensing
+        - Profiles
+        - Cleanup
+        - Security audit
+        - Documentation
+        - Other
+    validations:
+      required: true

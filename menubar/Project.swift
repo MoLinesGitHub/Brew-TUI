@@ -49,6 +49,17 @@ let project = Project(
                     "ENABLE_HARDENED_RUNTIME": "YES",
                     "CODE_SIGN_INJECT_BASE_ENTITLEMENTS": "NO",
                     "OTHER_CODE_SIGN_FLAGS": "--timestamp",
+                ],
+                configurations: [
+                    // Debug: relax signing so Xcode Preview JIT injection works.
+                    // Hardened Runtime + Developer ID blocks the preview executor on Debug builds.
+                    .debug(name: "Debug", settings: [
+                        "CODE_SIGN_STYLE": "Automatic",
+                        "CODE_SIGN_IDENTITY": "Apple Development",
+                        "ENABLE_HARDENED_RUNTIME": "NO",
+                        "CODE_SIGN_INJECT_BASE_ENTITLEMENTS": "YES",
+                        "OTHER_CODE_SIGN_FLAGS": "",
+                    ]),
                 ]
             )
         ),

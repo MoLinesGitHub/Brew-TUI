@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.5.1] - 2026-04-28
+
+### Fixed
+- **License gating bug:** `isTeam()` returned true for Pro users, granting free access to Team Compliance. Now strict (`status === 'team'` only).
+- **Plan persistence:** activate / initialize now propagate `license.plan` ('pro' or 'team') instead of hardcoding 'pro'. Combined with the new `detectPlan()` helper that infers tier from the license-key prefix (`BTUI-T-` → Team, `BTUI-` → Pro).
+- **BrewBar menu bar icon:** the status item reserved extra horizontal space because the icon's native size was used and the badge string had a leading whitespace. Icon now forced to 18×18 pt and the badge collapses to truly empty when there is nothing to show.
+
+### Added
+- `POLAR_PRODUCT_IDS` and `POLAR_CHECKOUT_URLS` constants for the four live Polar products.
+- 4 regression tests for plan detection.
+
 ## [0.5.0] - 2026-04-28
 
 ### Added — Power Release (Phase 1-6)

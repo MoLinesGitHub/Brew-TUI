@@ -174,14 +174,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     // MARK: - Status item
 
+    // Apple HIG: menu bar icons render at 22x22 max; ours uses 18x18 for visual balance.
+    // Without this explicit size the NSImage would expose its native pixel dimensions and
+    // the variable-length status item would reserve extra horizontal space around the icon.
+    private static let menuBarIconSize = NSSize(width: 18, height: 18)
+
     private func setupStatusItem() {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
 
         if let button = statusItem.button {
             let icon = NSImage(named: "MenuBarIcon")
             icon?.isTemplate = true
+            icon?.size = Self.menuBarIconSize
             button.image = icon
             button.image?.accessibilityDescription = String(localized: "BrewBar")
+            button.imagePosition = .imageLeft
+            button.title = ""
             button.action = #selector(togglePopover)
             button.target = self
         }
@@ -209,13 +217,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if outdated > 0 { parts.append("\(outdated)↑") }
         if cve > 0      { parts.append("\(cve)⚠") }
         if sync         { parts.append("⟳") }
-        let badge = parts.isEmpty ? "" : " " + parts.joined(separator: " ")
+        // No leading space: AppKit already pads between image and title via imagePosition.
+        // An empty string here is required so variable-length collapses fully when there's
+        // no badge to show; a leading " " would keep one glyph of width reserved.
+        let badge = parts.joined(separator: " ")
 
-        guard badge != button.title else { return }
-        button.title = badge
+        if badge != button.title {
+            button.title = badge
+        }
 
         let icon = NSImage(named: "MenuBarIcon")
         icon?.isTemplate = true
+        icon?.size = Self.menuBarIconSize
         let desc = parts.isEmpty
             ? String(localized: "BrewBar")
             : String(format: String(localized: "BrewBar — %@"), parts.joined(separator: ", "))

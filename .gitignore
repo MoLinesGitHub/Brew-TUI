@@ -25,3 +25,11 @@ BrewBar.app.zip.sha256
 BrewBar.dSYM.zip
 BrewBar.app.dSYM/
 PLAN.md
+
+# Playwright MCP scratch artefacts
+.playwright-mcp/
+*.png
+!assets/**/*.png
+!menubar/**/*.png
+!screenshots/**/*.png
+!homebrew/**/*.png

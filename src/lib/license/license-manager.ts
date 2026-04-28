@@ -266,6 +266,17 @@ function validateLicenseKey(key: string): void {
   }
 }
 
+// Polar license-key benefits use distinct prefixes per tier:
+//   Pro Monthly/Yearly  → "BTUI-..."
+//   Team Monthly/Yearly → "BTUI-T-..."
+// We detect the tier from the prefix instead of looking up the productId,
+// because Polar's customer-portal license endpoints don't echo product info
+// in the activation response.
+function detectPlan(key: string): 'pro' | 'team' {
+  const upper = key.toUpperCase();
+  return upper.startsWith('BTUI-T-') || upper.startsWith('BTUI-T_') ? 'team' : 'pro';
+}
+
 export async function activate(key: string): Promise<LicenseData> {
   validateLicenseKey(key);
   checkRateLimit();
@@ -284,7 +295,7 @@ export async function activate(key: string): Promise<LicenseData> {
       status: 'active',
       customerEmail: res.meta.customer_email,
       customerName: res.meta.customer_name,
-      plan: 'pro',
+      plan: detectPlan(key),
       activatedAt: new Date().toISOString(),
       expiresAt: res.license_key.expires_at,
       lastValidatedAt: new Date().toISOString(),

@@ -1,4 +1,4 @@
-# Launch Posts — Brew-TUI v0.1.0
+# Launch Posts — Brew-TUI v0.5.0 (Power Release)
 
 Ready-to-paste content for each platform.
 
@@ -6,37 +6,91 @@ Ready-to-paste content for each platform.
 
 ## Hacker News — Show HN
 
-**Title:** Show HN: Brew-TUI – A visual terminal UI for Homebrew
+**Title:** Show HN: Brew-TUI v0.5.0 – Visual Homebrew with rollback, sync and CVE alerts
 
 **URL:** https://github.com/MoLinesGitHub/Brew-TUI
 
-**Text (if no URL):**
+**Text (no URL submission — use this if you want a text post instead):**
+
 ```
-Show HN: Brew-TUI – A visual TUI for Homebrew package management
+Show HN: Brew-TUI v0.5.0 – Visual Homebrew with rollback, sync and CVE alerts
 
-I built a terminal UI for Homebrew using React + Ink. Instead of
-memorizing brew commands, you get an interactive interface to browse
-installed packages, search, upgrade, manage services, and run brew
-doctor — all with keyboard navigation.
+I shipped v0.5.0 of Brew-TUI, a terminal UI for Homebrew built with React +
+Ink. The free tier replaces typing `brew` commands with a navigable
+interface (dashboard, search, install, upgrade, services, doctor).
+v0.5.0 adds six features I kept missing in my own workflow:
 
-Features:
-- Dashboard with package stats
-- Browse/filter installed formulae and casks
-- Search and install packages
-- See outdated packages with version diffs, upgrade individually or all
-- Start/stop/restart Homebrew services
-- Run brew doctor and see warnings
-- English + Spanish
+* Smart Rollback — every install/upgrade/uninstall/pin captures a snapshot
+  automatically. The rollback view generates plans using bottle / versioned
+  / pin strategies. From the security-audit view you press R on a
+  vulnerable package and jump straight to the rollback plan that downgrades
+  it.
 
-Install: npm install -g brew-tui
-Homebrew: brew tap MoLinesGitHub/tap && brew install brew-tui
+* Cross-machine Sync — iCloud Drive backend, payload encrypted client-side
+  with AES-256-GCM (no MoLines server). Each Mac gets a stable identity and
+  conflicts are surfaced for interactive resolution rather than auto-merged.
+  A small caveat: I caught two correctness bugs (local machine not
+  persisted on first conflict; loop overwriting earlier resolutions) in
+  Codex's pre-merge review and shipped them as a hotfix before tagging.
+  Worth mentioning because conflict-resolution code is exactly where
+  silent dropping is most painful.
 
-Built with TypeScript, React 18, Ink 5, Zustand. ESM-only.
+* CVE Real-time — BrewBar (the optional macOS menu bar companion, Swift 6)
+  polls OSV.dev hourly. Critical/high CVEs trigger native notifications and
+  a badge count next to the icon.
 
-https://github.com/MoLinesGitHub/Brew-TUI
+* Declarative Brewfile — YAML desired state, drift score 0–100, interactive
+  reconciliation. Closer to a lightweight Nix-flake than to brew bundle.
+
+* Pre-upgrade Impact Analysis — risk panel (low/medium/high) with
+  dependency tree and reverse-deps that will be affected, surfaced before
+  you confirm an upgrade.
+
+* Team Compliance — admin defines a PolicyFile JSON (required / forbidden
+  packages, required taps, severity per rule). Each Mac on the team gets a
+  0–100 score, severity-graded violations and an automatic remediation plan.
+  Useful for onboarding and security reviews when "every dev should have
+  exactly these brews installed" actually matters.
+
+Stack: TypeScript strict + ESM-only, React 18 + Ink 5 (terminal renderer),
+Zustand, vitest. BrewBar is Swift 6 / SwiftUI / macOS 14+. 207 tests. Both
+apps speak directly to `brew` — no daemon, no extra services.
+
+Pricing: free tier is MIT and stays that way. Pro (rollback, sync, CVE,
+Brewfile, impact, profiles, cleanup, history, security-audit) is €9.95/mo
+or €82/year. Team (everything in Pro + Compliance) is €8/seat/mo, min 3
+seats.
+
+  npm install -g brew-tui
+  # or
+  brew tap MoLinesGitHub/tap && brew install brew-tui
+
+Honest known limitations:
+- macOS only for BrewBar; the TUI itself runs anywhere Homebrew runs but
+  is built around macOS workflows.
+- Sync requires iCloud Drive enabled (no provider abstraction yet).
+- The OSV polling cadence is fixed at 1h to be polite to the API.
+
+Repo: https://github.com/MoLinesGitHub/Brew-TUI
+Landing: https://molinesdesigns.com/brewtui/
+Changelog: https://github.com/MoLinesGitHub/Brew-TUI/blob/main/CHANGELOG.md
+
+Happy to take feedback on the conflict-resolution model, the YAML drift
+scoring, or the Pro/Team split.
 ```
 
 **Submit at:** https://news.ycombinator.com/submit
+
+**Tactical notes for posting day:**
+- Best windows for HN front page: Tue–Thu, 08:00–10:00 PT.
+- Comment first within 5 min with one paragraph on motivation (avoids the
+  "show HN with zero context" downvote pattern).
+- Lead the discussion on the conflict-resolution sync bugs — turning a
+  caught bug into a transparency story plays well on HN and is true.
+- Do not reply defensively to "is this just `brew bundle`?" — answer with
+  the drift score + reconciliation flow.
+
+---
 
 ---
 

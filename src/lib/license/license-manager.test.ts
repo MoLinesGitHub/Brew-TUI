@@ -438,3 +438,59 @@ describe('license key format validation', () => {
     await expect(activate(longKey)).rejects.toThrow('Invalid license key format');
   });
 });
+
+// ── Plan detection from license-key prefix ──
+// Polar's license-key benefits use distinct prefixes per tier, and we rely on
+// the prefix to set license.plan correctly because the customer-portal API
+// doesn't echo the productId on activation.
+
+describe('plan detection by key prefix', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.resetModules();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  function mockSuccessfulActivation(key: string) {
+    return import('./polar-api.js').then(({ activateLicense }) => {
+      (activateLicense as ReturnType<typeof vi.fn>).mockResolvedValue({
+        activated: true,
+        error: null,
+        instance: { id: 'inst-1' },
+        license_key: { id: 0, status: 'granted', key, activation_limit: 5, activations_count: 1, expires_at: null },
+        meta: { customer_email: 'test@example.com', customer_name: 'Test' },
+      });
+    });
+  }
+
+  it('flags BTUI- (no -T-) keys as Pro', async () => {
+    await mockSuccessfulActivation('BTUI-aaaa-bbbb-cccc');
+    const { activate } = await import('./license-manager.js');
+    const license = await activate('BTUI-aaaa-bbbb-cccc');
+    expect(license.plan).toBe('pro');
+  });
+
+  it('flags BTUI-T- keys as Team', async () => {
+    await mockSuccessfulActivation('BTUI-T-aaaa-bbbb-cccc');
+    const { activate } = await import('./license-manager.js');
+    const license = await activate('BTUI-T-aaaa-bbbb-cccc');
+    expect(license.plan).toBe('team');
+  });
+
+  it('case-insensitive prefix match (lowercase BTUI-T-)', async () => {
+    await mockSuccessfulActivation('btui-t-aaaa-bbbb-cccc');
+    const { activate } = await import('./license-manager.js');
+    const license = await activate('btui-t-aaaa-bbbb-cccc');
+    expect(license.plan).toBe('team');
+  });
+
+  it('defaults unknown prefixes to Pro (legacy keys without prefix)', async () => {
+    await mockSuccessfulActivation('legacy-key-without-prefix');
+    const { activate } = await import('./license-manager.js');
+    const license = await activate('legacy-key-without-prefix');
+    expect(license.plan).toBe('pro');
+  });
+});

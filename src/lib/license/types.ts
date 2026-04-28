@@ -48,4 +48,14 @@ export interface PolarValidateResponse {
   instance: { id: string };
 }
 
-export type ProFeatureId = 'profiles' | 'smart-cleanup' | 'history' | 'security-audit';
+export type ProFeatureId =
+  | 'profiles'
+  | 'smart-cleanup'
+  | 'history'
+  | 'security-audit'
+  | 'rollback'
+  | 'brewfile'
+  | 'sync'
+  | 'impact-analysis';
+
+export type TeamFeatureId = 'compliance';

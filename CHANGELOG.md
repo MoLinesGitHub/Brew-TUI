@@ -3,15 +3,13 @@
 ## [0.5.2] - 2026-04-28
 
 ### Fixed
-- **Upgrade prompt:** Compliance (Team) and other Pro views displayed the
-  outdated €9/month + €29 lifetime pricing and pointed at the wrong Polar
-  checkout URL. The prompt now branches by tier:
+- **Upgrade prompt:** Tier-aware pricing copy. The prompt now branches by
+  tier and points to the correct Polar checkout URL:
   - **Pro views** show €9.95/month or €82/year and link to the Pro Yearly
     Polar product.
   - **Team views** (Compliance) show €8/seat/month or €81.60/seat/year (min
     3 seats) and link to the Team Monthly Polar product with `quantity=3`.
-- Account view monthly/yearly labels updated to the same canonical pricing
-  (replacing the legacy `account_lifetimePrice` key with `account_yearlyPrice`).
+- Account view monthly/yearly labels updated to canonical pricing.
 
 ### Internal
 - New i18n keys `upgrade_teamFeature`, `upgrade_teamPricing`,

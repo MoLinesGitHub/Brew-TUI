@@ -1,4 +1,4 @@
-# Launch Posts — Brew-TUI v0.5.0 (Power Release)
+# Launch Posts — Brew-TUI v0.5.1 (Power Release)
 
 Ready-to-paste content for each platform.
 
@@ -6,19 +6,19 @@ Ready-to-paste content for each platform.
 
 ## Hacker News — Show HN
 
-**Title:** Show HN: Brew-TUI v0.5.0 – Visual Homebrew with rollback, sync and CVE alerts
+**Title:** Show HN: Brew-TUI v0.5.1 – Visual Homebrew with rollback, sync and CVE alerts
 
 **URL:** https://github.com/MoLinesGitHub/Brew-TUI
 
 **Text (no URL submission — use this if you want a text post instead):**
 
 ```
-Show HN: Brew-TUI v0.5.0 – Visual Homebrew with rollback, sync and CVE alerts
+Show HN: Brew-TUI v0.5.1 – Visual Homebrew with rollback, sync and CVE alerts
 
-I shipped v0.5.0 of Brew-TUI, a terminal UI for Homebrew built with React +
+I shipped v0.5.1 of Brew-TUI, a terminal UI for Homebrew built with React +
 Ink. The free tier replaces typing `brew` commands with a navigable
 interface (dashboard, search, install, upgrade, services, doctor).
-v0.5.0 adds six features I kept missing in my own workflow:
+The 0.5 line adds six features I kept missing in my own workflow:
 
 * Smart Rollback — every install/upgrade/uninstall/pin captures a snapshot
   automatically. The rollback view generates plans using bottle / versioned
@@ -29,11 +29,14 @@ v0.5.0 adds six features I kept missing in my own workflow:
 * Cross-machine Sync — iCloud Drive backend, payload encrypted client-side
   with AES-256-GCM (no MoLines server). Each Mac gets a stable identity and
   conflicts are surfaced for interactive resolution rather than auto-merged.
-  A small caveat: I caught two correctness bugs (local machine not
-  persisted on first conflict; loop overwriting earlier resolutions) in
-  Codex's pre-merge review and shipped them as a hotfix before tagging.
-  Worth mentioning because conflict-resolution code is exactly where
-  silent dropping is most painful.
+  A couple of caveats worth mentioning, since conflict-resolution code
+  is exactly where silent dropping hurts most: I caught two correctness
+  bugs (local machine not persisted on first conflict; loop overwriting
+  earlier resolutions) in Codex's pre-merge review and shipped them as
+  PR #7 before tagging v0.5.0. Then v0.5.1 followed two days later with
+  a tighter Pro/Team gating fix — `isTeam()` was returning true for
+  Pro users, briefly granting free Compliance access — plus a small
+  BrewBar status-item layout fix.
 
 * CVE Real-time — BrewBar (the optional macOS menu bar companion, Swift 6)
   polls OSV.dev hourly. Critical/high CVEs trigger native notifications and
@@ -53,7 +56,7 @@ v0.5.0 adds six features I kept missing in my own workflow:
   exactly these brews installed" actually matters.
 
 Stack: TypeScript strict + ESM-only, React 18 + Ink 5 (terminal renderer),
-Zustand, vitest. BrewBar is Swift 6 / SwiftUI / macOS 14+. 207 tests. Both
+Zustand, vitest. BrewBar is Swift 6 / SwiftUI / macOS 14+. 211 tests. Both
 apps speak directly to `brew` — no daemon, no extra services.
 
 Pricing: free tier is MIT and stays that way. Pro (rollback, sync, CVE,

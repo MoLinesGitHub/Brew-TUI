@@ -8,7 +8,7 @@ import SwiftUI
 
 // MARK: - Private mock types (preview only)
 
-private struct MockPackage: Identifiable {
+fileprivate struct MockPackage: Identifiable {
     let id   = UUID()
     let name: String
     let installed: String
@@ -16,7 +16,7 @@ private struct MockPackage: Identifiable {
     var pinned: Bool = false
 }
 
-private struct MockCVE: Identifiable {
+fileprivate struct MockCVE: Identifiable {
     let id  = UUID()
     let pkg: String
     let sev: Sev
@@ -30,7 +30,7 @@ private struct MockCVE: Identifiable {
     }
 }
 
-private enum Mock {
+fileprivate enum Mock {
     static let pkgs: [MockPackage] = [
         .init(name: "git",         installed: "2.43.0",  available: "2.45.1"),
         .init(name: "node",        installed: "20.11.0", available: "22.2.0"),

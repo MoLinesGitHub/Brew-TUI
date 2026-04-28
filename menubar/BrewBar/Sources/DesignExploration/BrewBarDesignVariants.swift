@@ -67,8 +67,8 @@ private extension Color {
 // ─────────────────────────────────────────────────────────────────
 
 struct VariantVoidTerminal: View {
-    var packages: [MockPackage] = Mock.pkgs
-    var cves: [MockCVE]         = Mock.cves
+    fileprivate var packages: [MockPackage] = Mock.pkgs
+    fileprivate var cves: [MockCVE]         = Mock.cves
     var isLoading: Bool         = false
 
     private var count: Int { packages.count }
@@ -207,8 +207,8 @@ struct VariantVoidTerminal: View {
 // ─────────────────────────────────────────────────────────────────
 
 struct VariantOrganicBloom: View {
-    var packages: [MockPackage] = Mock.pkgs
-    var cves: [MockCVE]         = Mock.cves
+    fileprivate var packages: [MockPackage] = Mock.pkgs
+    fileprivate var cves: [MockCVE]         = Mock.cves
     var isLoading: Bool         = false
 
     private var count: Int { packages.count }
@@ -409,8 +409,8 @@ struct VariantOrganicBloom: View {
 // ─────────────────────────────────────────────────────────────────
 
 struct VariantChiaroscuroStage: View {
-    var packages: [MockPackage] = Mock.pkgs
-    var cves: [MockCVE]         = Mock.cves
+    fileprivate var packages: [MockPackage] = Mock.pkgs
+    fileprivate var cves: [MockCVE]         = Mock.cves
     var isLoading: Bool         = false
 
     private var count: Int    { packages.count }
@@ -570,8 +570,8 @@ struct VariantChiaroscuroStage: View {
 // ─────────────────────────────────────────────────────────────────
 
 struct VariantGridConstructivist: View {
-    var packages: [MockPackage] = Mock.pkgs
-    var cves: [MockCVE]         = Mock.cves
+    fileprivate var packages: [MockPackage] = Mock.pkgs
+    fileprivate var cves: [MockCVE]         = Mock.cves
     var isLoading: Bool         = false
 
     private var count: Int        { packages.count }
@@ -751,8 +751,8 @@ struct VariantGridConstructivist: View {
 // ─────────────────────────────────────────────────────────────────
 
 struct VariantAuraGlass: View {
-    var packages: [MockPackage] = Mock.pkgs
-    var cves: [MockCVE]         = Mock.cves
+    fileprivate var packages: [MockPackage] = Mock.pkgs
+    fileprivate var cves: [MockCVE]         = Mock.cves
     var isLoading: Bool         = false
 
     private var count: Int { packages.count }

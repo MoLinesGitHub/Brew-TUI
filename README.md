@@ -6,7 +6,7 @@
 [![Node](https://img.shields.io/badge/node-%3E%3D22-brightgreen)](https://nodejs.org/)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 [![Homebrew](https://img.shields.io/badge/homebrew-tap-orange)](https://github.com/MoLinesGitHub/homebrew-tap)
-[![Tests](https://img.shields.io/badge/tests-99%20passing-brightgreen)]()
+[![Tests](https://img.shields.io/badge/tests-211%20passing-brightgreen)]()
 
 A keyboard-driven terminal UI for Homebrew, with a native macOS menu bar companion that watches updates in the background. No daemons, no middleware — both tools call `brew` directly.
 
@@ -62,17 +62,26 @@ npx brew-tui
 | **Doctor** | Run `brew doctor` and see warnings at a glance |
 | **Package Info** | Detailed view with dependencies, caveats, and quick actions |
 
-### Pro Features — $19 once, lifetime
+### Pro Features — €9,95/mo or €82/year (-31%)
 
 | Feature | What it solves |
 |---------|----------------|
+| **Smart Rollback** | Auto-snapshots after every install/upgrade/uninstall/pin; revert with bottle/versioned/pin strategies. Press `R` from a flagged CVE to jump straight to the rollback plan |
+| **Cross-machine Sync** | iCloud Drive backend, AES-256-GCM encrypted client-side. Brewfile and snapshots stay aligned across all your Macs with interactive conflict resolution |
+| **CVE Real-time** | BrewBar polls [OSV.dev](https://osv.dev) hourly. Critical/high CVEs trigger native macOS notifications and a badge count |
+| **Declarative Brewfile** | YAML desired state, drift score 0-100, interactive reconciliation. Closer to a lightweight Nix-flake than `brew bundle` |
+| **Impact Analysis** | Pre-upgrade risk panel (low/medium/high) with dependency tree and reverse-deps that will be affected, surfaced before each upgrade |
 | **Profiles** | Replicate your exact setup on a new Mac in one command |
 | **Smart Cleanup** | Reclaim gigabytes by listing orphans ranked by size |
 | **Action History** | "What did I install last week?" — answered |
-| **Security Audit** | Get notified when [OSV.dev](https://osv.dev) flags something you have installed |
+| **Security Audit** | Cross-checks every installed package against [OSV.dev](https://osv.dev) live |
 | **BrewBar** | A menu bar app that watches your packages while you sleep — auto-installs and auto-launches the moment you go Pro |
 
-> Pro is one-time payment, lifetime updates, machine-bound. No subscription. [Activate →](https://molinesdesigns.com/brewtui/pro)
+### Team Tier — €8/seat/mo or €81,60/seat/year (-15%, min 3 seats)
+
+Everything in Pro plus **Team Compliance** — admin defines a central PolicyFile (JSON) listing required and forbidden packages and required taps. Each Mac on the team gets a 0-100 compliance score, severity-graded violations and an automatic remediation plan. Useful for onboarding, security audits and keeping every developer's environment aligned.
+
+[See pricing →](https://molinesdesigns.com/brewtui/)
 
 ---
 
@@ -175,7 +184,7 @@ Views (React/Ink) --> Stores (Zustand) --> brew-api --> Parsers --> brew CLI (sp
 - ESM-only, TypeScript strict mode, built with [tsup](https://github.com/egoist/tsup)
 - All streaming operations (install, upgrade) use AsyncGenerators yielding lines in real time
 - Package names validated via regex before passing to `spawn` (no shell injection)
-- 99 tests across 10 suites (Vitest)
+- 211 tests across 20 suites (Vitest)
 
 ---
 
@@ -194,16 +203,23 @@ Views (React/Ink) --> Stores (Zustand) --> brew-api --> Parsers --> brew CLI (sp
 
 ```
 src/
-  views/           # 12 React/Ink views
-  stores/          # Zustand stores (brew, navigation, license, modal)
+  views/           # 16 React/Ink views (incl. rollback, brewfile, sync, compliance)
+  stores/          # Zustand stores (brew, navigation, license, modal, rollback, sync, compliance, ...)
   components/      # Shared UI (StatusBadge, ResultBanner, SelectableRow, ...)
   hooks/           # useKeyboard, useBrewStream, useDebounce
   lib/
     license/       # Polar API, AES encryption, anti-tamper, canary
-    security/      # OSV vulnerability scanning
+    security/      # OSV vulnerability scanning (Pro)
     profiles/      # Profile export/import (Pro)
     cleanup/       # Orphan detection (Pro)
     history/       # Action logging (Pro)
+    rollback/      # Snapshot-based rollback engine (Pro)
+    state-snapshot/# Periodic Brew state snapshots (Pro)
+    diff-engine/   # Snapshot diff for rollback and sync (Pro)
+    impact/        # Pre-upgrade impact analysis (Pro)
+    brewfile/      # Declarative YAML Brewfile + drift score (Pro)
+    sync/          # iCloud-backed cross-machine sync, AES-256-GCM (Pro)
+    compliance/    # Team policy enforcement (Team)
     parsers/       # JSON and text parsers for brew output
   i18n/            # English + Spanish translations
   utils/           # Colors, spacing, logger, formatting
@@ -220,7 +236,7 @@ cd Brew-TUI
 npm install
 npm run dev          # Run with tsx (requires interactive TTY)
 npm run typecheck    # tsc --noEmit
-npm run test         # vitest (99 tests)
+npm run test         # vitest (211 tests)
 npm run lint         # eslint
 npm run build        # Production bundle via tsup
 ```

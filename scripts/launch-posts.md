@@ -1,4 +1,4 @@
-# Launch Posts — Brew-TUI v0.5.1 (Power Release)
+# Launch Posts — Brew-TUI v0.5.2 (Power Release)
 
 Ready-to-paste content for each platform.
 
@@ -118,12 +118,21 @@ Free features:
 • Doctor — run brew doctor at a glance
 • Package Info — dependencies, caveats, quick actions
 
-Pro features (9€/mo or 29€ lifetime):
-• Profiles — export/import Homebrew setup across machines
+Pro features (9.95€/mo or 82€/year — save 31%):
+• Smart Rollback — auto-snapshots, revert any install/upgrade/uninstall
+• Cross-machine Sync — iCloud Drive, AES-256-GCM encrypted
+• CVE Real-time — BrewBar polls OSV.dev hourly, native notifications
+• Declarative Brewfile — YAML desired state, drift score 0-100
+• Impact Analysis — pre-upgrade risk panel with dependency tree
+• Profiles — export/import your full Homebrew setup
 • Smart Cleanup — find orphans, reclaim disk space
 • Action History — track every install/uninstall/upgrade
 • Security Audit — scan packages against CVE database
-• BrewBar — macOS menu bar companion app
+• BrewBar — macOS menu bar companion app (Swift 6)
+
+Team tier (8€/seat/mo or 81.60€/seat/year — from 3 seats):
+• Everything in Pro plus Team Compliance — central PolicyFile, 0-100
+  score, severity-graded violations, automatic remediation plans.
 
 Built with React + Ink for a smooth, responsive terminal experience.
 English and Spanish supported.

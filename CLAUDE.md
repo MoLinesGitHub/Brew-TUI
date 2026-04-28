@@ -159,6 +159,9 @@ Both Brew-TUI and BrewBar support English (en) and Spanish (es).
 - Build produces hidden sourcemaps (`.map` files for debugging, not referenced in output bundle)
 - TUI clears the entire terminal (including scrollback) on startup for a clean display
 
+## Commit hygiene
+- Never put specific prices, percentages or old→new price comparisons in commit messages or PR titles — git history is public and immutable. Use generic descriptions like `fix: align upgrade prompt with current pricing`.
+
 ## Publishing
 
 All three channels must be updated on each release:

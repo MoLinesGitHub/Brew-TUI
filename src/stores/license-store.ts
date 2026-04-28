@@ -82,8 +82,8 @@ export const useLicenseStore = create<LicenseState>((set, get) => ({
       return;
     }
 
-    // Set Pro immediately (warning/limited still shown as pro, but pro-guard checks degradation)
-    set({ status: 'pro', license, degradation: level });
+    // Set tier immediately (warning/limited still shown as the licensed tier, but pro-guard checks degradation)
+    set({ status: license.plan, license, degradation: level });
 
     if (manager.needsRevalidation(license)) {
       if (!_revalidatingPromise) {
@@ -97,7 +97,8 @@ export const useLicenseStore = create<LicenseState>((set, get) => ({
     if (_revalidationInterval) clearInterval(_revalidationInterval);
     _revalidationInterval = setInterval(() => {
       const current = get().license;
-      if (!current || get().status !== 'pro') return;
+      const status = get().status;
+      if (!current || (status !== 'pro' && status !== 'team')) return;
       if (!manager.needsRevalidation(current)) return;
       if (_revalidatingPromise) return;
       _revalidatingPromise = doRevalidation(current, set)
@@ -110,7 +111,7 @@ export const useLicenseStore = create<LicenseState>((set, get) => ({
     set({ error: null });
     try {
       const license = await manager.activate(key);
-      set({ status: 'pro', license, degradation: 'none' });
+      set({ status: license.plan, license, degradation: 'none' });
       return true;
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
@@ -131,7 +132,8 @@ export const useLicenseStore = create<LicenseState>((set, get) => ({
     set({ status: 'free', license: null, degradation: 'none', error: null });
   },
 
-  // Team is a superset of Pro — team users have full Pro access plus team features
+  // Team is a superset of Pro — team users have full Pro access plus team features.
+  // Pro users do NOT get Team features (Compliance) without paying for the Team tier.
   isPro: () => { const s = get().status; return s === 'pro' || s === 'team'; },
-  isTeam: () => { const s = get().status; return s === 'team' || s === 'pro'; },
+  isTeam: () => get().status === 'team',
 }));

@@ -12,6 +12,25 @@ const BASE_URL = 'https://api.polar.sh/v1/customer-portal/license-keys';
 // Found at: polar.sh/dashboard -> Settings -> General
 export const POLAR_ORGANIZATION_ID = 'b8f245c0-d116-4457-92fb-1bda47139f82';
 
+// Polar product IDs (public, not secret) — useful for analytics, support, and
+// future server-side validation that wants to confirm what the customer bought.
+export const POLAR_PRODUCT_IDS = {
+  proMonthly:  'b925b882-464c-40c1-9ffd-b088ab31d9a3',
+  proYearly:   '8f97bb81-b950-4bc3-97c5-8133dd817d0b',
+  teamMonthly: '7cf3fcb2-560d-4fbb-9936-15efac511b23',
+  teamYearly:  'd096914d-902d-47b0-8d62-5c7e6fc4e087',
+} as const;
+
+// Public checkout URLs surfaced from the landing page and the CLI upgrade prompt.
+// Team links carry ?quantity=3 because Polar has no native min-seats enforcement
+// and the Team tier is sold from 3 seats up.
+export const POLAR_CHECKOUT_URLS = {
+  proMonthly:  'https://buy.polar.sh/polar_cl_QW1ZJ9887bU74drGr7JfujQfm3RKYnn1fuvc53DqD6D',
+  proYearly:   'https://buy.polar.sh/polar_cl_yQsiUeDelyyEQznbWffD1j77JAyP24ra7iEVQ22PA4h',
+  teamMonthly: 'https://buy.polar.sh/polar_cl_CO6xqSzKgFiQJwXnhZYGqisOP04Wspi0KKZSn38NjFZ?quantity=3',
+  teamYearly:  'https://buy.polar.sh/polar_cl_BZowqmtaKwWEkRJNtBcashWg7oZOH6OhnnsJ204opNA?quantity=3',
+} as const;
+
 // SEG-004: Machine-specific identifier stored persistently
 const DATA_DIR = join(homedir(), '.brew-tui');
 const MACHINE_ID_PATH = join(DATA_DIR, 'machine-id');

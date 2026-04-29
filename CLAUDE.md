@@ -73,7 +73,7 @@ All rendering via Ink's `<Box>` (flexbox) and `<Text>`. `@inkjs/ui` provides `Te
 - Types for Homebrew JSON responses are in `src/lib/types.ts`, verified against real Homebrew 5.1.6 output
 - Each Pro feature has its own `src/lib/<feature>/types.ts` — avoid putting feature-specific types in main types.ts
 - **Colors**: Use `COLORS` from `src/utils/colors.ts` — never hardcode hex values. Spacing tokens in `src/utils/spacing.ts`
-- **Logging**: Use `logger` from `src/utils/logger.ts` (levels: debug/info/warn/error, controlled by `LOG_LEVEL` env). Never use bare `console.*`
+- **Logging**: Use `logger` from `src/utils/logger.ts` (levels: debug/info/warn/error, controlled by `LOG_LEVEL` env). Never use bare `console.*` — exception: CLI subcommand handlers in `src/index.tsx` (activate/status/etc.) write directly to stdout/stderr, where `console.log`/`console.error` is the intended user-facing channel
 - **lib/ modules must not import from stores** — receive `isPro: boolean` as parameter instead of importing `useLicenseStore`. Callers in views/stores pass the value
 - **API response validation**: Always validate external API responses at runtime (Polar, OSV) — never trust `as Type` casts alone
 - **Reusable UI patterns**: Use `<ResultBanner>` for success/error banners, `<SelectableRow>` for cursor-highlighted rows
@@ -98,6 +98,7 @@ macOS menu bar companion app (Swift 6 / macOS 14+ / Tuist). Fully independent fr
 - `menubar/Project.swift` — Tuist manifest. `LSUIElement: true` (no Dock icon).
 - `Tuist.swift` goes at `menubar/Tuist.swift` (root, not `Tuist/Config.swift` — deprecated).
 - SourceKit errors in menubar/ are false positives until `tuist generate` creates the .xcworkspace.
+- After editing `Project.swift` (e.g. bumping `MARKETING_VERSION`), re-run `tuist generate` before building or releasing — the workspace caches build settings and `xcodebuild` will report the previous version otherwise.
 - BrewBar requires Brew-TUI installed; checked on launch via `which brew-tui` and known paths.
 
 ## Naming

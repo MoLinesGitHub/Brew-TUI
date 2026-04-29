@@ -40,6 +40,9 @@ final class AppState {
             onRefreshComplete?()
         }
 
+        // Refresh formula index so outdated check reflects current versions
+        await checker.updateIndex()
+
         // Run both checks in parallel using async let
         async let outdatedResult = checker.checkOutdated()
         async let servicesResult = checker.checkServices()

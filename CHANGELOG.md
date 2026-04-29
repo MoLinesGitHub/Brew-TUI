@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.5.3] - 2026-04-29
+
+### Fixed
+- **BrewBar:** outdated packages now reflect the current Homebrew formula index.
+  Previously `brew update` was never run before `brew outdated`, so BrewBar
+  could show zero updates while the terminal found packages to upgrade.
+  `AppState.refresh()` now runs `brew update --quiet` first (non-fatal, 120s
+  timeout) before the parallel outdated + services check.
+
+### Internal
+- `BrewChecker.updateIndex()` added — runs `brew update` without
+  `HOMEBREW_NO_AUTO_UPDATE` so the local tap index is always fresh.
+- `BrewBar` version bumped to 0.4.2.
+
 ## [0.5.2] - 2026-04-28
 
 ### Fixed

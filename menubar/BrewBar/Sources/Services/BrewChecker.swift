@@ -19,9 +19,15 @@ struct BrewChecker: Sendable {
         } ?? candidates[0]
     }
 
-    private static let processTimeout: TimeInterval = 60 // seconds
+    private static let processTimeout: TimeInterval = 60
+    private static let updateTimeout: TimeInterval = 120
 
-    private func run(_ arguments: [String]) async throws -> Data {
+    private func run(
+        _ arguments: [String],
+        suppressAutoUpdate: Bool = true,
+        timeout: TimeInterval? = nil
+    ) async throws -> Data {
+        let effectiveTimeout = timeout ?? Self.processTimeout
         brewCheckerLogger.info("Running brew \(arguments.joined(separator: " "), privacy: .public)")
         return try await withCheckedThrowingContinuation { continuation in
             let process = Process()
@@ -55,9 +61,9 @@ struct BrewChecker: Sendable {
             process.arguments = arguments
             process.standardOutput = pipe
             process.standardError = FileHandle.nullDevice
-            process.environment = ProcessInfo.processInfo.environment.merging(
-                ["HOMEBREW_NO_AUTO_UPDATE": "1"]
-            ) { _, new in new }
+            var extraEnv: [String: String] = [:]
+            if suppressAutoUpdate { extraEnv["HOMEBREW_NO_AUTO_UPDATE"] = "1" }
+            process.environment = ProcessInfo.processInfo.environment.merging(extraEnv) { _, new in new }
 
             process.terminationHandler = { proc in
                 let data = pipe.fileHandleForReading.readDataToEndOfFile()
@@ -82,13 +88,25 @@ struct BrewChecker: Sendable {
 
             // Timeout: kill the process if it takes too long
             Task {
-                try? await Task.sleep(for: .seconds(Self.processTimeout))
+                try? await Task.sleep(for: .seconds(effectiveTimeout))
                 if process.isRunning {
-                    brewCheckerLogger.error("brew command timed out after \(Self.processTimeout, privacy: .public)s")
+                    brewCheckerLogger.error("brew command timed out after \(effectiveTimeout, privacy: .public)s")
                     process.terminate()
                     guard_.resume(with: .failure(BrewError.timeout))
                 }
             }
+        }
+    }
+
+    /// Refreshes the local formula/cask index. Errors are non-fatal — the
+    /// outdated check proceeds with whatever index is already cached.
+    func updateIndex() async {
+        brewCheckerLogger.info("Running brew update")
+        do {
+            _ = try await run(["update", "--quiet"], suppressAutoUpdate: false, timeout: Self.updateTimeout)
+            brewCheckerLogger.info("brew update completed")
+        } catch {
+            brewCheckerLogger.warning("brew update failed (non-fatal): \(error.localizedDescription, privacy: .public)")
         }
     }
 

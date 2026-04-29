@@ -30,6 +30,7 @@
     "lint": "eslint src/",
     "typecheck": "tsc --noEmit",
     "validate": "npm run typecheck && npm run test && npm run build && npm run lint",
+    "build:standalone": "./scripts/build-standalone.sh",
     "prepublishOnly": "npm run validate"
   },
   "keywords": [
@@ -60,6 +61,7 @@
     "eslint": "^10.2.1",
     "ink-testing-library": "^4.0.0",
     "prettier": "^3.4.0",
+    "react-devtools-core": "7.0.1",
     "tsup": "^8.4.0",
     "tsx": "^4.19.0",
     "typescript": "~6.0.3",

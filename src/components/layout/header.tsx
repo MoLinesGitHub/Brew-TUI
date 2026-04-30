@@ -70,7 +70,7 @@ function MenuItem({ view, currentView }: { view: ViewId; currentView: ViewId }) 
   return (
     <Box>
       {isActive ? <Text color={COLORS.success} bold>{'\u25B6'} </Text> : <Text>  </Text>}
-      <Text bold color={key ? '#FFFFFF' : COLORS.textSecondary}>{indicator}</Text>
+      <Text bold color={key ? COLORS.white : COLORS.textSecondary}>{indicator}</Text>
       <Text bold={isActive} underline={isActive} color={isActive ? COLORS.success : isAccount ? COLORS.gold : COLORS.textSecondary}> {viewLabel}</Text>
       {isPro && <Text color={COLORS.brand} bold> {t('pro_badge')}</Text>}
     </Box>
@@ -92,7 +92,7 @@ export function Header() {
       {LOGO_BREW.map((brew, i) => (
         <Box key={i}>
           <GradientText colors={GRADIENTS.gold}>{brew}</GradientText>
-          <GradientText colors={['#B8860B', '#8B6914', '#6B4F10']}>{LOGO_TUI[i]}</GradientText>
+          <GradientText colors={GRADIENTS.darkGold}>{LOGO_TUI[i]}</GradientText>
         </Box>
       ))}
     </Box>
@@ -113,10 +113,10 @@ export function Header() {
         </Box>
       </Box>
       <Box borderStyle="single" borderTop borderBottom={false} borderLeft={false} borderRight={false} borderColor={COLORS.lavender} marginTop={0}>
-        <Text bold color="#FFFFFF">S</Text>
+        <Text bold color={COLORS.white}>S</Text>
         <Text color={COLORS.textSecondary}> {t('hint_search')}</Text>
         <Text color={COLORS.lavender}> {'\u2503'} </Text>
-        <Text bold color="#FFFFFF">L</Text>
+        <Text bold color={COLORS.white}>L</Text>
         <Text color={COLORS.textSecondary}> {t('hint_lang')}</Text>
       </Box>
     </Box>

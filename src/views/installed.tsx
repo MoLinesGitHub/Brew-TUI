@@ -19,7 +19,11 @@ import { useModalStore } from '../stores/modal-store.js';
 import type { PackageListItem } from '../lib/types.js';
 
 export function InstalledView() {
-  const { formulae, casks, loading, errors, fetchInstalled } = useBrewStore();
+  const formulae = useBrewStore((s) => s.formulae);
+  const casks = useBrewStore((s) => s.casks);
+  const loading = useBrewStore((s) => s.loading);
+  const errors = useBrewStore((s) => s.errors);
+  const fetchInstalled = useBrewStore((s) => s.fetchInstalled);
   const navigate = useNavigationStore((s) => s.navigate);
   const selectPackage = useNavigationStore((s) => s.selectPackage);
 

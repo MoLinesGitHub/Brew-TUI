@@ -30,7 +30,7 @@ const es: Translations = {
   hint_filter: 'filtrar',
   hint_info: 'info',
   hint_toggle: 'cambiar',
-  hint_typeToSearch: 'escriba para buscar',
+  hint_typeToSearch: 'escribe para buscar',
   hint_install: 'instalar',
   hint_uninstall: 'desinstalar',
   hint_upgrade: 'actualizar',
@@ -69,6 +69,8 @@ const es: Translations = {
   hint_conflict: 'resolver',
   hint_rollback: 'revertir',
   hint_check_compliance: 'verificar conformidad',
+  hint_switchTab: 'cambiar pestaña',
+  hint_useLocal: 'usar local',
 
   // ── Loading / progress ──
   loading_default: 'Cargando...',
@@ -323,7 +325,7 @@ const es: Translations = {
   progress_noOutput: 'Sin salida a\u00FAn',
 
   // ── Search Input ──
-  searchInput_placeholder: 'Escriba para filtrar...',
+  searchInput_placeholder: 'Escribe para filtrar...',
 
   // ── Profile Manager ──
   profileMgr_tapping: 'A\u00F1adiendo tap {{name}}...',
@@ -517,6 +519,7 @@ const es: Translations = {
   compliance_remediate_success: 'Remediación completa',
   compliance_remediate_error: 'Remediación fallida: {{error}}',
   compliance_export_done: 'Informe exportado a {{path}}',
+  compliance_press_r_hint: 'Pulsa r para ejecutar la comprobación de cumplimiento.',
   compliance_machine: 'Máquina: {{name}}',
   compliance_policy_name: 'Política: {{name}}',
   compliance_policy_by: 'Mantenida por: {{maintainer}}',

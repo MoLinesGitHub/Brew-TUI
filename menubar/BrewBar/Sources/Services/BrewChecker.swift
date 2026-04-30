@@ -4,106 +4,18 @@ import os
 private let brewCheckerLogger = Logger(subsystem: "com.molinesdesigns.brewbar", category: "BrewChecker")
 
 struct BrewChecker: Sendable {
-    /// Resolved at init time so every call uses the same executable.
-    private let brewPath: String
-
-    init() {
-        // Apple Silicon default; fall back to Intel/Homebrew-on-Linux paths.
-        let candidates = [
-            "/opt/homebrew/bin/brew",
-            "/usr/local/bin/brew",
-            "/home/linuxbrew/.linuxbrew/bin/brew",
-        ]
-        brewPath = candidates.first {
-            FileManager.default.isExecutableFile(atPath: $0)
-        } ?? candidates[0]
-    }
-
-    private static let processTimeout: TimeInterval = 60
     private static let updateTimeout: TimeInterval = 120
-
-    private func run(
-        _ arguments: [String],
-        suppressAutoUpdate: Bool = true,
-        timeout: TimeInterval? = nil
-    ) async throws -> Data {
-        let effectiveTimeout = timeout ?? Self.processTimeout
-        brewCheckerLogger.info("Running brew \(arguments.joined(separator: " "), privacy: .public)")
-        return try await withCheckedThrowingContinuation { continuation in
-            let process = Process()
-            let pipe = Pipe()
-
-            // Thread-safe exactly-once continuation wrapper
-            final class OnceGuard: @unchecked Sendable {
-                private var resumed = false
-                private let lock = NSLock()
-                private let continuation: CheckedContinuation<Data, Error>
-
-                init(_ continuation: CheckedContinuation<Data, Error>) {
-                    self.continuation = continuation
-                }
-
-                func resume(with result: Result<Data, Error>) {
-                    lock.lock()
-                    defer { lock.unlock() }
-                    guard !resumed else { return }
-                    resumed = true
-                    switch result {
-                    case .success(let data): continuation.resume(returning: data)
-                    case .failure(let error): continuation.resume(throwing: error)
-                    }
-                }
-            }
-
-            let guard_ = OnceGuard(continuation)
-
-            process.executableURL = URL(fileURLWithPath: brewPath)
-            process.arguments = arguments
-            process.standardOutput = pipe
-            process.standardError = FileHandle.nullDevice
-            var extraEnv: [String: String] = [:]
-            if suppressAutoUpdate { extraEnv["HOMEBREW_NO_AUTO_UPDATE"] = "1" }
-            process.environment = ProcessInfo.processInfo.environment.merging(extraEnv) { _, new in new }
-
-            process.terminationHandler = { proc in
-                let data = pipe.fileHandleForReading.readDataToEndOfFile()
-                if proc.terminationStatus == 0 {
-                    guard_.resume(with: .success(data))
-                } else {
-                    guard_.resume(with: .failure(BrewError.processExited(proc.terminationStatus)))
-                }
-            }
-
-            do {
-                try process.run()
-            } catch let error as CocoaError where error.code == .fileNoSuchFile || error.code == .fileReadNoSuchFile {
-                brewCheckerLogger.error("Homebrew not found at \(self.brewPath, privacy: .public)")
-                guard_.resume(with: .failure(BrewError.brewNotInstalled))
-                return
-            } catch {
-                brewCheckerLogger.error("Failed to launch brew: \(error.localizedDescription, privacy: .public)")
-                guard_.resume(with: .failure(error))
-                return
-            }
-
-            // Timeout: kill the process if it takes too long
-            Task {
-                try? await Task.sleep(for: .seconds(effectiveTimeout))
-                if process.isRunning {
-                    brewCheckerLogger.error("brew command timed out after \(effectiveTimeout, privacy: .public)s")
-                    process.terminate()
-                    guard_.resume(with: .failure(BrewError.timeout))
-                }
-            }
-        }
-    }
 
     /// Refreshes the local formula/cask index. Errors are non-fatal — the
     /// outdated check proceeds with whatever index is already cached.
     func updateIndex() async {
         brewCheckerLogger.info("Running brew update")
         do {
-            _ = try await run(["update", "--quiet"], suppressAutoUpdate: false, timeout: Self.updateTimeout)
+            _ = try await BrewProcess.run(
+                ["update", "--quiet"],
+                suppressAutoUpdate: false,
+                timeout: Self.updateTimeout
+            )
             brewCheckerLogger.info("brew update completed")
         } catch {
             brewCheckerLogger.warning("brew update failed (non-fatal): \(error.localizedDescription, privacy: .public)")
@@ -112,7 +24,7 @@ struct BrewChecker: Sendable {
 
     func checkOutdated() async throws -> OutdatedResponse {
         brewCheckerLogger.info("Checking for outdated packages")
-        let data = try await run(["outdated", "--json=v2"])
+        let data = try await BrewProcess.run(["outdated", "--json=v2", "--greedy"])
         let result = try JSONDecoder().decode(OutdatedResponse.self, from: data)
         brewCheckerLogger.info("Found \(result.formulae.count + result.casks.count) outdated packages")
         return result
@@ -120,7 +32,7 @@ struct BrewChecker: Sendable {
 
     func checkServices() async throws -> [BrewService] {
         brewCheckerLogger.info("Checking services")
-        let data = try await run(["services", "list", "--json"])
+        let data = try await BrewProcess.run(["services", "list", "--json"])
         let result = try JSONDecoder().decode([BrewService].self, from: data)
         brewCheckerLogger.info("Found \(result.count) services")
         return result
@@ -128,30 +40,16 @@ struct BrewChecker: Sendable {
 
     func upgradePackage(_ name: String) async throws {
         brewCheckerLogger.info("Upgrading package: \(name, privacy: .public)")
-        _ = try await run(["upgrade", name])
+        _ = try await BrewProcess.run(["upgrade", name])
         brewCheckerLogger.info("Successfully upgraded \(name, privacy: .public)")
     }
 
     func upgradeAll() async throws {
         brewCheckerLogger.info("Upgrading all packages")
-        _ = try await run(["upgrade"])
+        _ = try await BrewProcess.run(["upgrade"])
         brewCheckerLogger.info("Successfully upgraded all packages")
     }
 }
 
-enum BrewError: LocalizedError {
-    case processExited(Int32)
-    case brewNotInstalled
-    case timeout
-
-    var errorDescription: String? {
-        switch self {
-        case .processExited(let code):
-            String(format: String(localized: "brew exited with code %lld"), Int64(code))
-        case .brewNotInstalled:
-            String(localized: "Homebrew is not installed. Install it from https://brew.sh")
-        case .timeout:
-            String(localized: "brew command timed out")
-        }
-    }
-}
+/// Backwards-compatible alias for code that referenced BrewError directly.
+typealias BrewError = BrewProcessError

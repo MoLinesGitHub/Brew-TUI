@@ -59,7 +59,7 @@ export async function writeSyncEnvelope(envelope: SyncEnvelope): Promise<void> {
   const tmpPath = ICLOUD_SYNC_PATH + '.tmp';
   await writeFile(tmpPath, JSON.stringify(envelope, null, 2), {
     encoding: 'utf-8',
-    mode: 0o644,
+    mode: 0o600,
   });
   await rename(tmpPath, ICLOUD_SYNC_PATH);
 }

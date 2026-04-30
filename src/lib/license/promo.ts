@@ -102,11 +102,22 @@ export async function validatePromoCode(code: string): Promise<{
       return { valid: false, error: body.error ?? 'Invalid or expired promo code' };
     }
 
-    const data = await res.json() as { type: string; durationDays: number };
+    const data = await res.json() as unknown;
+    if (
+      !data || typeof data !== 'object' ||
+      typeof (data as { type?: unknown }).type !== 'string' ||
+      typeof (data as { durationDays?: unknown }).durationDays !== 'number'
+    ) {
+      return { valid: false, error: 'Unexpected promo validation response' };
+    }
+    const { type, durationDays } = data as { type: string; durationDays: number };
+    if (type !== 'trial' && type !== 'discount' && type !== 'full') {
+      return { valid: false, error: 'Unsupported promo type' };
+    }
     return {
       valid: true,
-      type: data.type as 'trial' | 'discount' | 'full',
-      durationDays: data.durationDays,
+      type,
+      durationDays,
     };
   } catch (err) {
     logger.error('Promo validation failed', { error: String(err) });
@@ -125,6 +136,8 @@ export async function redeemPromoCode(code: string): Promise<{
   const machineId = await getMachineId();
 
   // Call backend to validate + redeem in one step
+  let serverExpiresAt: string;
+  let serverType: 'trial' | 'discount' | 'full';
   try {
     const res = await fetchWithTimeout(`${PROMO_API_URL}/redeem`, {
       method: 'POST',
@@ -137,9 +150,22 @@ export async function redeemPromoCode(code: string): Promise<{
       return { success: false, error: body.error ?? 'Invalid or expired promo code' };
     }
 
-    const data = await res.json() as { data: { expiresAt: string; type: string; durationDays: number } };
-    var serverExpiresAt = data.data.expiresAt;
-    var serverType = data.data.type as 'trial' | 'discount' | 'full';
+    const data = await res.json() as unknown;
+    const inner = (data as { data?: unknown })?.data;
+    if (
+      !inner || typeof inner !== 'object' ||
+      typeof (inner as { expiresAt?: unknown }).expiresAt !== 'string' ||
+      typeof (inner as { type?: unknown }).type !== 'string'
+    ) {
+      return { success: false, error: 'Unexpected promo redeem response' };
+    }
+    const expiresAt = (inner as { expiresAt: string }).expiresAt;
+    const type = (inner as { type: string }).type;
+    if (type !== 'trial' && type !== 'discount' && type !== 'full') {
+      return { success: false, error: 'Unsupported promo type' };
+    }
+    serverExpiresAt = expiresAt;
+    serverType = type;
   } catch (err) {
     logger.error('Promo redeem failed', { error: String(err) });
     return { success: false, error: 'Could not reach promo server. Check your connection.' };

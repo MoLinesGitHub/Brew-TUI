@@ -6,7 +6,6 @@ private let securityLogger = Logger(subsystem: "com.molinesdesigns.brewbar", cat
 actor SecurityMonitor {
     static let shared = SecurityMonitor()
 
-    private let brewPath: String
     private let cachePath: String
 
     private static let cacheMaxAge: TimeInterval = 3600 // 1 hora
@@ -14,15 +13,6 @@ actor SecurityMonitor {
     private static let osvBatchURL = "https://api.osv.dev/v1/querybatch"
 
     private init() {
-        let candidates = [
-            "/opt/homebrew/bin/brew",
-            "/usr/local/bin/brew",
-            "/home/linuxbrew/.linuxbrew/bin/brew",
-        ]
-        brewPath = candidates.first {
-            FileManager.default.isExecutableFile(atPath: $0)
-        } ?? candidates[0]
-
         cachePath = NSHomeDirectory() + "/.brew-tui/cve-cache.json"
     }
 
@@ -99,67 +89,7 @@ actor SecurityMonitor {
     }
 
     private func runBrew(_ arguments: [String]) async throws -> String {
-        try await withCheckedThrowingContinuation { continuation in
-            let process = Process()
-            let pipe = Pipe()
-
-            // Thread-safe exactly-once continuation wrapper
-            final class OnceGuard: @unchecked Sendable {
-                private var resumed = false
-                private let lock = NSLock()
-                private let continuation: CheckedContinuation<String, Error>
-
-                init(_ continuation: CheckedContinuation<String, Error>) {
-                    self.continuation = continuation
-                }
-
-                func resume(with result: Result<String, Error>) {
-                    lock.lock()
-                    defer { lock.unlock() }
-                    guard !resumed else { return }
-                    resumed = true
-                    switch result {
-                    case .success(let output): continuation.resume(returning: output)
-                    case .failure(let error): continuation.resume(throwing: error)
-                    }
-                }
-            }
-
-            let guard_ = OnceGuard(continuation)
-
-            process.executableURL = URL(fileURLWithPath: brewPath)
-            process.arguments = arguments
-            process.standardOutput = pipe
-            process.standardError = FileHandle.nullDevice
-            process.environment = ProcessInfo.processInfo.environment.merging(
-                ["HOMEBREW_NO_AUTO_UPDATE": "1"]
-            ) { _, new in new }
-
-            process.terminationHandler = { proc in
-                let data = pipe.fileHandleForReading.readDataToEndOfFile()
-                if proc.terminationStatus == 0 {
-                    let output = String(data: data, encoding: .utf8) ?? ""
-                    guard_.resume(with: .success(output))
-                } else {
-                    guard_.resume(with: .failure(SecurityMonitorError.brewExited(proc.terminationStatus)))
-                }
-            }
-
-            do {
-                try process.run()
-            } catch {
-                guard_.resume(with: .failure(error))
-                return
-            }
-
-            Task {
-                try? await Task.sleep(for: .seconds(60))
-                if process.isRunning {
-                    process.terminate()
-                    guard_.resume(with: .failure(SecurityMonitorError.timeout))
-                }
-            }
-        }
+        try await BrewProcess.runString(arguments)
     }
 
     // MARK: - Private: OSV
@@ -352,8 +282,6 @@ actor SecurityMonitor {
 // MARK: - Errors
 
 private enum SecurityMonitorError: LocalizedError {
-    case brewExited(Int32)
-    case timeout
     case invalidURL
     case invalidResponse
     case httpError(Int)
@@ -362,8 +290,6 @@ private enum SecurityMonitorError: LocalizedError {
 
     var errorDescription: String? {
         switch self {
-        case .brewExited(let code): "brew exited with code \(code)"
-        case .timeout:              "brew command timed out"
         case .invalidURL:           "Invalid OSV API URL"
         case .invalidResponse:      "Invalid HTTP response"
         case .httpError(let code):  "OSV API returned HTTP \(code)"

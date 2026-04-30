@@ -1,5 +1,5 @@
 import type { Vulnerability, Severity } from './types.js';
-import { fetchWithTimeout } from '../fetch-timeout.js';
+import { fetchWithRetry } from '../fetch-timeout.js';
 import { logger } from '../../utils/logger.js';
 
 const OSV_BATCH_URL = 'https://api.osv.dev/v1/querybatch';
@@ -63,11 +63,15 @@ async function queryBatch(
   packages: Array<{ name: string; version: string }>,
   queries: OsvQuery[],
 ): Promise<Map<string, Vulnerability[]>> {
-  const res = await fetchWithTimeout(OSV_BATCH_URL, {
+  // 400 means a bad query (don't retry); 5xx/network errors are retried with backoff.
+  // 429 (rate limit) is handled separately in queryOneByOne, so don't retry it here.
+  const res = await fetchWithRetry(OSV_BATCH_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ queries }),
-  }, 15_000);
+  }, 15_000, {
+    retryOn: (r) => r.status >= 500 && r.status < 600,
+  });
 
   if (!res.ok) {
     // On 400, try individual queries to isolate bad packages

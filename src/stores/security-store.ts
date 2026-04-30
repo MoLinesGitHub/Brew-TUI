@@ -3,6 +3,7 @@ import type { SecurityAuditSummary } from '../lib/security/types.js';
 import { runSecurityAudit } from '../lib/security/audit-runner.js';
 import { useBrewStore } from './brew-store.js';
 import { useLicenseStore } from './license-store.js';
+import { verifyPro } from '../lib/license/pro-guard.js';
 
 const CACHE_TTL_MS = 30 * 60 * 1000; // 30 minutes
 
@@ -35,7 +36,8 @@ export const useSecurityStore = create<SecurityState>((set, get) => ({
         await brewState.fetchInstalled();
       }
       const { formulae, casks } = useBrewStore.getState();
-      const isPro = useLicenseStore.getState().isPro();
+      const { license, status } = useLicenseStore.getState();
+      const isPro = verifyPro(license, status);
       const result = await runSecurityAudit(isPro, formulae, casks);
       set({ summary: result, loading: false, cachedAt: Date.now() });
     } catch (err) {

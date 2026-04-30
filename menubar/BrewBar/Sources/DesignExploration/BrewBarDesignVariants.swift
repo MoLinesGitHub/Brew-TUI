@@ -4,6 +4,7 @@
 //  Five conceptual directions for the BrewBar popover (340 × 420 pt).
 //  Each variant is fully self-contained; no changes to existing source.
 
+#if DEBUG
 import SwiftUI
 
 // MARK: - Private mock types (preview only)
@@ -987,3 +988,4 @@ struct VariantAuraGlass: View {
 
 #Preview("V5 · Aura Glass")         { VariantAuraGlass() }
 #Preview("V5 · Aura Glass — empty") { VariantAuraGlass(packages: [], cves: []) }
+#endif

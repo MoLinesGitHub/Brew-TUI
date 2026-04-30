@@ -67,6 +67,8 @@ const en = {
   hint_conflict: 'resolve',
   hint_rollback: 'rollback',
   hint_check_compliance: 'check compliance',
+  hint_switchTab: 'switch tab',
+  hint_useLocal: 'use local',
 
   // ── Loading / progress ──
   loading_default: 'Loading...',
@@ -515,6 +517,7 @@ const en = {
   compliance_remediate_success: 'Remediation complete',
   compliance_remediate_error: 'Remediation failed: {{error}}',
   compliance_export_done: 'Report exported to {{path}}',
+  compliance_press_r_hint: 'Press r to run compliance check.',
   compliance_machine: 'Machine: {{name}}',
   compliance_policy_name: 'Policy: {{name}}',
   compliance_policy_by: 'Maintained by: {{maintainer}}',

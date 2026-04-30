@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import type { Profile } from '../lib/profiles/types.js';
 import * as manager from '../lib/profiles/profile-manager.js';
 import { useLicenseStore } from './license-store.js';
+import { verifyPro } from '../lib/license/pro-guard.js';
 
 interface ProfileState {
   profileNames: string[];
@@ -16,8 +17,12 @@ interface ProfileState {
   updateProfile: (oldName: string, newName: string, newDescription: string) => Promise<void>;
 }
 
+// Defense-in-depth: verifyPro runs canaries, integrity, anti-tamper and
+// degradation checks beyond the simple store flag. lib/ still receives a
+// plain boolean per project convention (CLAUDE.md: lib/ must not import stores).
 function getIsPro(): boolean {
-  return useLicenseStore.getState().isPro();
+  const { license, status } = useLicenseStore.getState();
+  return verifyPro(license, status);
 }
 
 export const useProfileStore = create<ProfileState>((set) => ({

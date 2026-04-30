@@ -284,7 +284,7 @@ export function ComplianceView() {
                 </Box>
               ) : (
                 <Box marginTop={1}>
-                  <Text color={COLORS.muted} dimColor>Press r to run compliance check.</Text>
+                  <Text color={COLORS.muted} dimColor>{t('compliance_press_r_hint')}</Text>
                 </Box>
               )}
             </Box>

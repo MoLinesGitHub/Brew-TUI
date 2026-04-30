@@ -10,19 +10,19 @@ type HintDef = [key: string, action: TranslationKey] | [text: TranslationKey];
 
 const VIEW_HINT_DEFS: Record<ViewId, HintDef[]> = {
   dashboard: [['1-9,0', 'hint_navigate'], ['S', 'hint_search'], ['tab', 'hint_next'], ['q', 'hint_quit']],
-  installed: [['/', 'hint_filter'], ['enter', 'hint_info'], ['u', 'hint_uninstall'], ['S', 'hint_search'], ['q', 'hint_quit']],
+  installed: [['/', 'hint_filter'], ['enter', 'hint_info'], ['u', 'hint_uninstall'], ['f', 'hint_switchTab'], ['S', 'hint_search'], ['q', 'hint_quit']],
   search: [['hint_typeToSearch'], ['enter', 'hint_details'], ['i', 'hint_install'], ['esc', 'hint_back'], ['q', 'hint_quit']],
-  outdated: [['enter', 'hint_upgrade'], ['A', 'hint_upgradeAll'], ['p', 'hint_pin'], ['S', 'hint_search'], ['q', 'hint_quit']],
+  outdated: [['enter', 'hint_upgrade'], ['A', 'hint_upgradeAll'], ['p', 'hint_pin'], ['r', 'hint_refresh'], ['S', 'hint_search'], ['q', 'hint_quit']],
   'package-info': [['i', 'hint_install'], ['u', 'hint_uninstall'], ['U', 'hint_upgrade'], ['esc', 'hint_back'], ['q', 'hint_quit']],
   services: [['s', 'hint_start'], ['x', 'hint_stop'], ['R', 'hint_restart'], ['r', 'hint_refresh'], ['S', 'hint_search'], ['q', 'hint_quit']],
   doctor: [['r', 'hint_refresh'], ['S', 'hint_search'], ['tab', 'hint_next'], ['q', 'hint_quit']],
   profiles: [['n', 'hint_new'], ['enter', 'hint_details'], ['e', 'hint_edit'], ['i', 'hint_import'], ['d', 'hint_delete'], ['q', 'hint_quit']],
-  'smart-cleanup': [['enter', 'hint_toggle'], ['c', 'hint_clean'], ['r', 'hint_refresh'], ['S', 'hint_search'], ['q', 'hint_quit']],
+  'smart-cleanup': [['enter', 'hint_toggle'], ['a', 'hint_all'], ['c', 'hint_clean'], ['F', 'hint_force'], ['r', 'hint_refresh'], ['S', 'hint_search'], ['q', 'hint_quit']],
   history: [['/', 'hint_search'], ['enter', 'hint_replay'], ['f', 'hint_filter'], ['c', 'hint_clear'], ['q', 'hint_quit']],
   'security-audit': [['r', 'hint_scan'], ['enter', 'hint_details'], ['u', 'hint_upgrade'], ['S', 'hint_search'], ['q', 'hint_quit']],
   rollback: [['j/k', 'hint_navigate'], ['enter', 'hint_select'], ['r', 'hint_rollback_confirm'], ['esc', 'hint_back'], ['q', 'hint_quit']],
   brewfile: [['j/k', 'hint_navigate'], ['a', 'hint_add'], ['d', 'hint_delete'], ['r', 'hint_reconcile'], ['e', 'hint_export'], ['q', 'hint_quit']],
-  sync: [['s', 'hint_sync'], ['r', 'hint_refresh'], ['c', 'hint_conflict'], ['esc', 'hint_back'], ['q', 'hint_quit']],
+  sync: [['s', 'hint_sync'], ['r', 'hint_refresh'], ['c', 'hint_conflict'], ['l', 'hint_useLocal'], ['esc', 'hint_back'], ['q', 'hint_quit']],
   compliance: [['r', 'hint_scan'], ['i', 'hint_import'], ['e', 'hint_export'], ['c', 'hint_clean'], ['q', 'hint_quit']],
   account: [['p', 'hint_promo'], ['d', 'hint_deactivate'], ['S', 'hint_search'], ['q', 'hint_quit']],
 };

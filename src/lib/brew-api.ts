@@ -31,7 +31,7 @@ export async function getInstalled(): Promise<{ formulae: Formula[]; casks: Cask
 }
 
 export async function getOutdated(): Promise<{ formulae: OutdatedPackage[]; casks: OutdatedPackage[] }> {
-  const raw = await execBrew(['outdated', '--json=v2']);
+  const raw = await execBrew(['outdated', '--json=v2', '--greedy']);
   return parseOutdatedJson(raw);
 }
 

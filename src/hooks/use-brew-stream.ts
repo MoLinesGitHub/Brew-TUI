@@ -2,6 +2,7 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import { streamBrew } from '../lib/brew-cli.js';
 import { detectAction } from '../lib/history/history-logger.js';
 import { useLicenseStore } from '../stores/license-store.js';
+import { logger } from '../utils/logger.js';
 
 const MAX_LINES = 100;
 
@@ -84,7 +85,9 @@ export function useBrewStream(): BrewStreamState {
     const MUTATING_COMMANDS = new Set(['install', 'uninstall', 'upgrade', 'pin', 'unpin', 'tap', 'untap']);
     if (!cancelRef.current && MUTATING_COMMANDS.has(args[0] ?? '')) {
       void import('../lib/state-snapshot/snapshot.js').then(({ captureSnapshot, saveSnapshot }) => {
-        captureSnapshot().then((s) => saveSnapshot(s)).catch(() => {});
+        captureSnapshot()
+          .then((s) => saveSnapshot(s))
+          .catch((err) => logger.warn('snapshot: capture/save failed', { error: String(err) }));
       });
     }
   }, []);

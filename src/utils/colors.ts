@@ -23,4 +23,5 @@ export const COLORS = {
   blue: '#3B82F6',
   lavender: '#C4B5FD',
   border: '#4B5563',
+  white: '#FFFFFF',
 } as const;

@@ -3,7 +3,7 @@ import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import { homedir } from 'node:os';
 import type { PolarActivateResponse, PolarValidateResponse } from './types.js';
-import { fetchWithTimeout } from '../fetch-timeout.js';
+import { fetchWithRetry } from '../fetch-timeout.js';
 
 const BASE_URL = 'https://api.polar.sh/v1/customer-portal/license-keys';
 
@@ -82,7 +82,7 @@ async function post<T>(endpoint: string, body: Record<string, unknown>, expectEm
   const url = `${BASE_URL}/${endpoint}`;
   validateApiUrl(url);
 
-  const res = await fetchWithTimeout(url, {
+  const res = await fetchWithRetry(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),

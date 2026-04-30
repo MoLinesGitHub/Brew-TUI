@@ -55,6 +55,26 @@ describe('json-parser: parseOutdatedJson', () => {
     expect(result.formulae).toEqual([]);
     expect(result.casks).toEqual([]);
   });
+
+  // --greedy returns auto-updating casks (firefox, docker-desktop, etc.) that
+  // brew omits by default. These have multiple installed_versions entries and
+  // the same response shape as non-greedy output, so the parser should accept
+  // both transparently.
+  it('parses --greedy output: only casks with auto_updates: true', () => {
+    const raw = JSON.stringify({
+      formulae: [],
+      casks: [
+        { name: 'firefox', installed_versions: ['149.0'], current_version: '150.0.1' },
+        { name: 'docker-desktop', installed_versions: ['4.63.0,220185'], current_version: '4.71.0,225177' },
+        { name: 'warp', installed_versions: ['0.2026.03.04.08.20.stable_02'], current_version: '0.2026.04.27.15.32.stable_03' },
+      ],
+    });
+    const result = parseOutdatedJson(raw);
+    expect(result.formulae).toEqual([]);
+    expect(result.casks).toHaveLength(3);
+    expect(result.casks[0]!.name).toBe('firefox');
+    expect(result.casks[1]!.installed_versions).toEqual(['4.63.0,220185']);
+  });
 });
 
 describe('json-parser: parseFormulaInfoJson', () => {

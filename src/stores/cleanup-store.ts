@@ -3,6 +3,7 @@ import type { CleanupSummary } from '../lib/cleanup/types.js';
 import { analyzeCleanup } from '../lib/cleanup/cleanup-analyzer.js';
 import { useBrewStore } from './brew-store.js';
 import { useLicenseStore } from './license-store.js';
+import { verifyPro } from '../lib/license/pro-guard.js';
 
 interface CleanupState {
   summary: CleanupSummary | null;
@@ -31,7 +32,8 @@ export const useCleanupStore = create<CleanupState>((set, get) => ({
         await brewState.fetchLeaves();
       }
       const { formulae, leaves } = useBrewStore.getState();
-      const isPro = useLicenseStore.getState().isPro();
+      const { license, status } = useLicenseStore.getState();
+      const isPro = verifyPro(license, status);
       const summary = await analyzeCleanup(isPro, formulae, leaves);
       set({ summary, selected: new Set(), loading: false });
     } catch (err) {

@@ -64,4 +64,5 @@ export const GRADIENTS = {
   fire: ['#EF4444', '#F59E0B', '#FFD700'],
   version: ['#EF4444', '#9CA3AF', '#2DD4BF'],
   pro: ['#FF6B2B', '#FFD700', '#FF6B2B'],
+  darkGold: ['#B8860B', '#8B6914', '#6B4F10'],
 };

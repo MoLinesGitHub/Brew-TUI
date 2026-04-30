@@ -4,6 +4,7 @@ import { describe, expect, it, vi, beforeEach } from 'vitest';
 const mockFetch = vi.fn();
 vi.mock('../fetch-timeout.js', () => ({
   fetchWithTimeout: (...args: unknown[]) => mockFetch(...args),
+  fetchWithRetry: (...args: unknown[]) => mockFetch(...args),
 }));
 
 // Mock filesystem for machine-id

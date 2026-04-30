@@ -30,7 +30,8 @@
     "lint": "eslint src/",
     "typecheck": "tsc --noEmit",
     "validate": "npm run typecheck && npm run test && npm run build && npm run lint",
-    "prepublishOnly": "npm run validate"
+    "prepublishOnly": "npm run validate",
+    "prepare": "husky"
   },
   "keywords": [
     "homebrew",
@@ -58,6 +59,7 @@
     "@typescript-eslint/eslint-plugin": "^8.58.0",
     "@typescript-eslint/parser": "^8.58.0",
     "eslint": "^10.2.1",
+    "husky": "9.1.7",
     "ink-testing-library": "^4.0.0",
     "prettier": "^3.4.0",
     "tsup": "^8.4.0",

@@ -142,6 +142,10 @@ Both Brew-TUI and BrewBar support English (en) and Spanish (es).
 1. **TUI:** Add key to `en.ts`, add translation to `es.ts`, use `t('key')` in code. `npm run typecheck` catches missing keys.
 2. **BrewBar:** For SwiftUI views, just write `Text("New string")`. For non-SwiftUI, use `String(localized: "New string")`. Add Spanish translation in `.xcstrings`.
 
+## Pre-push gate (Husky)
+
+`npm install` runs `husky` (via the `prepare` script) and installs a `pre-push` hook at `.husky/pre-push` that runs `npm run validate` (typecheck + test + build + lint). A failing validate aborts the push. Bypass with `git push --no-verify` only when you have a deliberate reason — never as a shortcut around a real failure.
+
 ## Testing
 
 - **Framework:** Vitest (`vitest.config.ts` with `passWithNoTests: false` — CI gate blocks empty suites)

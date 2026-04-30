@@ -1,0 +1,2 @@
+echo "▸ Running validate before push (typecheck · test · build · lint)..."
+npm run validate

@@ -494,3 +494,25 @@ describe('plan detection by key prefix', () => {
     expect(license.plan).toBe('pro');
   });
 });
+
+describe('getBuiltinAccountType (SEG-009 — backdoor removed)', () => {
+  // The previous implementation hardcoded a map of customer emails that
+  // bypassed Polar validation entirely. Combined with the AES key being
+  // derivable from the bundle, that allowed any user to forge a perennial
+  // Pro/Team license. This test locks the no-backdoor contract: every
+  // candidate email returns null. A regression that re-introduces a
+  // hardcoded entry will trip this test.
+  const candidates = [
+    'admin@molinesdesigns.com',
+    'team@molinesdesigns.com',
+    'artax1983@icloud.com',
+    'support@molinesdesigns.com',
+    '',
+    'random@example.com',
+  ];
+
+  it.each(candidates)('returns null for %s', async (email) => {
+    const { getBuiltinAccountType } = await import('./license-manager.js');
+    expect(getBuiltinAccountType(email)).toBeNull();
+  });
+});

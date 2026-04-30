@@ -55,11 +55,9 @@ struct LicenseChecker {
     /// Degradation thresholds (days since last validation)
     private static let expiredThreshold: Double = 30
 
-    /// Perennial PRO accounts that bypass status/expiration checks.
-    /// Must mirror BUILTIN_ACCOUNTS in src/lib/license/license-manager.ts.
-    private static let builtinProEmails: Set<String> = [
-        "admin@molinesdesigns.com",
-    ]
+    // SEG-009: built-in perennial PRO accounts removed in parity with the TS
+    // bundle (src/lib/license/license-manager.ts). Operator licenses now go
+    // through the same Polar validation as any customer.
 
     // MARK: - Public API
 
@@ -106,11 +104,6 @@ struct LicenseChecker {
     // MARK: - Evaluation
 
     private static func evaluate(_ license: LicenseData) -> LicenseStatus {
-        // Built-in perennial PRO accounts bypass status/expiration checks
-        if builtinProEmails.contains(license.customerEmail.lowercased()) {
-            return .pro(license)
-        }
-
         // Status must be active
         guard license.status == "active" else {
             return .expired

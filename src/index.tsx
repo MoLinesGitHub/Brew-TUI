@@ -8,11 +8,13 @@ import { ensureDataDirs, DATA_DIR } from './lib/data-dir.js';
 import { t } from './i18n/index.js';
 import { useLicenseStore } from './stores/license-store.js';
 import { formatDate } from './utils/format.js';
+import { installCrashReporter, reportError } from './lib/crash-reporter.js';
 
 const [,, command, arg] = process.argv;
 
 async function runCli() {
   await ensureDataDirs();
+  await installCrashReporter();
 
   if (command === 'activate') {
     const key = arg?.trim() ?? '';

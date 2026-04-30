@@ -17,7 +17,11 @@ final class AppState {
     var syncActivity = false
     var syncMachineCount = 0
 
-    private let checker = BrewChecker()
+    private let checker: any BrewChecking
+
+    init(checker: any BrewChecking = BrewChecker()) {
+        self.checker = checker
+    }
 
     var outdatedCount: Int { outdatedPackages.count }
     var errorServices: [BrewService] { services.filter(\.hasError) }

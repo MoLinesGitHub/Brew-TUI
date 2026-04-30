@@ -5,15 +5,15 @@ import { activateLicense as apiActivate, validateLicense as apiValidate, deactiv
 import { t } from '../../i18n/index.js';
 import type { LicenseData, LicenseFile } from './types.js';
 
-// ── Built-in perennial accounts (bypass Polar validation) ──
-const BUILTIN_ACCOUNTS: Record<string, 'pro' | 'team' | 'free'> = {
-  'admin@molinesdesigns.com': 'pro',
-  'team@molinesdesigns.com': 'team', // Team tier test/admin account
-  'artax1983@icloud.com': 'free',
-};
-
-export function getBuiltinAccountType(email: string): 'pro' | 'team' | 'free' | null {
-  return BUILTIN_ACCOUNTS[email] ?? null;
+// SEG-009: Built-in perennial accounts removed from the bundle.
+// Previously a hardcoded map of customer emails bypassed Polar validation entirely;
+// any user could craft a license.json with one of those emails (the AES key is
+// derivable from the bundle) and gain perennial Pro/Team. Operator accounts now
+// authenticate via real Polar license keys like everyone else. This function is
+// retained as a stable export but always returns null; remove it once no caller
+// references it.
+export function getBuiltinAccountType(_email: string): 'pro' | 'team' | 'free' | null {
+  return null;
 }
 
 const REVALIDATION_INTERVAL_MS = 24 * 60 * 60 * 1000; // 24h

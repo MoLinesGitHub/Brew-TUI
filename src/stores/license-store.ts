@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import type { LicenseData, LicenseStatus } from '../lib/license/types.js';
 import * as manager from '../lib/license/license-manager.js';
-import { getDegradationLevel, getBuiltinAccountType } from '../lib/license/license-manager.js';
+import { getDegradationLevel } from '../lib/license/license-manager.js';
 import type { DegradationLevel } from '../lib/license/license-manager.js';
 import { ensureDataDirs } from '../lib/data-dir.js';
 import { initStoreIntegrity } from '../lib/license/anti-tamper.js';
@@ -55,20 +55,8 @@ export const useLicenseStore = create<LicenseState>((set, get) => ({
       return;
     }
 
-    // Built-in perennial accounts: skip all Polar validation
-    const builtinType = getBuiltinAccountType(license.customerEmail);
-    if (builtinType === 'pro') {
-      set({ status: 'pro', license: { ...license, status: 'active' }, degradation: 'none' });
-      return;
-    }
-    if (builtinType === 'team') {
-      set({ status: 'team', license: { ...license, status: 'active', plan: 'team' }, degradation: 'none' });
-      return;
-    }
-    if (builtinType === 'free') {
-      set({ status: 'free', license: null, degradation: 'none' });
-      return;
-    }
+    // SEG-009: built-in perennial accounts removed; every license — including
+    // operator/admin — is validated against Polar like a normal customer.
 
     if (manager.isExpired(license)) {
       set({ status: 'expired', license, degradation: 'expired' });

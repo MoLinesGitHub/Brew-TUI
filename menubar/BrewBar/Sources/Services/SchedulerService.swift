@@ -41,12 +41,14 @@ final class SchedulerService {
     private var timer: Timer?
     private weak var state: AppState?
     private let isPreview: Bool
+    private let security: any SecurityChecking
 
     private static let hasLaunchedKey = "hasLaunchedBefore"
 
-    init(isPreview: Bool? = nil) {
+    init(isPreview: Bool? = nil, security: any SecurityChecking = SecurityMonitor.shared) {
         let resolvedIsPreview = isPreview ?? (ProcessInfo.processInfo.environment["XCODE_RUNNING_FOR_PREVIEWS"] == "1")
         self.isPreview = resolvedIsPreview
+        self.security = security
 
         if resolvedIsPreview {
             interval = .oneHour
@@ -147,9 +149,9 @@ final class SchedulerService {
         }
 
         // CVE check (runs on same schedule as outdated check)
-        let newCVEs = await SecurityMonitor.shared.checkForNewVulnerabilities()
+        let newCVEs = await security.checkForNewVulnerabilities()
         if !newCVEs.isEmpty {
-            let allAlerts = await SecurityMonitor.shared.loadCachedAlerts()
+            let allAlerts = await security.loadCachedAlerts()
             state.updateCVEAlerts(allAlerts)
             if notificationsEnabled {
                 await syncNotificationPermission()

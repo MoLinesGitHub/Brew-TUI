@@ -20,6 +20,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         guard !Self.isRunningForPreviews else { return }
 
+        // Install crash reporter as early as possible so NSException handlers
+        // catch failures during the rest of launch. No-op if not configured.
+        CrashReporter.install()
+
         launchTask = Task {
             guard await checkBrewTuiInstalled() else {
                 showBrewTuiRequired()

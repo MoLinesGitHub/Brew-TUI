@@ -246,5 +246,5 @@ async function ensureBrewBarRunning() {
 
 runCli().catch((err) => {
   console.error(err instanceof Error ? err.message : String(err));
-  process.exit(1);
+  void reportError(err, { kind: 'runCli-rejection' }).finally(() => process.exit(1));
 });

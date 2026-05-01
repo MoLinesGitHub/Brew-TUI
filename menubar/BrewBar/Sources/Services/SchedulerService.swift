@@ -181,7 +181,14 @@ final class SchedulerService {
             ? String(format: String(localized: "Changes from %lld machine(s) available. Open Brew-TUI to sync."), Int64(machineCount - 1))
             : String(localized: "Sync activity detected. Open Brew-TUI to review.")
         content.sound = .default
-        let request = UNNotificationRequest(identifier: "brewbar-sync", content: content, trigger: nil)
+        // Identifier único por disparo: macOS reemplaza notifs con el mismo
+        // identifier en silencio (sin banner ni sonido), lo que ocultaría
+        // notifs consecutivas — mismo patrón que sendNotification.
+        let request = UNNotificationRequest(
+            identifier: "brewbar-sync-\(Date().timeIntervalSince1970)",
+            content: content,
+            trigger: nil
+        )
         UNUserNotificationCenter.current().add(request)
     }
 
@@ -249,8 +256,11 @@ final class SchedulerService {
             }
         }
 
+        // Identifier único por disparo (igual que sendNotification): si lo
+        // mantenemos fijo macOS reemplaza la notif en silencio y solo se ve
+        // la primera alerta CVE de la sesión.
         let request = UNNotificationRequest(
-            identifier: "brewbar-cve",
+            identifier: "brewbar-cve-\(Date().timeIntervalSince1970)",
             content: content,
             trigger: nil
         )

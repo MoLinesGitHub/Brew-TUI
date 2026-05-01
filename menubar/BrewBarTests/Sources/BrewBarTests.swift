@@ -149,8 +149,9 @@ struct LicenseCheckerTests {
         // A recently validated active license should be .pro
         let result = LicenseChecker.checkLicenseWith(license)
         switch result {
-        case .pro(let data):
+        case .pro(let data, let level):
             #expect(data.key == "test-key")
+            #expect(level == .none)
         default:
             Issue.record("Expected .pro but got \(result)")
         }
@@ -221,6 +222,23 @@ struct LicenseCheckerTests {
         default:
             Issue.record("Expected .expired but got \(result)")
         }
+    }
+
+    @Test("intermediate windows mirror TS thresholds (warning/limited)")
+    func degradationLevels() {
+        func licenseValidated(_ daysAgo: Double) -> LicenseData {
+            let date = Date().addingTimeInterval(-daysAgo * 24 * 60 * 60)
+            return LicenseData(
+                key: "k", instanceId: "i", status: "active",
+                customerEmail: "e", customerName: "n", plan: "pro",
+                activatedAt: "2026-01-01T00:00:00.000Z", expiresAt: nil,
+                lastValidatedAt: ISO8601DateFormatter().string(from: date)
+            )
+        }
+        #expect(LicenseChecker.degradationLevel(for: licenseValidated(3)) == .none)
+        #expect(LicenseChecker.degradationLevel(for: licenseValidated(10)) == .warning)
+        #expect(LicenseChecker.degradationLevel(for: licenseValidated(20)) == .limited)
+        #expect(LicenseChecker.degradationLevel(for: licenseValidated(31)) == .expired)
     }
 }
 

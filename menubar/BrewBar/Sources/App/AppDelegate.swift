@@ -36,7 +36,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             case .pro:
                 appState.canUpgrade = true
                 autoRegisterLoginItemIfNeeded()
-                break // Continue normal startup
+                // future: surface DegradationLevel.warning/.limited in UI
             case .expired:
                 appState.canUpgrade = false
                 showLicenseExpired()

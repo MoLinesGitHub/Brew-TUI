@@ -28,8 +28,21 @@ struct LicenseFile: Codable {
 
 // MARK: - License status
 
+/// Mirrors the four-level degradation in `src/lib/license/license-manager.ts`
+/// (`getDegradationLevel`). The cutoff thresholds must stay in sync — both
+/// codebases read the same license.json and compute against the same field.
+/// Currently the BrewBar UI only distinguishes pro vs expired, but the level
+/// is exposed so future affordances (warning banner, partial degradation)
+/// can rely on it without divergence.
+enum DegradationLevel: Sendable {
+    case none      // 0–7 days since last server validation
+    case warning   // 7–14 days — show notice, full access
+    case limited   // 14–30 days — partial access
+    case expired   // 30+ days — block Pro features
+}
+
 enum LicenseStatus {
-    case pro(LicenseData)
+    case pro(LicenseData, DegradationLevel)
     case expired
     case notFound
 }
@@ -52,8 +65,11 @@ struct LicenseChecker {
         return SymmetricKey(data: keyData)
     }()
 
-    /// Degradation thresholds (days since last validation)
-    private static let expiredThreshold: Double = 30
+    /// Degradation thresholds (days since last validation). Must match
+    /// `getDegradationLevel` in `src/lib/license/license-manager.ts`.
+    private static let warningThresholdDays: Double = 7
+    private static let limitedThresholdDays: Double = 14
+    private static let expiredThresholdDays: Double = 30
 
     // SEG-009: built-in perennial PRO accounts removed in parity with the TS
     // bundle (src/lib/license/license-manager.ts). Operator licenses now go
@@ -116,15 +132,27 @@ struct LicenseChecker {
             }
         }
 
-        // Check degradation: 30+ days since last validation = expired
-        if let lastValidated = parseDate(license.lastValidatedAt) {
-            let daysSince = Date().timeIntervalSince(lastValidated) / (24 * 60 * 60)
-            if daysSince > expiredThreshold {
-                return .expired
-            }
+        let level = degradationLevel(for: license)
+        if level == .expired {
+            return .expired
         }
+        return .pro(license, level)
+    }
 
-        return .pro(license)
+    /// Computes the four-level degradation; mirrors `getDegradationLevel` in
+    /// the TS bundle. Exposed for future UI affordances.
+    static func degradationLevel(for license: LicenseData) -> DegradationLevel {
+        guard let lastValidated = parseDate(license.lastValidatedAt) else {
+            // Corrupted/unparseable date — fail closed, same as TS.
+            return .expired
+        }
+        let elapsed = Date().timeIntervalSince(lastValidated)
+        if elapsed < 0 { return .none } // clock skew: future timestamp → fresh
+        let days = elapsed / (24 * 60 * 60)
+        if days <= warningThresholdDays { return .none }
+        if days <= limitedThresholdDays { return .warning }
+        if days <= expiredThresholdDays { return .limited }
+        return .expired
     }
 
     // MARK: - AES-256-GCM decryption

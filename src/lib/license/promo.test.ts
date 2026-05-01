@@ -30,6 +30,7 @@ vi.mock('node:fs/promises', () => ({
 vi.mock('../data-dir.js', () => ({
   DATA_DIR: '/tmp/.brew-tui',
   ensureDataDirs: vi.fn().mockResolvedValue(undefined),
+  getMachineId: vi.fn(async () => 'test-machine-uuid'),
 }));
 
 beforeEach(() => {

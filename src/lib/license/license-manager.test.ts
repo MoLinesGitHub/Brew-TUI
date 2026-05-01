@@ -12,6 +12,7 @@ vi.mock('./polar-api.js', () => ({
 vi.mock('../data-dir.js', () => ({
   LICENSE_PATH: '/tmp/brew-tui-test-license.json',
   ensureDataDirs: vi.fn().mockResolvedValue(undefined),
+  getMachineId: vi.fn(async () => 'test-machine-uuid'),
 }));
 
 vi.mock('../../i18n/index.js', () => ({

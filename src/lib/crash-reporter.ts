@@ -1,8 +1,8 @@
-import { readFile, writeFile, mkdir } from 'node:fs/promises';
-import { randomUUID } from 'node:crypto';
+import { readFile } from 'node:fs/promises';
 import { homedir, platform, release, arch } from 'node:os';
 import { join } from 'node:path';
 import { logger } from '../utils/logger.js';
+import { getMachineId } from './data-dir.js';
 
 // Opt-in crash reporting. The TUI never sends data unless the user has
 // configured an endpoint, either via the env var below or via the persisted
@@ -11,7 +11,6 @@ import { logger } from '../utils/logger.js';
 const ENDPOINT_ENV = 'BREW_TUI_CRASH_ENDPOINT';
 const TOKEN_ENV = 'BREW_TUI_CRASH_TOKEN';
 const CONFIG_PATH = join(homedir(), '.brew-tui', 'crash-reporter.json');
-const MACHINE_ID_PATH = join(homedir(), '.brew-tui', 'machine-id');
 const POST_TIMEOUT_MS = 5_000;
 
 interface CrashReporterConfig {
@@ -48,21 +47,6 @@ async function loadConfigFromDisk(): Promise<CrashReporterConfig> {
   } catch {
     return { endpoint: null, token: null, enabled: false };
   }
-}
-
-async function getMachineId(): Promise<string> {
-  try {
-    const id = (await readFile(MACHINE_ID_PATH, 'utf-8')).trim();
-    if (id) return id;
-  } catch { /* file does not exist yet */ }
-  const id = randomUUID();
-  try {
-    await mkdir(join(homedir(), '.brew-tui'), { recursive: true, mode: 0o700 });
-    await writeFile(MACHINE_ID_PATH, id, { encoding: 'utf-8', mode: 0o600 });
-  } catch {
-    // Persisting is best-effort; fall back to a per-process UUID.
-  }
-  return id;
 }
 
 async function resolveConfig(): Promise<CrashReporterConfig> {

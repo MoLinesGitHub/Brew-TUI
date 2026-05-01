@@ -1,23 +1,9 @@
-import { readFile, writeFile, rename, mkdir } from 'node:fs/promises';
-import { randomBytes, randomUUID } from 'node:crypto';
+import { readFile, writeFile, rename } from 'node:fs/promises';
+import { randomBytes } from 'node:crypto';
 import { join } from 'node:path';
-import { homedir } from 'node:os';
-import { DATA_DIR, ensureDataDirs } from '../data-dir.js';
+import { DATA_DIR, ensureDataDirs, getMachineId } from '../data-dir.js';
 import { fetchWithTimeout } from '../fetch-timeout.js';
 import { logger } from '../../utils/logger.js';
-
-const MACHINE_ID_PATH = join(homedir(), '.brew-tui', 'machine-id');
-
-async function getMachineId(): Promise<string> {
-  try {
-    const id = (await readFile(MACHINE_ID_PATH, 'utf-8')).trim();
-    if (id) return id;
-  } catch { /* file doesn't exist yet */ }
-  const id = randomUUID();
-  await mkdir(join(homedir(), '.brew-tui'), { recursive: true, mode: 0o700 });
-  await writeFile(MACHINE_ID_PATH, id, { encoding: 'utf-8', mode: 0o600 });
-  return id;
-}
 
 const PROMO_PATH = join(DATA_DIR, 'promo.json');
 

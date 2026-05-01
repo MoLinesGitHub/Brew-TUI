@@ -20,6 +20,7 @@ vi.mock('./crypto.js', () => ({
 
 vi.mock('../data-dir.js', () => ({
   DATA_DIR: '/tmp/.brew-tui-test',
+  getMachineId: vi.fn(async () => 'test-machine-uuid'),
 }));
 
 vi.mock('node:fs/promises', () => ({

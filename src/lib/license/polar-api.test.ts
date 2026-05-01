@@ -7,11 +7,9 @@ vi.mock('../fetch-timeout.js', () => ({
   fetchWithRetry: (...args: unknown[]) => mockFetch(...args),
 }));
 
-// Mock filesystem for machine-id
-vi.mock('node:fs/promises', () => ({
-  readFile: vi.fn().mockResolvedValue('test-machine-uuid-1234'),
-  writeFile: vi.fn().mockResolvedValue(undefined),
-  mkdir: vi.fn().mockResolvedValue(undefined),
+// Mock machine-id resolution (single canonical impl in data-dir.ts)
+vi.mock('../data-dir.js', () => ({
+  getMachineId: vi.fn(async () => 'test-machine-uuid-1234'),
 }));
 
 describe('activateLicense (QA-007, EP-001)', () => {

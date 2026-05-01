@@ -8,7 +8,7 @@ import {
   isICloudAvailable,
 } from './backends/icloud-backend.js';
 import { captureSnapshot } from '../state-snapshot/snapshot.js';
-import { DATA_DIR } from '../data-dir.js';
+import { DATA_DIR, getMachineId } from '../data-dir.js';
 import { logger } from '../../utils/logger.js';
 import type {
   SyncConfig,
@@ -21,7 +21,6 @@ import type {
 import type { BrewfileSchema } from '../brewfile/types.js';
 
 const SYNC_CONFIG_PATH = join(DATA_DIR, 'sync-config.json');
-const MACHINE_ID_PATH = join(DATA_DIR, 'machine-id');
 
 // ── Config I/O ──────────────────────────────────────────────────────────────
 
@@ -44,14 +43,11 @@ export async function saveSyncConfig(config: SyncConfig): Promise<void> {
 }
 
 // ── Machine ID ───────────────────────────────────────────────────────────────
+// Single canonical implementation lives in data-dir.ts. The previous fallback
+// to os.hostname() here meant two different machines with the same hostname
+// (common on freshly-imaged corporate fleets) collided in sync state.
 
-export async function getMachineId(): Promise<string> {
-  try {
-    const id = (await readFile(MACHINE_ID_PATH, 'utf-8')).trim();
-    if (id) return id;
-  } catch { /* machine-id created by polar-api on first activation */ }
-  return hostname(); // Fallback: hostname if machine-id not yet created
-}
+export { getMachineId };
 
 // ── Conflict detection ───────────────────────────────────────────────────────
 

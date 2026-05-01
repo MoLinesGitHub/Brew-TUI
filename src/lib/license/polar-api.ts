@@ -1,9 +1,6 @@
-import { randomUUID } from 'node:crypto';
-import { readFile, writeFile, mkdir } from 'node:fs/promises';
-import { join } from 'node:path';
-import { homedir } from 'node:os';
 import type { PolarActivateResponse, PolarValidateResponse } from './types.js';
 import { fetchWithRetry } from '../fetch-timeout.js';
+import { getMachineId } from '../data-dir.js';
 
 const BASE_URL = 'https://api.polar.sh/v1/customer-portal/license-keys';
 
@@ -30,22 +27,6 @@ export const POLAR_CHECKOUT_URLS = {
   teamMonthly: 'https://buy.polar.sh/polar_cl_CO6xqSzKgFiQJwXnhZYGqisOP04Wspi0KKZSn38NjFZ?quantity=3',
   teamYearly:  'https://buy.polar.sh/polar_cl_BZowqmtaKwWEkRJNtBcashWg7oZOH6OhnnsJ204opNA?quantity=3',
 } as const;
-
-// SEG-004: Machine-specific identifier stored persistently
-const DATA_DIR = join(homedir(), '.brew-tui');
-const MACHINE_ID_PATH = join(DATA_DIR, 'machine-id');
-
-async function getMachineId(): Promise<string> {
-  try {
-    const id = (await readFile(MACHINE_ID_PATH, 'utf-8')).trim();
-    if (id) return id;
-  } catch { /* file doesn't exist yet */ }
-
-  const id = randomUUID();
-  await mkdir(DATA_DIR, { recursive: true, mode: 0o700 });
-  await writeFile(MACHINE_ID_PATH, id, { encoding: 'utf-8', mode: 0o600 });
-  return id;
-}
 
 // Layer 11: API URL validation
 function validateApiUrl(url: string): void {

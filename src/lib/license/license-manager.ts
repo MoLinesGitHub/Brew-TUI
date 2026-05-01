@@ -1,6 +1,6 @@
 import { readFile, writeFile, rename, rm } from 'node:fs/promises';
 import { createCipheriv, createDecipheriv, randomBytes, scryptSync } from 'node:crypto';
-import { LICENSE_PATH, ensureDataDirs } from '../data-dir.js';
+import { LICENSE_PATH, ensureDataDirs, getMachineId } from '../data-dir.js';
 import { activateLicense as apiActivate, validateLicense as apiValidate, deactivateLicense as apiDeactivate } from './polar-api.js';
 import { t } from '../../i18n/index.js';
 import type { LicenseData, LicenseFile } from './types.js';
@@ -133,19 +133,6 @@ function isEncryptedLicenseFile(obj: unknown): obj is LicenseFile & { encrypted:
     && typeof record.tag === 'string';
 }
 
-// SEG-002: Read machine ID for portability check
-async function getMachineId(): Promise<string | null> {
-  try {
-    const { readFile: readMachineId } = await import('node:fs/promises');
-    const { join } = await import('node:path');
-    const { homedir } = await import('node:os');
-    const machineIdPath = join(homedir(), '.brew-tui', 'machine-id');
-    return (await readMachineId(machineIdPath, 'utf-8')).trim() || null;
-  } catch {
-    return null;
-  }
-}
-
 export async function loadLicense(): Promise<LicenseData | null> {
   try {
     const raw = await readFile(LICENSE_PATH, 'utf-8');
@@ -167,11 +154,15 @@ export async function loadLicense(): Promise<LicenseData | null> {
     if (isEncryptedLicenseFile(file)) {
       const data = decryptLicenseData(file.encrypted!, file.iv!, file.tag!);
 
-      // SEG-002: Check machine ID if stored in the envelope
+      // SEG-002: Check machine ID if stored in the envelope.
+      // getMachineId() now always resolves a value — if the user's machine-id
+      // file was wiped, a new UUID is created and this check rejects the
+      // license, prompting reactivation. Same behaviour the polar-api flow
+      // already had on save.
       const fileRecord = file as unknown as Record<string, unknown>;
       if (fileRecord.machineId) {
         const currentMachineId = await getMachineId();
-        if (currentMachineId && fileRecord.machineId !== currentMachineId) {
+        if (fileRecord.machineId !== currentMachineId) {
           throw new Error('License was activated on a different machine');
         }
       }
@@ -198,8 +189,7 @@ export async function saveLicense(data: LicenseData): Promise<void> {
   const { encrypted, iv, tag } = encryptLicenseData(data);
   // SEG-002: Include machineId in the envelope for portability detection
   const machineId = await getMachineId();
-  const file: Record<string, unknown> = { version: 1, encrypted, iv, tag };
-  if (machineId) file.machineId = machineId;
+  const file: Record<string, unknown> = { version: 1, encrypted, iv, tag, machineId };
   const tmpPath = LICENSE_PATH + '.tmp';
   await writeFile(tmpPath, JSON.stringify(file, null, 2), { encoding: 'utf-8', mode: 0o600 });
   await rename(tmpPath, LICENSE_PATH);

@@ -1,5 +1,29 @@
 # Changelog
 
+## [0.6.1] - 2026-05-01
+
+### Fixed
+- **BrewBar:** outdated count was always zero on systems with cask updates,
+  so notifications never fired. `OutdatedPackage` required `pinned: Bool` but
+  casks from `brew outdated --json=v2 --greedy` omit that field, making the
+  whole JSON decode throw and the refresh abort silently. The decoder now
+  treats `pinned` and `pinned_version` as optional and defaults `pinned` to
+  `false`, matching the formula contract.
+- **BrewBar:** CVE check spammed `OSV API returned HTTP 400` every hour
+  because OSV does not accept `Homebrew` as an ecosystem. Switched to
+  `Bitnami`, which covers most common OSS packages and filters by version
+  correctly. Packages outside Bitnami's catalog return empty results
+  instead of crashing the batch.
+- **BrewBar:** consecutive outdated notifications were silently replaced
+  in macOS Notification Center because every `UNNotificationRequest` reused
+  the same identifier. Notifications now use a per-fire timestamped
+  identifier so each one shows as a fresh banner.
+
+### Internal
+- `AppState.refresh()` now logs decoding/refresh errors via `os.Logger` so
+  silent failures show up in `log show --predicate 'subsystem == "com.molinesdesigns.brewbar"'`.
+- `BrewBar` version bumped to 0.6.1.
+
 ## [0.5.3] - 2026-04-29
 
 ### Fixed

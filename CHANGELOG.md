@@ -9,6 +9,20 @@
   to `Bitnami` (same approach already used by `SecurityMonitor.swift`).
   Packages outside Bitnami's catalog return empty results instead of failing
   the whole batch.
+- **`brew-tui install-brewbar`:** the bundled download URL pointed at the old
+  `MoLinesGitHub` org. GitHub still serves a 301 redirect, but stricter HTTP
+  clients can fail. Updated to `MoLinesDesigns/Brew-TUI/releases/latest/...`.
+- **Homebrew Cask:** `brewbar` was stuck at 0.1.0 with the same outdated org
+  URL — the cask was effectively unusable. Bumped to 0.6.1 with the SHA256 of
+  the published release zip and the corrected URL.
+
+### Internal
+- Repository URLs across `package.json`, `README`, the formula, the cask, the
+  issue template and the brewbar installer now point at `MoLinesDesigns/*`.
+- `jsr.json` bumped 0.5.2 → 0.6.2 to follow npm.
+- Stale 0.4.1 BrewBar artefacts (`BrewBar.app.zip`, `.dSYM`) removed from the
+  repo working tree; they were already gitignored but had been committed
+  earlier.
 
 ## [0.6.1] - 2026-05-01
 

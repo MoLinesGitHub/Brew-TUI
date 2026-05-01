@@ -16,6 +16,15 @@
   URL — the cask was effectively unusable. Bumped to 0.6.1 with the SHA256 of
   the published release zip and the corrected URL.
 
+### Changed
+- **License portability check is stricter.** Previously, if
+  `~/.brew-tui/machine-id` was missing the check silently passed. Now a
+  missing machine-id is regenerated and compared against the one stored in
+  `license.json` — if they don't match, the license is rejected and the user
+  is asked to reactivate. This affects users whose machine-id was wiped
+  by a Time Machine restore, a fresh shell init or manual cleanup. Run
+  `brew-tui activate <key>` once to re-bind the license.
+
 ### Internal
 - Repository URLs across `package.json`, `README`, the formula, the cask, the
   issue template and the brewbar installer now point at `MoLinesDesigns/*`.
@@ -23,6 +32,19 @@
 - Stale 0.4.1 BrewBar artefacts (`BrewBar.app.zip`, `.dSYM`) removed from the
   repo working tree; they were already gitignored but had been committed
   earlier.
+- Single canonical `getMachineId()` lives in `data-dir.ts`; the four
+  diverging implementations across `polar-api`, `license-manager`, `promo`
+  and `sync-engine` were collapsed. The hostname fallback in sync (which
+  collided same-named machines on freshly-imaged fleets) is gone.
+- BrewBar's `BrewProcess.run` drains brew's stdout incrementally; the
+  previous synchronous `readDataToEndOfFile()` deadlocked on outputs over
+  ~64 KB.
+- `~/.brew-tui/snapshots/` is now capped at 20 auto entries per
+  `saveSnapshot`; user-labelled checkpoints are preserved.
+- BrewBar's license degradation now mirrors the TUI's 7/14/30-day
+  thresholds and exposes the level via `LicenseStatus.pro(_, level)`.
+- CI now runs `xcodebuild build` + `xcodebuild test` for BrewBar on
+  `macos-latest` in addition to the existing `npm run validate` on Ubuntu.
 
 ## [0.6.1] - 2026-05-01
 

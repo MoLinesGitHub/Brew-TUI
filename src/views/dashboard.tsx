@@ -15,6 +15,7 @@ import { COLORS } from '../utils/colors.js';
 import { GRADIENTS } from '../utils/gradient.js';
 import { t } from '../i18n/index.js';
 import { formatRelativeTime } from '../utils/format.js';
+import { SPACING } from '../utils/spacing.js';
 
 function ProStatusPanel() {
   const security = useSecurityStore((s) => s.summary);
@@ -33,9 +34,9 @@ function ProStatusPanel() {
   const violationCount = complianceReport ? complianceReport.violations.length : null;
 
   return (
-    <Box flexDirection="column" borderStyle="round" borderColor={COLORS.purple} paddingX={2} paddingY={0} marginTop={1}>
+    <Box flexDirection="column" borderStyle="round" borderColor={COLORS.purple} paddingX={SPACING.sm} paddingY={SPACING.none} marginTop={SPACING.xs}>
       <Text bold color={COLORS.purple}>{t('dashboard_pro_status')}</Text>
-      <Box gap={1}>
+      <Box gap={SPACING.xs}>
         <Text color={COLORS.muted}>{t('dashboard_security')}</Text>
         {cveCount === null ? (
           <Text color={COLORS.muted}>—</Text>
@@ -48,7 +49,7 @@ function ProStatusPanel() {
           </Text>
         )}
       </Box>
-      <Box gap={1}>
+      <Box gap={SPACING.xs}>
         <Text color={COLORS.muted}>{t('dashboard_brewfile')}</Text>
         {driftScore === null ? (
           <Text color={COLORS.muted}>—</Text>
@@ -56,7 +57,7 @@ function ProStatusPanel() {
           <Text color={driftScore >= 80 ? COLORS.success : COLORS.warning}>{driftScore}%</Text>
         )}
       </Box>
-      <Box gap={1}>
+      <Box gap={SPACING.xs}>
         <Text color={COLORS.muted}>{t('dashboard_sync')}</Text>
         {syncAgo === null ? (
           <Text color={COLORS.muted}>{t('dashboard_sync_never')}</Text>
@@ -64,7 +65,7 @@ function ProStatusPanel() {
           <Text color={COLORS.info}>{t('dashboard_sync_ago', { time: syncAgo })}</Text>
         )}
       </Box>
-      <Box gap={1}>
+      <Box gap={SPACING.xs}>
         <Text color={COLORS.muted}>{t('dashboard_compliance')}</Text>
         {violationCount === null ? (
           <Text color={COLORS.muted}>—</Text>
@@ -123,10 +124,10 @@ export function DashboardView() {
   const isNarrow = columns < 60;
 
   return (
-    <Box flexDirection="column" gap={2}>
+    <Box flexDirection="column" gap={SPACING.sm}>
       <SectionHeader emoji={'\u{1F4CA}'} title={t('dashboard_overview')} gradient={GRADIENTS.gold} />
 
-      <Box gap={1} flexWrap="wrap" flexDirection={isNarrow ? 'column' : 'row'}>
+      <Box gap={SPACING.xs} flexWrap="wrap" flexDirection={isNarrow ? 'column' : 'row'}>
         <StatCard label={t('dashboard_formulae')} value={formulae.length} color={COLORS.info} />
         <StatCard label={t('dashboard_casks')} value={casks.length} color={COLORS.purple} />
         <StatCard
@@ -147,7 +148,7 @@ export function DashboardView() {
       )}
 
       {partialErrors.length > 0 && (
-        <Box flexDirection="column" borderStyle="round" borderColor={COLORS.warning} paddingX={2} paddingY={0}>
+        <Box flexDirection="column" borderStyle="round" borderColor={COLORS.warning} paddingX={SPACING.sm} paddingY={SPACING.none}>
           <Text color={COLORS.warning} bold>{t('dashboard_partialData')}</Text>
           {partialErrors.map((item) => (
             <Text key={item.label} color={COLORS.muted}>
@@ -160,7 +161,7 @@ export function DashboardView() {
       {config && !errors.config && (
         <Box flexDirection="column">
           <SectionHeader emoji={'\u2139\uFE0F'} title={t('dashboard_systemInfo')} gradient={[COLORS.text, COLORS.muted]} />
-          <Box borderStyle="round" borderColor={COLORS.blue} paddingX={2} paddingY={0} flexDirection="column" marginTop={1}>
+          <Box borderStyle="round" borderColor={COLORS.blue} paddingX={SPACING.sm} paddingY={SPACING.none} flexDirection="column" marginTop={SPACING.xs}>
             <Text><Text color={COLORS.muted}>{t('dashboard_homebrew')}</Text> {config.HOMEBREW_VERSION}</Text>
             <Text><Text color={COLORS.muted}>{t('dashboard_prefix')}</Text>   {config.HOMEBREW_PREFIX}</Text>
             <Text><Text color={COLORS.muted}>{t('dashboard_updated')}</Text>  {config.coreUpdated}</Text>
@@ -169,11 +170,11 @@ export function DashboardView() {
       )}
 
       {!errors.outdated && outdated.formulae.length > 0 && (
-        <Box flexDirection="column" marginTop={1}>
+        <Box flexDirection="column" marginTop={SPACING.xs}>
           <SectionHeader emoji={'\u{1F4E6}'} title={t('dashboard_outdatedPackages')} gradient={GRADIENTS.fire} />
-          <Box paddingLeft={2} flexDirection="column">
+          <Box paddingLeft={SPACING.sm} flexDirection="column">
             {outdated.formulae.slice(0, 10).map((pkg) => (
-              <Box key={pkg.name} gap={1}>
+              <Box key={pkg.name} gap={SPACING.xs}>
                 <Text color={COLORS.text}>{pkg.name}</Text>
                 <VersionArrow current={pkg.installed_versions[0] ?? ''} latest={pkg.current_version} />
               </Box>
@@ -186,11 +187,11 @@ export function DashboardView() {
       )}
 
       {!errors.services && errorServices > 0 && (
-        <Box flexDirection="column" marginTop={1}>
+        <Box flexDirection="column" marginTop={SPACING.xs}>
           <SectionHeader emoji={'\u26A0\uFE0F'} title={t('dashboard_serviceErrors')} color={COLORS.error} />
-          <Box paddingLeft={2} flexDirection="column">
+          <Box paddingLeft={SPACING.sm} flexDirection="column">
             {errorServiceList.map((s) => (
-              <Box key={s.name} gap={1}>
+              <Box key={s.name} gap={SPACING.xs}>
                 <StatusBadge label={t('badge_error')} variant="error" />
                 <Text>{s.name}</Text>
                 {s.exit_code != null && <Text color={COLORS.muted}>{t('common_exit', { code: s.exit_code })}</Text>}

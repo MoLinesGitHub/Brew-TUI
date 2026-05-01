@@ -16,6 +16,7 @@ import { t } from '../i18n/index.js';
 import { DATA_DIR } from '../lib/data-dir.js';
 import { join } from 'node:path';
 import type { ComplianceReport, ComplianceViolation } from '../lib/compliance/types.js';
+import { SPACING } from '../utils/spacing.js';
 
 type Phase = 'overview' | 'importing' | 'confirming-remediate' | 'remediating' | 'result';
 
@@ -25,7 +26,7 @@ function ComplianceScore({ report }: { report: ComplianceReport }) {
   const bars = Math.round(report.score / 10);
 
   return (
-    <Box flexDirection="column" marginBottom={1}>
+    <Box flexDirection="column" marginBottom={SPACING.xs}>
       <Box>
         <Text color={color}>{'▓'.repeat(bars)}{'░'.repeat(10 - bars)}</Text>
         <Text color={color} bold> {report.score}%</Text>
@@ -43,7 +44,7 @@ function ViolationItem({ violation }: { violation: ComplianceViolation }) {
   const prefix = violation.severity === 'error' ? '✗' : '⚠';
 
   return (
-    <Box marginBottom={0}>
+    <Box marginBottom={SPACING.none}>
       <Text color={color}>{prefix} </Text>
       <Text color={color}>{violation.detail}</Text>
     </Box>
@@ -55,9 +56,9 @@ function ViolationList({ violations }: { violations: ComplianceViolation[] }) {
   const warnings = violations.filter((v) => v.severity === 'warning');
 
   return (
-    <Box flexDirection="column" marginTop={1}>
+    <Box flexDirection="column" marginTop={SPACING.xs}>
       {errors.length > 0 && (
-        <Box flexDirection="column" marginBottom={1}>
+        <Box flexDirection="column" marginBottom={SPACING.xs}>
           <Text color={COLORS.error} bold>{t('compliance_violations', { count: String(errors.length) })} (errors)</Text>
           {errors.map((v) => (
             <ViolationItem key={`${v.type}-${v.packageName}`} violation={v} />
@@ -225,7 +226,7 @@ export function ComplianceView() {
       return (
         <Box flexDirection="column">
           <SectionHeader emoji="🔍" title={t('compliance_title')} gradient={GRADIENTS.gold} />
-          <Box marginTop={1}>
+          <Box marginTop={SPACING.xs}>
             <ProgressLog lines={streamLines} isRunning={streamRunning} title={t('compliance_remediating')} />
           </Box>
         </Box>
@@ -236,15 +237,15 @@ export function ComplianceView() {
 
   if (phase === 'result' && resultMessage) {
     return (
-      <Box flexDirection="column" marginTop={1}>
+      <Box flexDirection="column" marginTop={SPACING.xs}>
         <SectionHeader emoji="🔍" title={t('compliance_title')} gradient={GRADIENTS.gold} />
-        <Box marginTop={1}>
+        <Box marginTop={SPACING.xs}>
           <ResultBanner
             status={resultMessage.ok ? 'success' : 'error'}
             message={resultMessage.text}
           />
         </Box>
-        <Box marginTop={1}>
+        <Box marginTop={SPACING.xs}>
           <Text color={COLORS.textSecondary}>r:{t('hint_refresh')}  esc:{t('hint_back')}</Text>
         </Box>
       </Box>
@@ -256,28 +257,28 @@ export function ComplianceView() {
       <SectionHeader emoji="🔍" title={t('compliance_title')} gradient={GRADIENTS.gold} />
 
       {error && (
-        <Box marginTop={1}>
+        <Box marginTop={SPACING.xs}>
           <ResultBanner status="error" message={t('compliance_import_error', { error })} />
         </Box>
       )}
 
       {phase === 'importing' && (
-        <Box marginTop={1} flexDirection="column">
+        <Box marginTop={SPACING.xs} flexDirection="column">
           <Text color={COLORS.textSecondary}>{t('compliance_import_prompt')}</Text>
-          <Box marginTop={1}>
+          <Box marginTop={SPACING.xs}>
             <TextInput
               defaultValue=""
               onSubmit={(val) => { void handleImportSubmit(val); }}
             />
           </Box>
-          <Box marginTop={1}>
+          <Box marginTop={SPACING.xs}>
             <Text color={COLORS.muted} dimColor>esc:{t('hint_back')}</Text>
           </Box>
         </Box>
       )}
 
       {phase === 'overview' && (
-        <Box flexDirection="column" marginTop={1}>
+        <Box flexDirection="column" marginTop={SPACING.xs}>
           {!policy ? (
             <Box flexDirection="column">
               <Text color={COLORS.textSecondary}>{t('compliance_no_policy')}</Text>
@@ -289,7 +290,7 @@ export function ComplianceView() {
               </Text>
 
               {report ? (
-                <Box flexDirection="column" marginTop={1}>
+                <Box flexDirection="column" marginTop={SPACING.xs}>
                   <ComplianceScore report={report} />
                   {report.compliant ? (
                     <ResultBanner status="success" message={t('compliance_ok')} />
@@ -298,14 +299,14 @@ export function ComplianceView() {
                   )}
                 </Box>
               ) : (
-                <Box marginTop={1}>
+                <Box marginTop={SPACING.xs}>
                   <Text color={COLORS.muted} dimColor>{t('compliance_press_r_hint')}</Text>
                 </Box>
               )}
             </Box>
           )}
 
-          <Box marginTop={2} flexWrap="wrap">
+          <Box marginTop={SPACING.sm} flexWrap="wrap">
             <Text color={COLORS.textSecondary}>
               i:{t('hint_import')}
               {policy && <Text>  r:{t('hint_scan')}</Text>}

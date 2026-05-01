@@ -17,6 +17,7 @@ import { truncate } from '../utils/format.js';
 import { t } from '../i18n/index.js';
 import { useModalStore } from '../stores/modal-store.js';
 import type { PackageListItem } from '../lib/types.js';
+import { SPACING } from '../utils/spacing.js';
 
 export function InstalledView() {
   const formulae = useBrewStore((s) => s.formulae);
@@ -124,7 +125,7 @@ export function InstalledView() {
           <Text color={COLORS.textSecondary}>esc:{t('hint_cancel')}</Text>
         )}
         {!stream.isRunning && (
-          <Box flexDirection="column" marginTop={1}>
+          <Box flexDirection="column" marginTop={SPACING.xs}>
             <ResultBanner
               status={stream.error ? 'error' : 'success'}
               message={stream.error ? `\u2718 ${stream.error}` : `\u2714 ${t('pkgInfo_done')}`}
@@ -145,11 +146,11 @@ export function InstalledView() {
       {/* Tab selector — both tabs always have a round border so the tab bar
           height stays constant when switching (prevents content jump). The
           inactive tab uses a dim gray border to signal it is not selected. */}
-      <Box marginBottom={1} gap={1}>
+      <Box marginBottom={SPACING.xs} gap={SPACING.xs}>
         <Box
           borderStyle="round"
           borderColor={tab === 'formulae' ? COLORS.info : COLORS.textSecondary}
-          paddingX={1}
+          paddingX={SPACING.xs}
         >
           <Text bold={tab === 'formulae'} color={tab === 'formulae' ? COLORS.info : COLORS.textSecondary}>
             {'\u{1F4E6}'} {t('installed_formulaeCount', { count: formulae.length })}
@@ -158,7 +159,7 @@ export function InstalledView() {
         <Box
           borderStyle="round"
           borderColor={tab === 'casks' ? COLORS.purple : COLORS.textSecondary}
-          paddingX={1}
+          paddingX={SPACING.xs}
         >
           <Text bold={tab === 'casks'} color={tab === 'casks' ? COLORS.purple : COLORS.textSecondary}>
             {'\u{1F37A}'} {t('installed_casksCount', { count: casks.length })}
@@ -181,15 +182,15 @@ export function InstalledView() {
 
       {/* Search bar */}
       {isSearching && (
-        <Box marginBottom={1} borderStyle="round" borderColor={COLORS.gold} paddingX={1}>
+        <Box marginBottom={SPACING.xs} borderStyle="round" borderColor={COLORS.gold} paddingX={SPACING.xs}>
           <SearchInput defaultValue={filter} onChange={setFilter} isActive={isSearching} />
         </Box>
       )}
 
       {/* Column header — 1 space prefix matches the 1-char cursor glyph in data
-          rows; gap={1} is shared by both header and data rows via the parent Box,
+          rows; gap={SPACING.xs} is shared by both header and data rows via the parent Box,
           so widths must match: ' ' + gap(1) + padEnd(27) aligns with data rows. */}
-      <Box gap={1} borderStyle="single" borderBottom borderTop={false} borderLeft={false} borderRight={false} borderColor={COLORS.border}>
+      <Box gap={SPACING.xs} borderStyle="single" borderBottom borderTop={false} borderLeft={false} borderRight={false} borderColor={COLORS.border}>
         <Text color={COLORS.text} bold>{' '}{t('installed_col_package').padEnd(nameWidth)}</Text>
         <Text color={COLORS.text} bold>{t('installed_col_version').padEnd(versionWidth)}</Text>
         <Text color={COLORS.text} bold>{t('installed_col_status')}</Text>
@@ -198,7 +199,7 @@ export function InstalledView() {
       {/* Package list */}
       <Box flexDirection="column">
         {visible.length === 0 && (
-          <Box paddingY={1} justifyContent="center">
+          <Box paddingY={SPACING.xs} justifyContent="center">
             <Text color={COLORS.textSecondary} italic>{t('installed_noPackages')}</Text>
           </Box>
         )}
@@ -230,7 +231,7 @@ export function InstalledView() {
       </Box>
 
       {/* Status bar */}
-      <Box marginTop={1}>
+      <Box marginTop={SPACING.xs}>
         <Text color={COLORS.text} bold>
           {allItems.length > 0 ? `${cursor + 1}/${allItems.length}` : '0/0'}
         </Text>

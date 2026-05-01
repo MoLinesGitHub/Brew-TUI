@@ -5,6 +5,7 @@ import { t } from '../../i18n/index.js';
 import type { ViewId } from '../../lib/types.js';
 import type { TranslationKey } from '../../i18n/en.js';
 import { isTeamView } from '../../lib/license/feature-gate.js';
+import { SPACING } from '../../utils/spacing.js';
 
 const FEATURE_KEYS: Record<string, { title: TranslationKey; desc: TranslationKey }> = {
   profiles: { title: 'upgrade_profiles', desc: 'upgrade_profilesDesc' },
@@ -31,12 +32,12 @@ export function UpgradePrompt({ viewId }: UpgradePromptProps) {
   const labelKey: TranslationKey = team ? 'upgrade_teamLabel' : 'upgrade_proLabel';
 
   return (
-    <Box flexDirection="column" alignItems="center" paddingY={2}>
+    <Box flexDirection="column" alignItems="center" paddingY={SPACING.sm}>
       <Box
         borderStyle="double"
         borderColor={COLORS.brand}
-        paddingX={3}
-        paddingY={2}
+        paddingX={SPACING.md}
+        paddingY={SPACING.sm}
         flexDirection="column"
         alignItems="center"
         width="80%"

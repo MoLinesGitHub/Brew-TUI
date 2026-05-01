@@ -16,6 +16,7 @@ import { GRADIENTS } from '../utils/gradient.js';
 import { t, tp } from '../i18n/index.js';
 import { formatRelativeTime } from '../utils/format.js';
 import type { Severity } from '../lib/security/types.js';
+import { SPACING } from '../utils/spacing.js';
 
 const SEVERITY_COLORS: Record<Severity, string> = {
   CRITICAL: COLORS.error,
@@ -85,7 +86,7 @@ export function SecurityAuditView() {
       <SectionHeader emoji={'\u{1F6E1}\uFE0F'} title={t('security_title')} gradient={GRADIENTS.ocean} />
 
       {summary && (
-        <Box gap={1} marginY={1}>
+        <Box gap={SPACING.xs} marginY={SPACING.xs}>
           <StatCard label={t('security_scanned')} value={summary.totalPackages} color={COLORS.info} />
           <StatCard
             label={t('security_vulnerable')}
@@ -104,13 +105,13 @@ export function SecurityAuditView() {
       )}
 
       {results.length === 0 && summary && (
-        <Box marginTop={1}>
+        <Box marginTop={SPACING.xs}>
           <ResultBanner status="success" message={`\u2714 ${t('security_noVulns')}`} />
         </Box>
       )}
 
       {confirmUpgrade && (
-        <Box marginY={1}>
+        <Box marginY={SPACING.xs}>
           <ConfirmDialog
             message={t('security_confirmUpgrade', { name: confirmUpgrade })}
             onConfirm={async () => {
@@ -125,13 +126,13 @@ export function SecurityAuditView() {
       )}
 
       {(stream.isRunning || stream.lines.length > 0) && (
-        <Box marginY={1}>
+        <Box marginY={SPACING.xs}>
           <ProgressLog lines={stream.lines} isRunning={stream.isRunning} title={t('hint_upgrade')} />
         </Box>
       )}
 
       {results.length > 0 && (
-        <Box flexDirection="column" marginTop={1}>
+        <Box flexDirection="column" marginTop={SPACING.xs}>
           {results.map((pkg, i) => {
             const isCurrent = i === cursor;
             const isExpanded = expandedPkg === pkg.packageName;
@@ -152,10 +153,10 @@ export function SecurityAuditView() {
                 </SelectableRow>
 
                 {isExpanded && (
-                  <Box flexDirection="column" paddingLeft={4} marginBottom={1}>
+                  <Box flexDirection="column" paddingLeft={SPACING.lg} marginBottom={SPACING.xs}>
                     {pkg.vulnerabilities.map((vuln) => (
-                      <Box key={vuln.id} flexDirection="column" marginBottom={1}>
-                        <Box gap={1}>
+                      <Box key={vuln.id} flexDirection="column" marginBottom={SPACING.xs}>
+                        <Box gap={SPACING.xs}>
                           <Text color={SEVERITY_COLORS[vuln.severity]} bold>{vuln.id}</Text>
                           <Text color={COLORS.muted}>[{vuln.severity}]</Text>
                         </Box>
@@ -171,12 +172,12 @@ export function SecurityAuditView() {
             );
           })}
 
-          <Box marginTop={1}>
+          <Box marginTop={SPACING.xs}>
             <Text color={COLORS.text} bold>
               {cursor + 1}/{results.length}
             </Text>
           </Box>
-          <Box marginTop={1}>
+          <Box marginTop={SPACING.xs}>
             <Text color={COLORS.textSecondary}>{t('security_rollback_hint')}</Text>
           </Box>
         </Box>

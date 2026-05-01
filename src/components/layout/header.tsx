@@ -7,6 +7,7 @@ import { t, useLocaleStore } from '../../i18n/index.js';
 import { GradientText, GRADIENTS } from '../../utils/gradient.js';
 import type { ViewId } from '../../lib/types.js';
 import type { TranslationKey } from '../../i18n/en.js';
+import { SPACING } from '../../utils/spacing.js';
 
 // BREW portion (cols 0-27) and TUI portion (cols 28+) rendered in different colors
 const LOGO_BREW = [
@@ -99,20 +100,20 @@ export function Header() {
   );
 
   const menuBlock = (
-    <Box borderStyle="round" borderColor={COLORS.lavender} paddingX={1} flexDirection="column" alignSelf={isNarrow ? 'flex-start' : 'center'}>
+    <Box borderStyle="round" borderColor={COLORS.lavender} paddingX={SPACING.xs} flexDirection="column" alignSelf={isNarrow ? 'flex-start' : 'center'}>
       <Box flexDirection="row">
         <Box flexDirection="column">
           {COL1_VIEWS.map((view) => (
             <MenuItem key={view} view={view} currentView={currentView} />
           ))}
         </Box>
-        <Box flexDirection="column" marginLeft={2}>
+        <Box flexDirection="column" marginLeft={SPACING.sm}>
           {COL2_VIEWS.map((view) => (
             <MenuItem key={view} view={view} currentView={currentView} />
           ))}
         </Box>
       </Box>
-      <Box borderStyle="single" borderTop borderBottom={false} borderLeft={false} borderRight={false} borderColor={COLORS.lavender} marginTop={0}>
+      <Box borderStyle="single" borderTop borderBottom={false} borderLeft={false} borderRight={false} borderColor={COLORS.lavender} marginTop={SPACING.none}>
         <Text bold color={COLORS.white}>S</Text>
         <Text color={COLORS.textSecondary}> {t('hint_search')}</Text>
         <Text color={COLORS.lavender}> {'\u2503'} </Text>
@@ -124,17 +125,17 @@ export function Header() {
 
   if (isNarrow) {
     return (
-      <Box flexDirection="column" paddingX={1}>
+      <Box flexDirection="column" paddingX={SPACING.xs}>
         {logoBlock}
-        <Box marginTop={1}>{menuBlock}</Box>
+        <Box marginTop={SPACING.xs}>{menuBlock}</Box>
       </Box>
     );
   }
 
   return (
-    <Box flexDirection="row" paddingX={1} alignItems="center">
+    <Box flexDirection="row" paddingX={SPACING.xs} alignItems="center">
       {logoBlock}
-      <Box marginLeft={2}>{menuBlock}</Box>
+      <Box marginLeft={SPACING.sm}>{menuBlock}</Box>
     </Box>
   );
 }

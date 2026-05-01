@@ -13,6 +13,7 @@ import { ProfileListMode } from './profiles/profile-list-mode.js';
 import { ProfileDetailMode } from './profiles/profile-detail-mode.js';
 import { ProfileCreateName, ProfileCreateDesc } from './profiles/profile-create-flow.js';
 import { ProfileEditName, ProfileEditDesc } from './profiles/profile-edit-flow.js';
+import { SPACING } from '../utils/spacing.js';
 
 type Mode = 'list' | 'detail' | 'create-name' | 'create-desc' | 'confirm-import' | 'importing' | 'edit-name' | 'edit-desc';
 
@@ -155,7 +156,7 @@ export function ProfilesView() {
       <Box flexDirection="column">
         <ProgressLog lines={importLines} isRunning={importRunning} title={t('profiles_importTitle')} />
         {!importRunning && (
-          <Box marginTop={1}>
+          <Box marginTop={SPACING.xs}>
             <ResultBanner status={importHadError ? 'error' : 'success'} message={importHadError ? t('profiles_importPartial') : `\u2714 ${t('profiles_importComplete')}`} />
           </Box>
         )}

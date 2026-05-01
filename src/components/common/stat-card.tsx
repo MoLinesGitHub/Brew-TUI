@@ -1,6 +1,7 @@
 import React from 'react';
 import { Box, Text, useStdout } from 'ink';
 import { COLORS } from '../../utils/colors.js';
+import { SPACING } from '../../utils/spacing.js';
 
 interface StatCardProps {
   label: string;
@@ -18,8 +19,8 @@ export function StatCard({ label, value, color = 'white' }: StatCardProps) {
     <Box
       borderStyle="round"
       borderColor={color}
-      paddingX={2}
-      paddingY={0}
+      paddingX={SPACING.sm}
+      paddingY={SPACING.none}
       flexDirection="column"
       alignItems="center"
       minWidth={minW}

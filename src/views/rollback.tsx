@@ -13,6 +13,7 @@ import { COLORS } from '../utils/colors.js';
 import { GRADIENTS } from '../utils/gradient.js';
 import { t, tp } from '../i18n/index.js';
 import type { RollbackAction, RollbackPlan } from '../lib/rollback/types.js';
+import { SPACING } from '../utils/spacing.js';
 
 type Phase = 'list' | 'plan' | 'confirm' | 'executing' | 'result';
 
@@ -44,8 +45,8 @@ function PlanView({ plan }: { plan: RollbackPlan }) {
   const executableCount = plan.actions.filter((a) => a.strategy !== 'unavailable' && a.action !== 'remove').length;
 
   return (
-    <Box flexDirection="column" marginTop={1}>
-      <Box marginBottom={1}>
+    <Box flexDirection="column" marginTop={SPACING.xs}>
+      <Box marginBottom={SPACING.xs}>
         <Text color={COLORS.text} bold>{plan.snapshotLabel} </Text>
         <Text color={COLORS.textSecondary}>{plan.snapshotDate}</Text>
       </Box>
@@ -72,12 +73,12 @@ function PlanView({ plan }: { plan: RollbackPlan }) {
       ))}
 
       {plan.warnings.map((w) => (
-        <Box key={w} marginTop={1}>
+        <Box key={w} marginTop={SPACING.xs}>
           <Text color={COLORS.warning}>⚠ {w}</Text>
         </Box>
       ))}
 
-      <Box marginTop={1}>
+      <Box marginTop={SPACING.xs}>
         {plan.canExecute ? (
           <Text color={COLORS.textSecondary}>
             enter:{t('rollback_confirm', { count: String(executableCount) })}  esc:{t('hint_back')}
@@ -185,12 +186,12 @@ export function RollbackView() {
 
   if (phase === 'result') {
     return (
-      <Box flexDirection="column" marginTop={1}>
+      <Box flexDirection="column" marginTop={SPACING.xs}>
         <ResultBanner
           status={streamError ? 'error' : 'success'}
           message={streamError ? t('rollback_error', { error: streamError }) : t('rollback_success')}
         />
-        <Box marginTop={1}>
+        <Box marginTop={SPACING.xs}>
           <Text color={COLORS.textSecondary}>r:{t('hint_refresh')}  esc:{t('hint_back')}</Text>
         </Box>
       </Box>
@@ -202,15 +203,15 @@ export function RollbackView() {
       <SectionHeader emoji="⏪" title={t('rollback_title')} gradient={GRADIENTS.gold} />
 
       {snapshots.length === 0 && (
-        <Box marginTop={1}>
+        <Box marginTop={SPACING.xs}>
           <ResultBanner status="info" message={t('rollback_no_snapshots')} />
         </Box>
       )}
 
       {phase === 'list' && snapshots.length > 0 && (
-        <Box flexDirection="column" marginTop={1}>
+        <Box flexDirection="column" marginTop={SPACING.xs}>
           <Text color={COLORS.textSecondary} dimColor>{t('rollback_select_snapshot')}</Text>
-          <Box flexDirection="column" marginTop={1}>
+          <Box flexDirection="column" marginTop={SPACING.xs}>
             {snapshots.map((s, i) => (
               <SelectableRow key={s.capturedAt} isCurrent={i === cursor}>
                 <Text bold={i === cursor} color={i === cursor ? COLORS.text : COLORS.muted}>
@@ -237,7 +238,7 @@ export function RollbackView() {
       )}
 
       {phase === 'confirm' && plan && (
-        <Box marginTop={1}>
+        <Box marginTop={SPACING.xs}>
           <ConfirmDialog
             message={t('rollback_confirm', {
               count: String(plan.actions.filter((a) => a.strategy !== 'unavailable' && a.action !== 'remove').length),

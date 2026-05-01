@@ -12,6 +12,7 @@ import { COLORS } from '../utils/colors.js';
 import { SelectableRow } from '../components/common/selectable-row.js';
 import { GRADIENTS } from '../utils/gradient.js';
 import { t } from '../i18n/index.js';
+import { SPACING } from '../utils/spacing.js';
 
 export function SmartCleanupView() {
   const { summary, selected, loading, error, analyze, toggleSelect, selectAll } = useCleanupStore();
@@ -77,7 +78,7 @@ export function SmartCleanupView() {
         )}
 
         {!stream.isRunning && stream.error && (
-          <Box flexDirection="column" gap={1}>
+          <Box flexDirection="column" gap={SPACING.xs}>
             <ResultBanner status="error" message={`\u2718 ${t('cleanup_depError')}`} />
             {isDependencyError && failedNames.length > 0 && (
               <Text color={COLORS.warning}>
@@ -88,7 +89,7 @@ export function SmartCleanupView() {
         )}
 
         {confirmForce && (
-          <Box marginY={1}>
+          <Box marginY={SPACING.xs}>
             <ConfirmDialog
               message={t('cleanup_confirmForce', { count: failedNames.length })}
               onConfirm={() => {
@@ -110,7 +111,7 @@ export function SmartCleanupView() {
       <SectionHeader emoji={'\u{1F9F9}'} title={t('cleanup_title')} gradient={GRADIENTS.emerald} />
 
       {summary && (
-        <Box gap={1} marginY={1}>
+        <Box gap={SPACING.xs} marginY={SPACING.xs}>
           <StatCard label={t('cleanup_orphans')} value={candidates.length} color={candidates.length > 0 ? COLORS.warning : COLORS.success} />
           <StatCard label={t('cleanup_reclaimable')} value={summary.totalReclaimableFormatted} color={COLORS.sky} />
           <StatCard label={t('cleanup_selected')} value={selected.size} color={selected.size > 0 ? COLORS.success : COLORS.muted} />
@@ -119,8 +120,8 @@ export function SmartCleanupView() {
 
       {/* SCR-001: Two-step confirmation with system tools warning */}
       {confirmClean && (
-        <Box flexDirection="column" marginY={1} gap={1}>
-          <Box borderStyle="round" borderColor={COLORS.warning} paddingX={2} paddingY={0}>
+        <Box flexDirection="column" marginY={SPACING.xs} gap={SPACING.xs}>
+          <Box borderStyle="round" borderColor={COLORS.warning} paddingX={SPACING.sm} paddingY={SPACING.none}>
             <Text color={COLORS.warning}>{t('cleanup_warning_system_tools')}</Text>
           </Box>
           <ConfirmDialog
@@ -155,7 +156,7 @@ export function SmartCleanupView() {
               </SelectableRow>
             );
           })}
-          <Box marginTop={1}>
+          <Box marginTop={SPACING.xs}>
             <Text color={COLORS.text} bold>
               {cursor + 1}/{candidates.length}
             </Text>

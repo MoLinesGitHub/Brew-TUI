@@ -3,6 +3,7 @@ import { Box, Text } from 'ink';
 import { Spinner } from '@inkjs/ui';
 import { COLORS } from '../../utils/colors.js';
 import { t } from '../../i18n/index.js';
+import { SPACING } from '../../utils/spacing.js';
 
 interface ProgressLogProps {
   lines: string[];
@@ -15,9 +16,9 @@ export function ProgressLog({ lines, isRunning, title, maxVisible = 15 }: Progre
   const visible = lines.slice(-maxVisible);
 
   return (
-    <Box flexDirection="column" borderStyle="round" borderColor={COLORS.sky} paddingX={1}>
+    <Box flexDirection="column" borderStyle="round" borderColor={COLORS.sky} paddingX={SPACING.xs}>
       {title && (
-        <Box marginBottom={1}>
+        <Box marginBottom={SPACING.xs}>
           {isRunning && <Spinner label="" />}
           <Text bold color={COLORS.sky}> {title}</Text>
         </Box>

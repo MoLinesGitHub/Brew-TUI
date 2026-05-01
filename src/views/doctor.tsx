@@ -7,6 +7,7 @@ import { SectionHeader } from '../components/common/section-header.js';
 import { COLORS } from '../utils/colors.js';
 import { GRADIENTS } from '../utils/gradient.js';
 import { t, tp } from '../i18n/index.js';
+import { SPACING } from '../utils/spacing.js';
 
 export function DoctorView() {
   const { doctorWarnings, doctorClean, loading, errors, fetchDoctor } = useBrewStore();
@@ -31,7 +32,7 @@ export function DoctorView() {
     <Box flexDirection="column">
       <SectionHeader emoji={'\u{1FA7A}'} title={t('doctor_title')} gradient={GRADIENTS.emerald} />
 
-      <Box flexDirection="column" marginTop={1}>
+      <Box flexDirection="column" marginTop={SPACING.xs}>
         {doctorClean && (
           <ResultBanner status="success" message={`\u2714 ${t('doctor_clean')}`} />
         )}
@@ -42,7 +43,7 @@ export function DoctorView() {
 
         {doctorWarnings.map((warning, i) => (
           // FE-004: Improved React key
-          <Box key={`warning-${i}-${warning.slice(0, 20)}`} flexDirection="column" marginBottom={1} borderStyle="single" borderColor={COLORS.warning} paddingX={1}>
+          <Box key={`warning-${i}-${warning.slice(0, 20)}`} flexDirection="column" marginBottom={SPACING.xs} borderStyle="single" borderColor={COLORS.warning} paddingX={SPACING.xs}>
             {warning.split('\n').map((line, j) => (
               <Text key={`warning-${i}-${j}-${line.slice(0, 20)}`} color={j === 0 ? COLORS.warning : COLORS.muted}>{line}</Text>
             ))}
@@ -50,7 +51,7 @@ export function DoctorView() {
         ))}
       </Box>
 
-      <Box marginTop={1}>
+      <Box marginTop={SPACING.xs}>
         <Text color={COLORS.text} bold>
           {doctorWarnings.length > 0 ? tp('plural_warnings', doctorWarnings.length) : ''}
         </Text>

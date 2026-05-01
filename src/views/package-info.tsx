@@ -14,6 +14,7 @@ import { t } from '../i18n/index.js';
 import type { TranslationKey } from '../i18n/en.js';
 import * as api from '../lib/brew-api.js';
 import type { Formula } from '../lib/types.js';
+import { SPACING } from '../utils/spacing.js';
 
 const ACTION_PROGRESS_KEYS: Record<string, TranslationKey> = {
   install: 'pkgInfo_installing',
@@ -176,7 +177,7 @@ export function PackageInfoView() {
         />
       )}
 
-      <Box gap={2} marginBottom={1}>
+      <Box gap={SPACING.sm} marginBottom={SPACING.xs}>
         <GradientText colors={GRADIENTS.gold} bold>{formula.name}</GradientText>
         <Text color={COLORS.teal}>{installed?.version ?? formula.versions.stable}</Text>
         {isInstalled && <StatusBadge label={t('badge_installed')} variant="success" />}
@@ -186,12 +187,12 @@ export function PackageInfoView() {
         {formula.deprecated && <StatusBadge label={t('badge_deprecated')} variant="error" />}
       </Box>
 
-      <Box flexDirection="column" gap={1}>
+      <Box flexDirection="column" gap={SPACING.xs}>
         <Text>{formula.desc}</Text>
 
         <Box flexDirection="column">
           <SectionHeader emoji={'\u{1F4CB}'} title={t('pkgInfo_details')} gradient={[COLORS.text, COLORS.muted]} />
-          <Box borderStyle="round" borderColor={COLORS.border} paddingX={2} flexDirection="column">
+          <Box borderStyle="round" borderColor={COLORS.border} paddingX={SPACING.sm} flexDirection="column">
             <Text><Text color={COLORS.muted}>{t('pkgInfo_homepage')}</Text> {formula.homepage}</Text>
             <Text><Text color={COLORS.muted}>{t('pkgInfo_license')}</Text>  {formula.license}</Text>
             <Text><Text color={COLORS.muted}>{t('pkgInfo_tap')}</Text>      {formula.tap}</Text>
@@ -209,7 +210,7 @@ export function PackageInfoView() {
         {formula.dependencies.length > 0 && (
           <Box flexDirection="column">
             <SectionHeader emoji={'\u{1F517}'} title={t('pkgInfo_dependencies', { count: formula.dependencies.length })} gradient={GRADIENTS.ocean} />
-            <Box paddingLeft={2} flexWrap="wrap" columnGap={2}>
+            <Box paddingLeft={SPACING.sm} flexWrap="wrap" columnGap={2}>
               {formula.dependencies.map((dep) => (
                 <Text key={dep} color={COLORS.muted}>{dep}</Text>
               ))}
@@ -220,14 +221,14 @@ export function PackageInfoView() {
         {formula.caveats && (
           <Box flexDirection="column">
             <SectionHeader emoji={'\u26A0\uFE0F'} title={t('pkgInfo_caveats')} color={COLORS.warning} />
-            <Box borderStyle="round" borderColor={COLORS.warning} paddingX={2}>
+            <Box borderStyle="round" borderColor={COLORS.warning} paddingX={SPACING.sm}>
               <Text color={COLORS.warning}>{formula.caveats}</Text>
             </Box>
           </Box>
         )}
       </Box>
 
-      <Box marginTop={1}>
+      <Box marginTop={SPACING.xs}>
         <Text color={COLORS.textSecondary}>
           {isInstalled ? `u:${t('hint_uninstall')}` : `i:${t('hint_install')}`}
           {isInstalled && formula.outdated ? ` U:${t('hint_upgrade')}` : ''}

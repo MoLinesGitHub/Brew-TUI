@@ -11,6 +11,7 @@ import { GRADIENTS } from '../utils/gradient.js';
 import { t } from '../i18n/index.js';
 import { formatDate } from '../utils/format.js';
 import { redeemPromoCode } from '../lib/license/promo.js';
+import { SPACING } from '../utils/spacing.js';
 
 export function AccountView() {
   const { status, license, deactivate, degradation } = useLicenseStore();
@@ -53,7 +54,7 @@ export function AccountView() {
       <SectionHeader emoji={'\u{1F464}'} title={t('account_title')} gradient={GRADIENTS.gold} />
 
       {confirmDeactivate && (
-        <Box marginY={1}>
+        <Box marginY={SPACING.xs}>
           <ConfirmDialog
             message={t('account_confirmDeactivate')}
             onConfirm={async () => {
@@ -74,8 +75,8 @@ export function AccountView() {
         </Box>
       )}
 
-      <Box flexDirection="column" marginTop={1} paddingLeft={2}>
-        <Box gap={1}>
+      <Box flexDirection="column" marginTop={SPACING.xs} paddingLeft={SPACING.sm}>
+        <Box gap={SPACING.xs}>
           <Text color={COLORS.muted}>{t('account_statusLabel')}</Text>
           {status === 'pro' && <Text color={COLORS.success} bold>{t('account_pro')}</Text>}
           {status === 'free' && <Text color={COLORS.muted}>{t('account_free')}</Text>}
@@ -83,7 +84,7 @@ export function AccountView() {
         </Box>
 
         {(degradation === 'warning' || degradation === 'limited') && license && (
-          <Box marginTop={1} borderStyle="round" borderColor={COLORS.warning} paddingX={2} paddingY={0}>
+          <Box marginTop={SPACING.xs} borderStyle="round" borderColor={COLORS.warning} paddingX={SPACING.sm} paddingY={SPACING.none}>
             <Text color={COLORS.warning}>
               {t('license_offlineWarning', {
                 days: Math.floor((Date.now() - new Date(license.lastValidatedAt).getTime()) / (24 * 60 * 60 * 1000)),
@@ -94,29 +95,29 @@ export function AccountView() {
 
         {license && (
           <>
-            <Box gap={1}>
+            <Box gap={SPACING.xs}>
               <Text color={COLORS.muted}>{t('account_emailLabel')}</Text>
               <Text>{license.customerEmail}</Text>
             </Box>
-            <Box gap={1}>
+            <Box gap={SPACING.xs}>
               <Text color={COLORS.muted}>{t('account_nameLabel')}</Text>
               <Text>{license.customerName}</Text>
             </Box>
-            <Box gap={1}>
+            <Box gap={SPACING.xs}>
               <Text color={COLORS.muted}>{t('account_planLabel')}</Text>
               <Text color={COLORS.success} bold>Pro</Text>
             </Box>
-            <Box gap={1}>
+            <Box gap={SPACING.xs}>
               <Text color={COLORS.muted}>{t('account_keyLabel')}</Text>
               <Text>{maskKey(license.key)}</Text>
             </Box>
             {license.expiresAt && (
-              <Box gap={1}>
+              <Box gap={SPACING.xs}>
                 <Text color={COLORS.muted}>{t('account_expiresLabel')}</Text>
                 <Text>{formatDate(license.expiresAt)}</Text>
               </Box>
             )}
-            <Box gap={1}>
+            <Box gap={SPACING.xs}>
               <Text color={COLORS.muted}>{t('account_activatedLabel')}</Text>
               <Text>{formatDate(license.activatedAt)}</Text>
             </Box>
@@ -124,7 +125,7 @@ export function AccountView() {
         )}
 
         {status === 'free' && (
-          <Box flexDirection="column" marginTop={2} borderStyle="round" borderColor={COLORS.brand} paddingX={2} paddingY={1}>
+          <Box flexDirection="column" marginTop={SPACING.sm} borderStyle="round" borderColor={COLORS.brand} paddingX={SPACING.sm} paddingY={SPACING.xs}>
             <Text bold color={COLORS.brand}>{'\u2B50'} {t('account_upgradeTitle')}</Text>
             <Text> </Text>
             <Text>{t('account_unlockDesc')}</Text>
@@ -136,8 +137,8 @@ export function AccountView() {
         )}
 
         {status === 'expired' && (
-          <Box marginTop={1}>
-            <Box borderStyle="round" borderColor={COLORS.error} paddingX={2} paddingY={0}>
+          <Box marginTop={SPACING.xs}>
+            <Box borderStyle="round" borderColor={COLORS.error} paddingX={SPACING.sm} paddingY={SPACING.none}>
               <Text color={COLORS.error}>{t('account_licenseExpired')}</Text>
             </Box>
           </Box>
@@ -148,14 +149,14 @@ export function AccountView() {
       </Box>
 
       {/* Promo code section */}
-      <Box flexDirection="column" marginTop={1} paddingLeft={2}>
+      <Box flexDirection="column" marginTop={SPACING.xs} paddingLeft={SPACING.sm}>
         {promoMode ? (
-          <Box flexDirection="column" gap={1}>
+          <Box flexDirection="column" gap={SPACING.xs}>
             <Text bold color={COLORS.gold}>{t('account_promoTitle')}</Text>
             {promoLoading ? (
               <Text color={COLORS.sky}>{t('account_promoValidating')}</Text>
             ) : (
-              <Box gap={1}>
+              <Box gap={SPACING.xs}>
                 <Text color={COLORS.muted}>{t('account_promoLabel')}</Text>
                 <TextInput
                   defaultValue=""
@@ -189,7 +190,7 @@ export function AccountView() {
         )}
       </Box>
 
-      <Box marginTop={1}>
+      <Box marginTop={SPACING.xs}>
         <Text color={COLORS.textSecondary}>
           {status === 'pro' ? `d ${t('hint_deactivate')}` : ''}
           {' '}{t('app_version', { version: process.env.APP_VERSION ?? '0.1.0' })}

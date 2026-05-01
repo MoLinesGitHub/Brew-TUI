@@ -17,6 +17,7 @@ import { t } from '../i18n/index.js';
 import { useModalStore } from '../stores/modal-store.js';
 import type { TranslationKey } from '../i18n/en.js';
 import type { HistoryAction, HistoryEntry } from '../lib/history/types.js';
+import { SPACING } from '../utils/spacing.js';
 
 const ACTION_ICONS: Record<HistoryAction, { icon: string; color: string }> = {
   install: { icon: '+', color: COLORS.success },
@@ -108,7 +109,7 @@ export function HistoryView() {
 
   return (
     <Box flexDirection="column">
-      <Box gap={2} marginBottom={1}>
+      <Box gap={SPACING.sm} marginBottom={SPACING.xs}>
         <SectionHeader emoji={'\u{1F4DC}'} title={t('history_title', { count: filtered.length })} gradient={GRADIENTS.gold} />
         <Text color={filter === 'all' ? COLORS.text : COLORS.gold}>
           {t('history_filterLabel', { filter })}
@@ -116,7 +117,7 @@ export function HistoryView() {
       </Box>
 
       {isSearching && (
-        <Box marginBottom={1}>
+        <Box marginBottom={SPACING.xs}>
           <SearchInput defaultValue={searchQuery} onChange={setSearchQuery} placeholder={t('history_searchPlaceholder')} isActive />
         </Box>
       )}
@@ -154,7 +155,7 @@ export function HistoryView() {
       )}
 
       {(stream.isRunning || stream.lines.length > 0) && (
-        <Box marginY={1}>
+        <Box marginY={SPACING.xs}>
           <ProgressLog lines={stream.lines} isRunning={stream.isRunning} title={t('hint_replay')} />
         </Box>
       )}
@@ -194,7 +195,7 @@ export function HistoryView() {
             <Text color={COLORS.textSecondary} dimColor>  {t('scroll_moreBelow', { count: filtered.length - start - MAX_VISIBLE_ROWS })}</Text>
           )}
 
-          <Box marginTop={1}>
+          <Box marginTop={SPACING.xs}>
             <Text color={COLORS.text} bold>
               {cursor + 1}/{filtered.length}
             </Text>

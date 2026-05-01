@@ -13,6 +13,7 @@ import { COLORS } from '../utils/colors.js';
 import { GRADIENTS } from '../utils/gradient.js';
 import { t } from '../i18n/index.js';
 import type { DriftReport } from '../lib/brewfile/types.js';
+import { SPACING } from '../utils/spacing.js';
 
 type Phase = 'overview' | 'creating' | 'confirming-reconcile' | 'reconciling' | 'result';
 
@@ -36,7 +37,7 @@ function DriftScore({ score }: { score: number }) {
 
 function DriftSummary({ drift }: { drift: DriftReport }) {
   return (
-    <Box flexDirection="column" marginTop={1}>
+    <Box flexDirection="column" marginTop={SPACING.xs}>
       {drift.missingPackages.length > 0 && (
         <Box>
           <Text color={COLORS.error}>● </Text>
@@ -189,9 +190,9 @@ export function BrewfileView() {
   // ── Phase: creating ──
   if (phase === 'creating') {
     return (
-      <Box flexDirection="column" marginTop={1}>
+      <Box flexDirection="column" marginTop={SPACING.xs}>
         <SectionHeader emoji="📦" title={t('brewfile_title')} gradient={GRADIENTS.ocean} />
-        <Box marginTop={1}>
+        <Box marginTop={SPACING.xs}>
           <Text color={COLORS.textSecondary}>{t('brewfile_create_name')} </Text>
           <TextInput
             defaultValue="My Environment"
@@ -224,12 +225,12 @@ export function BrewfileView() {
   // ── Phase: result ──
   if (phase === 'result') {
     return (
-      <Box flexDirection="column" marginTop={1}>
+      <Box flexDirection="column" marginTop={SPACING.xs}>
         <ResultBanner
           status={streamError ? 'error' : 'success'}
           message={resultMessage}
         />
-        <Box marginTop={1}>
+        <Box marginTop={SPACING.xs}>
           <Text color={COLORS.textSecondary}>r:{t('hint_refresh')}  esc:{t('hint_back')}</Text>
         </Box>
       </Box>
@@ -242,16 +243,16 @@ export function BrewfileView() {
       <SectionHeader emoji="📦" title={t('brewfile_title')} gradient={GRADIENTS.ocean} />
 
       {schema === null ? (
-        <Box marginTop={1} flexDirection="column">
+        <Box marginTop={SPACING.xs} flexDirection="column">
           <ResultBanner status="info" message={t('brewfile_no_brewfile')} />
-          <Box marginTop={1}>
+          <Box marginTop={SPACING.xs}>
             <Text color={COLORS.textSecondary}>n:{t('hint_new')}</Text>
           </Box>
         </Box>
       ) : (
-        <Box flexDirection="column" marginTop={1}>
+        <Box flexDirection="column" marginTop={SPACING.xs}>
           {/* Brewfile metadata */}
-          <Box gap={2}>
+          <Box gap={SPACING.sm}>
             <Text color={COLORS.text} bold>{schema.meta.name}</Text>
             {schema.meta.description && (
               <Text color={COLORS.textSecondary}>{schema.meta.description}</Text>
@@ -262,7 +263,7 @@ export function BrewfileView() {
           </Box>
 
           {/* Package counts */}
-          <Box gap={3} marginTop={1}>
+          <Box gap={SPACING.md} marginTop={SPACING.xs}>
             <Text color={COLORS.sky}>
               {t('brewfile_formulae_count', { count: schema.formulae.length })}
             </Text>
@@ -273,19 +274,19 @@ export function BrewfileView() {
 
           {/* Drift score */}
           {driftLoading && (
-            <Box marginTop={1}>
+            <Box marginTop={SPACING.xs}>
               <Text color={COLORS.muted}>{t('brewfile_computing_drift')}</Text>
             </Box>
           )}
           {drift && !driftLoading && (
-            <Box flexDirection="column" marginTop={1}>
+            <Box flexDirection="column" marginTop={SPACING.xs}>
               <DriftScore score={drift.score} />
               <DriftSummary drift={drift} />
             </Box>
           )}
 
           {/* Keyboard hints */}
-          <Box marginTop={1}>
+          <Box marginTop={SPACING.xs}>
             <Text color={COLORS.textSecondary}>
               r:{t('hint_refresh')}
               {drift && (drift.missingPackages.length > 0 || drift.wrongVersions.length > 0)

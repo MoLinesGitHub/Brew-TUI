@@ -3,6 +3,7 @@ import { Box, Text, useInput } from 'ink';
 import { COLORS } from '../../utils/colors.js';
 import { t, useLocaleStore } from '../../i18n/index.js';
 import { useModalStore } from '../../stores/modal-store.js';
+import { SPACING } from '../../utils/spacing.js';
 
 interface ConfirmDialogProps {
   message: string;
@@ -27,9 +28,9 @@ export function ConfirmDialog({ message, onConfirm, onCancel }: ConfirmDialogPro
   });
 
   return (
-    <Box borderStyle="double" borderColor={COLORS.purple} paddingX={2} paddingY={1} flexDirection="column">
+    <Box borderStyle="double" borderColor={COLORS.purple} paddingX={SPACING.sm} paddingY={SPACING.xs} flexDirection="column">
       <Text bold color={COLORS.text}>{message}</Text>
-      <Box marginTop={1}>
+      <Box marginTop={SPACING.xs}>
         <Text color={COLORS.success}>{t('confirm_yes')}</Text>
         <Text> / </Text>
         <Text color={COLORS.error}>{t('confirm_no')}</Text>

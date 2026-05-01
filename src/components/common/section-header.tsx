@@ -2,6 +2,7 @@ import React from 'react';
 import { Box, Text } from 'ink';
 import { COLORS } from '../../utils/colors.js';
 import { GradientText } from '../../utils/gradient.js';
+import { SPACING } from '../../utils/spacing.js';
 
 interface SectionHeaderProps {
   emoji: string;
@@ -13,7 +14,7 @@ interface SectionHeaderProps {
 
 export function SectionHeader({ emoji, title, color = COLORS.gold, gradient, count }: SectionHeaderProps) {
   return (
-    <Box gap={1}>
+    <Box gap={SPACING.xs}>
       <Text>{emoji} </Text>
       {gradient ? (
         <GradientText colors={gradient} bold>{title}</GradientText>

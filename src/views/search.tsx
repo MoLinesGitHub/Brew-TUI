@@ -13,6 +13,7 @@ import { t } from '../i18n/index.js';
 import { useModalStore } from '../stores/modal-store.js';
 import { useNavigationStore } from '../stores/navigation-store.js';
 import * as api from '../lib/brew-api.js';
+import { SPACING } from '../utils/spacing.js';
 
 export function SearchView() {
   const [query, setQuery] = useState('');
@@ -123,7 +124,7 @@ export function SearchView() {
           <Text color={COLORS.textSecondary}>esc:{t('hint_cancel')}</Text>
         )}
         {!stream.isRunning && (
-          <Box flexDirection="column" marginTop={1}>
+          <Box flexDirection="column" marginTop={SPACING.xs}>
             <ResultBanner
               status={stream.error ? 'error' : 'success'}
               message={stream.error ? `\u2718 ${stream.error}` : `\u2714 ${t('search_installComplete')}`}
@@ -137,7 +138,7 @@ export function SearchView() {
 
   return (
     <Box flexDirection="column">
-      <Box marginBottom={1}>
+      <Box marginBottom={SPACING.xs}>
         <Text color={COLORS.gold}>{'\u{1F50D}'} </Text>
         {!results ? (
           <TextInput
@@ -154,7 +155,7 @@ export function SearchView() {
       {searching && <Loading message={t('loading_searching')} />}
 
       {searchError && (
-        <Box marginBottom={1}>
+        <Box marginBottom={SPACING.xs}>
           <Text color={COLORS.error}>{searchError}</Text>
         </Box>
       )}
@@ -175,7 +176,7 @@ export function SearchView() {
       {results && !searching && !confirmInstall && (
         <Box flexDirection="column">
           {visibleFormulae.length > 0 && (
-            <Box flexDirection="column" marginBottom={1}>
+            <Box flexDirection="column" marginBottom={SPACING.xs}>
               <Text bold color={COLORS.info}>{t('search_formulaeHeader', { count: results.formulae.length })}</Text>
               {visibleFormulae.map((name, i) => {
                 const isCurrent = i === cursor;
@@ -210,12 +211,12 @@ export function SearchView() {
           )}
 
           {allVisible.length === 0 && (
-            <Box borderStyle="round" borderColor={COLORS.textSecondary} paddingX={2}>
+            <Box borderStyle="round" borderColor={COLORS.textSecondary} paddingX={SPACING.sm}>
               <Text color={COLORS.textSecondary} italic>{t('search_noResults')}</Text>
             </Box>
           )}
 
-          <Box marginTop={1}>
+          <Box marginTop={SPACING.xs}>
             <Text color={COLORS.text} bold>
               {allVisible.length > 0 ? `${cursor + 1}/${allVisible.length}` : ''}
             </Text>

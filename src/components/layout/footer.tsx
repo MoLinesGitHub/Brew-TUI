@@ -5,6 +5,7 @@ import { COLORS } from '../../utils/colors.js';
 import { t, useLocaleStore } from '../../i18n/index.js';
 import type { ViewId } from '../../lib/types.js';
 import type { TranslationKey } from '../../i18n/en.js';
+import { SPACING } from '../../utils/spacing.js';
 
 type HintDef = [key: string, action: TranslationKey] | [text: TranslationKey];
 
@@ -44,7 +45,7 @@ export function Footer() {
   const defs = VIEW_HINT_DEFS[currentView] ?? [];
 
   return (
-    <Box borderStyle="single" borderTop borderBottom={false} borderLeft={false} borderRight={false} borderColor={COLORS.gold} paddingX={1} flexWrap="wrap">
+    <Box borderStyle="single" borderTop borderBottom={false} borderLeft={false} borderRight={false} borderColor={COLORS.gold} paddingX={SPACING.xs} flexWrap="wrap">
       {defs.map((def, i) => {
         const key = def.length === 1 ? def[0] : `${def[0]}:${def[1]}`;
         return (

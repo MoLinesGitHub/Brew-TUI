@@ -12,6 +12,7 @@ import { COLORS } from '../utils/colors.js';
 import { GRADIENTS } from '../utils/gradient.js';
 import { t } from '../i18n/index.js';
 import type { SyncConflict } from '../lib/sync/types.js';
+import { SPACING } from '../utils/spacing.js';
 
 type Phase = 'overview' | 'confirming-sync' | 'syncing' | 'conflicts' | 'confirming-apply' | 'result';
 
@@ -39,14 +40,14 @@ function OverviewSection({
   const showComplianceHint = !hasConflicts && !!lastResult?.success;
 
   return (
-    <Box flexDirection="column" marginTop={1}>
+    <Box flexDirection="column" marginTop={SPACING.xs}>
       {config ? (
         <>
-          <Box marginBottom={1}>
+          <Box marginBottom={SPACING.xs}>
             <Text color={COLORS.textSecondary}>{t('sync_machine', { name: config.machineName })}</Text>
           </Box>
           {config.lastSync && (
-            <Box marginBottom={1}>
+            <Box marginBottom={SPACING.xs}>
               <Text color={COLORS.textSecondary}>
                 {t('sync_last_sync', { date: new Date(config.lastSync).toLocaleString() })}
               </Text>
@@ -62,12 +63,12 @@ function OverviewSection({
           ) : null}
         </>
       ) : (
-        <Box marginBottom={1}>
+        <Box marginBottom={SPACING.xs}>
           <Text color={COLORS.textSecondary}>{t('sync_disabled')}</Text>
         </Box>
       )}
 
-      <Box marginTop={1}>
+      <Box marginTop={SPACING.xs}>
         <Text color={COLORS.textSecondary}>
           {'s'}<Text color={COLORS.gold}>:{t('hint_sync')}</Text>
           {hasConflicts && (
@@ -94,19 +95,19 @@ function ConflictsList({
   cursor: number;
 }) {
   return (
-    <Box flexDirection="column" marginTop={1}>
+    <Box flexDirection="column" marginTop={SPACING.xs}>
       {entries.map((entry, i) => {
         const { conflict, resolution } = entry;
         const isActive = i === cursor;
         return (
-          <Box key={`${conflict.packageName}-${conflict.remoteMachine}`} flexDirection="column" marginBottom={1}>
+          <Box key={`${conflict.packageName}-${conflict.remoteMachine}`} flexDirection="column" marginBottom={SPACING.xs}>
             <SelectableRow isCurrent={isActive}>
               <Text bold color={isActive ? COLORS.text : COLORS.textSecondary}>
                 {t('sync_conflict_title', { package: conflict.packageName })}
               </Text>
               <Text color={COLORS.muted}> ({conflict.packageType})</Text>
             </SelectableRow>
-            <Box marginLeft={2} flexDirection="column">
+            <Box marginLeft={SPACING.sm} flexDirection="column">
               <Text
                 color={resolution === 'use-local' ? COLORS.success : COLORS.textSecondary}
               >
@@ -123,7 +124,7 @@ function ConflictsList({
           </Box>
         );
       })}
-      <Box marginTop={1}>
+      <Box marginTop={SPACING.xs}>
         <Text color={COLORS.textSecondary}>
           j/k:{t('hint_navigate')}  l:{t('sync_conflict_use_local')}  r:{t('sync_conflict_use_remote')}  enter:{t('hint_apply')}  esc:{t('hint_back')}
         </Text>
@@ -277,9 +278,9 @@ export function SyncView() {
   if (phase === 'result') {
     const isError = !!(syncError ?? error);
     return (
-      <Box flexDirection="column" marginTop={1}>
+      <Box flexDirection="column" marginTop={SPACING.xs}>
         <SectionHeader emoji="🔄" title={t('sync_title')} gradient={GRADIENTS.gold} />
-        <Box marginTop={1}>
+        <Box marginTop={SPACING.xs}>
           <ResultBanner
             status={isError ? 'error' : 'success'}
             message={
@@ -289,7 +290,7 @@ export function SyncView() {
             }
           />
         </Box>
-        <Box marginTop={1}>
+        <Box marginTop={SPACING.xs}>
           <Text color={COLORS.textSecondary}>r:{t('hint_refresh')}  esc:{t('hint_back')}</Text>
         </Box>
       </Box>
@@ -301,7 +302,7 @@ export function SyncView() {
       <SectionHeader emoji="🔄" title={t('sync_title')} gradient={GRADIENTS.gold} />
 
       {error && phase === 'overview' && (
-        <Box marginTop={1}>
+        <Box marginTop={SPACING.xs}>
           <ResultBanner status="error" message={t('sync_error', { error })} />
         </Box>
       )}

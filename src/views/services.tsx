@@ -9,6 +9,7 @@ import { SectionHeader } from '../components/common/section-header.js';
 import { COLORS } from '../utils/colors.js';
 import { GRADIENTS } from '../utils/gradient.js';
 import { t } from '../i18n/index.js';
+import { SPACING } from '../utils/spacing.js';
 
 const STATUS_VARIANTS = {
   started: 'success',
@@ -89,7 +90,7 @@ export function ServicesView() {
       <SectionHeader emoji={'\u2699\uFE0F'} title={t('services_titleCount', { count: services.length })} gradient={GRADIENTS.ocean} />
 
       {confirmAction && (
-        <Box marginY={1}>
+        <Box marginY={SPACING.xs}>
           <ConfirmDialog
             message={
               confirmAction.type === 'stop'
@@ -115,8 +116,8 @@ export function ServicesView() {
         </Box>
       )}
 
-      <Box flexDirection="column" marginTop={1}>
-        <Box gap={1} borderStyle="single" borderBottom borderTop={false} borderLeft={false} borderRight={false} borderColor={COLORS.border} paddingBottom={0}>
+      <Box flexDirection="column" marginTop={SPACING.xs}>
+        <Box gap={SPACING.xs} borderStyle="single" borderBottom borderTop={false} borderLeft={false} borderRight={false} borderColor={COLORS.border} paddingBottom={SPACING.none}>
           <Text bold color={COLORS.text}>{'  '}{t('services_name').padEnd(svcNameWidth)}</Text>
           <Text bold color={COLORS.text}>{t('services_status').padEnd(svcStatusWidth)}</Text>
           <Text bold color={COLORS.text}>{t('services_user')}</Text>
@@ -152,12 +153,12 @@ export function ServicesView() {
 
       {/* SCR-014: Persistent error display */}
       {lastError && (
-        <Box marginTop={1}>
+        <Box marginTop={SPACING.xs}>
           <Text color={COLORS.error}>{lastError}</Text>
         </Box>
       )}
 
-      <Box marginTop={1}>
+      <Box marginTop={SPACING.xs}>
         <Text color={COLORS.text} bold>
           {cursor + 1}/{services.length}
         </Text>

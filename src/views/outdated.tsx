@@ -16,6 +16,7 @@ import { GRADIENTS } from '../utils/gradient.js';
 import { t } from '../i18n/index.js';
 import { useDebounce } from '../hooks/use-debounce.js';
 import type { UpgradeImpact } from '../lib/impact/types.js';
+import { SPACING } from '../utils/spacing.js';
 
 function ImpactPanel({ impact }: { impact: UpgradeImpact }) {
   const riskColor =
@@ -34,7 +35,7 @@ function ImpactPanel({ impact }: { impact: UpgradeImpact }) {
     : '\u2713';
 
   return (
-    <Box flexDirection="column" marginTop={1} borderStyle="round" borderColor={riskColor} paddingX={2} paddingY={0}>
+    <Box flexDirection="column" marginTop={SPACING.xs} borderStyle="round" borderColor={riskColor} paddingX={SPACING.sm} paddingY={SPACING.none}>
       <Box>
         <Text bold color={riskColor}>{riskIcon} {riskLabel}</Text>
         {impact.reverseDeps.length > 0 && (
@@ -160,8 +161,8 @@ export function OutdatedView() {
           <Text color={COLORS.textSecondary}>esc:{t('hint_cancel')}</Text>
         )}
         {!stream.isRunning && (
-          <Box flexDirection="column" marginTop={1}>
-            <Box borderStyle="round" borderColor={stream.error ? COLORS.error : COLORS.success} paddingX={2} paddingY={0}>
+          <Box flexDirection="column" marginTop={SPACING.xs}>
+            <Box borderStyle="round" borderColor={stream.error ? COLORS.error : COLORS.success} paddingX={SPACING.sm} paddingY={SPACING.none}>
               <Text color={stream.error ? COLORS.error : COLORS.success} bold>
                 {stream.error ? `\u2718 ${stream.error}` : `\u2714 ${t('outdated_upgradeComplete')}`}
               </Text>
@@ -184,7 +185,7 @@ export function OutdatedView() {
       <SectionHeader emoji={'\u{1F4E6}'} title={t('outdated_title', { count: allOutdated.length })} gradient={GRADIENTS.fire} />
 
       {confirmAction && (
-        <Box marginY={1}>
+        <Box marginY={SPACING.xs}>
           <ConfirmDialog
             message={
               confirmAction.type === 'all'
@@ -206,13 +207,13 @@ export function OutdatedView() {
       )}
 
       {allOutdated.length === 0 && !confirmAction && (
-        <Box marginTop={1}>
+        <Box marginTop={SPACING.xs}>
           <ResultBanner status="success" message={`\u2714 ${t('outdated_upToDate')}`} />
         </Box>
       )}
 
       {allOutdated.length > 0 && !confirmAction && (
-        <Box flexDirection="column" marginTop={1}>
+        <Box flexDirection="column" marginTop={SPACING.xs}>
           {start > 0 && (
             <Text color={COLORS.textSecondary} dimColor>  {t('scroll_moreAbove', { count: start })}</Text>
           )}
@@ -233,7 +234,7 @@ export function OutdatedView() {
             <Text color={COLORS.textSecondary} dimColor>  {t('scroll_moreBelow', { count: allOutdated.length - start - MAX_VISIBLE_ROWS })}</Text>
           )}
 
-          <Box marginTop={1}>
+          <Box marginTop={SPACING.xs}>
             <Text color={COLORS.text} bold>
               {cursor + 1}/{allOutdated.length}
             </Text>
@@ -243,12 +244,12 @@ export function OutdatedView() {
             <ImpactPanel impact={impact} />
           )}
           {impactLoading && !stream.isRunning && !confirmAction && (
-            <Box marginTop={1}>
+            <Box marginTop={SPACING.xs}>
               <Text color={COLORS.textSecondary}>{t('impact_analyzing')}</Text>
             </Box>
           )}
 
-          <Box marginTop={1}>
+          <Box marginTop={SPACING.xs}>
             <Text color={COLORS.textSecondary}>{t('impact_hint')}</Text>
           </Box>
         </Box>

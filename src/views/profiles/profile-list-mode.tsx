@@ -6,6 +6,7 @@ import { COLORS } from '../../utils/colors.js';
 import { SelectableRow } from '../../components/common/selectable-row.js';
 import { GRADIENTS } from '../../utils/gradient.js';
 import { t } from '../../i18n/index.js';
+import { SPACING } from '../../utils/spacing.js';
 
 interface ProfileListModeProps {
   profileNames: string[];
@@ -23,13 +24,13 @@ export function ProfileListMode({ profileNames, cursor, confirmDelete, loadError
 
       {/* SCR-004: Display load errors */}
       {loadError && (
-        <Box marginY={1}>
+        <Box marginY={SPACING.xs}>
           <Text color={COLORS.error}>{loadError}</Text>
         </Box>
       )}
 
       {confirmDelete && profileNames[cursor] && (
-        <Box marginY={1}>
+        <Box marginY={SPACING.xs}>
           <ConfirmDialog
             message={t('profiles_confirmDelete', { name: profileNames[cursor] })}
             onConfirm={onConfirmDelete}
@@ -39,7 +40,7 @@ export function ProfileListMode({ profileNames, cursor, confirmDelete, loadError
       )}
 
       {profileNames.length === 0 && !confirmDelete && (
-        <Box marginTop={1} borderStyle="round" borderColor={COLORS.textSecondary} paddingX={2} paddingY={0}>
+        <Box marginTop={SPACING.xs} borderStyle="round" borderColor={COLORS.textSecondary} paddingX={SPACING.sm} paddingY={SPACING.none}>
           <Box flexDirection="column">
             <Text color={COLORS.textSecondary} italic>{t('profiles_noProfiles')}</Text>
             <Text color={COLORS.muted}>{t('profiles_press')} <Text color={COLORS.gold} bold>n</Text> {t('profiles_exportHint')}</Text>
@@ -48,7 +49,7 @@ export function ProfileListMode({ profileNames, cursor, confirmDelete, loadError
       )}
 
       {profileNames.length > 0 && !confirmDelete && (
-        <Box flexDirection="column" marginTop={1}>
+        <Box flexDirection="column" marginTop={SPACING.xs}>
           {profileNames.map((name, i) => {
             const isCurrent = i === cursor;
             return (
@@ -57,7 +58,7 @@ export function ProfileListMode({ profileNames, cursor, confirmDelete, loadError
               </SelectableRow>
             );
           })}
-          <Box marginTop={1}>
+          <Box marginTop={SPACING.xs}>
             <Text color={COLORS.text} bold>{cursor + 1}/{profileNames.length}</Text>
           </Box>
         </Box>

@@ -38,6 +38,15 @@ export default [
     },
   },
   {
+    // Test files legitimately use `any` for partial Zustand store mocks and
+    // for casting setState args without recreating the full store types.
+    // Keep the rule on for production code; relax it here.
+    files: ['src/**/*.test.{ts,tsx}'],
+    rules: {
+      '@typescript-eslint/no-explicit-any': 'off',
+    },
+  },
+  {
     ignores: ['build/**', 'node_modules/**'],
   },
 ];

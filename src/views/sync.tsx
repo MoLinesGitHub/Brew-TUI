@@ -7,12 +7,13 @@ import { ResultBanner } from '../components/common/result-banner.js';
 import { SectionHeader } from '../components/common/section-header.js';
 import { SelectableRow } from '../components/common/selectable-row.js';
 import { Loading } from '../components/common/loading.js';
+import { ConfirmDialog } from '../components/common/confirm-dialog.js';
 import { COLORS } from '../utils/colors.js';
 import { GRADIENTS } from '../utils/gradient.js';
 import { t } from '../i18n/index.js';
 import type { SyncConflict } from '../lib/sync/types.js';
 
-type Phase = 'overview' | 'syncing' | 'conflicts' | 'result';
+type Phase = 'overview' | 'confirming-sync' | 'syncing' | 'conflicts' | 'confirming-apply' | 'result';
 
 type ConflictResolution = 'use-local' | 'use-remote' | 'pending';
 
@@ -124,7 +125,7 @@ function ConflictsList({
       })}
       <Box marginTop={1}>
         <Text color={COLORS.textSecondary}>
-          j/k:navegar  l:{t('sync_conflict_use_local')}  r:{t('sync_conflict_use_remote')}  enter:aplicar
+          j/k:{t('hint_navigate')}  l:{t('sync_conflict_use_local')}  r:{t('sync_conflict_use_remote')}  enter:{t('hint_apply')}  esc:{t('hint_back')}
         </Text>
       </Box>
     </Box>
@@ -186,6 +187,7 @@ export function SyncView() {
 
   useInput((input, key) => {
     if (phase === 'syncing') return;
+    if (phase === 'confirming-sync' || phase === 'confirming-apply') return;
 
     if (phase === 'result') {
       if (key.escape || input === 'r') {
@@ -222,14 +224,15 @@ export function SyncView() {
       }
 
       if (key.return) {
-        void handleApplyResolutions();
+        const pending = conflictEntries.filter((e) => e.resolution === 'pending');
+        if (pending.length === 0) setPhase('confirming-apply');
         return;
       }
     }
 
     // phase === 'overview'
     if (input === 's') {
-      void handleSyncNow();
+      setPhase('confirming-sync');
       return;
     }
     if (input === 'c' && conflicts.length > 0) {
@@ -246,6 +249,26 @@ export function SyncView() {
       return;
     }
   });
+
+  if (phase === 'confirming-sync') {
+    return (
+      <ConfirmDialog
+        message={t('confirm_sync_now')}
+        onConfirm={() => { void handleSyncNow(); }}
+        onCancel={() => { setPhase('overview'); }}
+      />
+    );
+  }
+
+  if (phase === 'confirming-apply') {
+    return (
+      <ConfirmDialog
+        message={t('confirm_sync_apply', { count: String(conflictEntries.length) })}
+        onConfirm={() => { void handleApplyResolutions(); }}
+        onCancel={() => { setPhase('conflicts'); }}
+      />
+    );
+  }
 
   if (phase === 'syncing' || loading) {
     return <Loading message={t('sync_syncing')} />;

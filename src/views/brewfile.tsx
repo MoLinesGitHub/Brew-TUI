@@ -8,12 +8,13 @@ import { Loading, ErrorMessage } from '../components/common/loading.js';
 import { ProgressLog } from '../components/common/progress-log.js';
 import { ResultBanner } from '../components/common/result-banner.js';
 import { SectionHeader } from '../components/common/section-header.js';
+import { ConfirmDialog } from '../components/common/confirm-dialog.js';
 import { COLORS } from '../utils/colors.js';
 import { GRADIENTS } from '../utils/gradient.js';
 import { t } from '../i18n/index.js';
 import type { DriftReport } from '../lib/brewfile/types.js';
 
-type Phase = 'overview' | 'creating' | 'reconciling' | 'result';
+type Phase = 'overview' | 'creating' | 'confirming-reconcile' | 'reconciling' | 'result';
 
 // ── DriftScore ────────────────────────────────────────────────────────────────
 
@@ -67,7 +68,7 @@ function DriftSummary({ drift }: { drift: DriftReport }) {
       {drift.missingPackages.length === 0 &&
         drift.extraPackages.length === 0 &&
         drift.wrongVersions.length === 0 && (
-          <ResultBanner status="success" message="✓ System is in sync with Brewfile" />
+          <ResultBanner status="success" message={t('brewfile_in_sync')} />
         )}
     </Box>
   );
@@ -131,6 +132,7 @@ export function BrewfileView() {
 
   useInput((input, key) => {
     if (phase === 'reconciling') return;
+    if (phase === 'confirming-reconcile') return; // ConfirmDialog handles input
 
     if (phase === 'result') {
       if (key.escape || input === 'r') {
@@ -158,7 +160,7 @@ export function BrewfileView() {
           drift.wrongVersions.length > 0
         );
       if (needsReconcile) {
-        void startReconcile();
+        setPhase('confirming-reconcile');
       }
       return;
     }
@@ -169,6 +171,20 @@ export function BrewfileView() {
 
   if (loading) return <Loading message={t('loading_default')} />;
   if (error) return <ErrorMessage message={error} />;
+
+  // ── Phase: confirming-reconcile ──
+  if (phase === 'confirming-reconcile' && drift) {
+    return (
+      <ConfirmDialog
+        message={t('confirm_brewfile_reconcile', {
+          missing: String(drift.missingPackages.length),
+          wrongVer: String(drift.wrongVersions.length),
+        })}
+        onConfirm={() => { void startReconcile(); }}
+        onCancel={() => { setPhase('overview'); }}
+      />
+    );
+  }
 
   // ── Phase: creating ──
   if (phase === 'creating') {
@@ -258,7 +274,7 @@ export function BrewfileView() {
           {/* Drift score */}
           {driftLoading && (
             <Box marginTop={1}>
-              <Text color={COLORS.muted}>Computing drift...</Text>
+              <Text color={COLORS.muted}>{t('brewfile_computing_drift')}</Text>
             </Box>
           )}
           {drift && !driftLoading && (

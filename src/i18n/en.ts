@@ -62,6 +62,7 @@ const en = {
   hint_add: 'add',
   hint_reconcile: 'reconcile',
   hint_export: 'export',
+  hint_apply: 'apply',
   hint_select: 'select',
   hint_sync: 'sync now',
   hint_conflict: 'resolve',
@@ -87,6 +88,10 @@ const en = {
   // ── Confirm dialog ──
   confirm_yes: '[Y]es',
   confirm_no: '[N]o',
+  confirm_brewfile_reconcile: 'Reconcile Brewfile? Will install {{missing}} missing and reinstall {{wrongVer}} mismatched packages.',
+  confirm_sync_now: 'Sync now with iCloud? This pushes local state and pulls remote changes.',
+  confirm_sync_apply: 'Apply {{count}} conflict resolution(s)? Selected versions will be installed.',
+  confirm_compliance_remediate: 'Remediate {{count}} actionable violation(s)? Will install missing packages and align mismatched versions.',
 
   // ── Error ──
   error_prefix: 'Error: ',
@@ -499,6 +504,8 @@ const en = {
   brewfile_formulae_count: '{{count}} formulae',
   brewfile_casks_count: '{{count}} casks',
   brewfile_strict_mode: 'Strict mode',
+  brewfile_in_sync: '✓ System is in sync with Brewfile',
+  brewfile_computing_drift: 'Computing drift...',
 
   // ── Compliance ──
   view_compliance: 'Compliance',

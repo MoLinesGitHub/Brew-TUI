@@ -64,6 +64,7 @@ const es: Translations = {
   hint_add: 'a\u00F1adir',
   hint_reconcile: 'reconciliar',
   hint_export: 'exportar',
+  hint_apply: 'aplicar',
   hint_select: 'seleccionar',
   hint_sync: 'sincronizar',
   hint_conflict: 'resolver',
@@ -89,6 +90,10 @@ const es: Translations = {
   // ── Confirm dialog ──
   confirm_yes: '[S]\u00ED',
   confirm_no: '[N]o',
+  confirm_brewfile_reconcile: '¿Reconciliar Brewfile? Instalará {{missing}} paquetes faltantes y reinstalará {{wrongVer}} con versión incorrecta.',
+  confirm_sync_now: '¿Sincronizar ahora con iCloud? Se subirá el estado local y se descargarán los cambios remotos.',
+  confirm_sync_apply: '¿Aplicar {{count}} resolución(es) de conflicto? Se instalarán las versiones seleccionadas.',
+  confirm_compliance_remediate: '¿Remediar {{count}} violación(es) accionable(s)? Se instalarán los paquetes faltantes y se alinearán las versiones desviadas.',
 
   // ── Error ──
   error_prefix: 'Error: ',
@@ -501,6 +506,8 @@ const es: Translations = {
   brewfile_formulae_count: '{{count}} formulae',
   brewfile_casks_count: '{{count}} casks',
   brewfile_strict_mode: 'Modo estricto',
+  brewfile_in_sync: '✓ El sistema coincide con el Brewfile',
+  brewfile_computing_drift: 'Calculando deriva...',
 
   // ── Compliance ──
   view_compliance: 'Compliance',

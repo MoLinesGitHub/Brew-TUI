@@ -9,6 +9,7 @@ import { ResultBanner } from '../components/common/result-banner.js';
 import { SectionHeader } from '../components/common/section-header.js';
 import { ProgressLog } from '../components/common/progress-log.js';
 import { Loading } from '../components/common/loading.js';
+import { ConfirmDialog } from '../components/common/confirm-dialog.js';
 import { COLORS } from '../utils/colors.js';
 import { GRADIENTS } from '../utils/gradient.js';
 import { t } from '../i18n/index.js';
@@ -16,7 +17,7 @@ import { DATA_DIR } from '../lib/data-dir.js';
 import { join } from 'node:path';
 import type { ComplianceReport, ComplianceViolation } from '../lib/compliance/types.js';
 
-type Phase = 'overview' | 'importing' | 'remediating' | 'result';
+type Phase = 'overview' | 'importing' | 'confirming-remediate' | 'remediating' | 'result';
 
 function ComplianceScore({ report }: { report: ComplianceReport }) {
   const color =
@@ -172,6 +173,7 @@ export function ComplianceView() {
 
   useInput((input, key) => {
     if (phase === 'remediating' || phase === 'importing') return;
+    if (phase === 'confirming-remediate') return;
 
     if (phase === 'result') {
       if (key.escape || input === 'r') {
@@ -199,11 +201,24 @@ export function ComplianceView() {
         (v) => v.type === 'missing' || v.type === 'wrong-version',
       );
       if (actionable.length > 0) {
-        void handleRemediate();
+        setPhase('confirming-remediate');
       }
       return;
     }
   });
+
+  if (phase === 'confirming-remediate' && report) {
+    const actionable = report.violations.filter(
+      (v) => v.type === 'missing' || v.type === 'wrong-version',
+    );
+    return (
+      <ConfirmDialog
+        message={t('confirm_compliance_remediate', { count: String(actionable.length) })}
+        onConfirm={() => { void handleRemediate(); }}
+        onCancel={() => { setPhase('overview'); }}
+      />
+    );
+  }
 
   if (phase === 'remediating' || (loading && phase !== 'importing')) {
     if (phase === 'remediating') {

@@ -35,8 +35,8 @@ describe('watermark: getWatermark', () => {
     expect(getWatermark(license, true)).toBe('Licensed to: user@example.com');
   });
 
-  it('defaults consent to true (legacy callsites)', () => {
-    expect(getWatermark(license)).toBe('Licensed to: user@example.com');
+  it('defaults consent to false (BK-014: privacy-safe by default)', () => {
+    expect(getWatermark(license)).toBe('');
   });
 });
 

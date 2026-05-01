@@ -14,14 +14,31 @@ function validatePackageName(name: string): void {
 }
 
 export async function brewUpdate(): Promise<void> {
-  // Run brew update WITHOUT HOMEBREW_NO_AUTO_UPDATE so it actually fetches
+  // Run brew update WITHOUT HOMEBREW_NO_AUTO_UPDATE so it actually fetches.
+  // BK-016: enforce a 120s ceiling — without one, a stalled brew tap fetch
+  // could hang fetchAll() indefinitely.
   return new Promise((resolve, reject) => {
     const proc = spawn('brew', ['update'], { stdio: 'ignore' });
+    let settled = false;
+    const timeout = setTimeout(() => {
+      if (settled) return;
+      settled = true;
+      proc.kill('SIGTERM');
+      reject(new Error('brew update timed out after 120s'));
+    }, 120_000);
     proc.on('close', (code) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timeout);
       if (code === 0) resolve();
       else reject(new Error(`brew update exited with code ${code}`));
     });
-    proc.on('error', reject);
+    proc.on('error', (err) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timeout);
+      reject(err);
+    });
   });
 }
 

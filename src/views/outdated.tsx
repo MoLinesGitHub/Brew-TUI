@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Box, Text, useInput, useStdout } from 'ink';
 import { useBrewStore } from '../stores/brew-store.js';
 import { useBrewStream } from '../hooks/use-brew-stream.js';
@@ -79,11 +79,16 @@ export function OutdatedView() {
     }
   }, [stream.isRunning, stream.error]);
 
-  // Enrich packages with type so formula/cask distinction is available
-  const allOutdated = [
-    ...outdated.formulae.map((p) => ({ ...p, type: 'formula' as const })),
-    ...outdated.casks.map((p) => ({ ...p, type: 'cask' as const })),
-  ];
+  // Enrich packages with type so formula/cask distinction is available.
+  // useMemo: this list is read on every render to compute cursor bounds and
+  // the visible window; the underlying outdated arrays only change on refetch.
+  const allOutdated = useMemo(
+    () => [
+      ...outdated.formulae.map((p) => ({ ...p, type: 'formula' as const })),
+      ...outdated.casks.map((p) => ({ ...p, type: 'cask' as const })),
+    ],
+    [outdated.formulae, outdated.casks],
+  );
 
   const debouncedCursor = useDebounce(cursor, 150);
 

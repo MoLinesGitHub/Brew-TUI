@@ -65,6 +65,7 @@ const es: Translations = {
   hint_reconcile: 'reconciliar',
   hint_export: 'exportar',
   hint_apply: 'aplicar',
+  hint_revalidate: 'revalidar',
   hint_select: 'seleccionar',
   hint_sync: 'sincronizar',
   hint_conflict: 'resolver',
@@ -296,6 +297,7 @@ const es: Translations = {
   account_licenseExpired: 'Tu licencia ha expirado. Renueva para seguir usando las funciones Pro.',
   account_deactivating: 'Desactivando...',
   account_loading: 'Cargando estado de la licencia...',
+  account_revalidating: 'Revalidando con el servidor...',
   account_promoTitle: 'Canjear C\u00F3digo Promocional',
   account_promoLabel: 'C\u00F3digo:',
   account_promoValidating: 'Validando c\u00F3digo promocional...',
@@ -534,6 +536,12 @@ const es: Translations = {
   // ── Upgrade Prompt — Compliance ──
   upgrade_compliance: 'Conformidad de Equipo',
   upgrade_complianceDesc: 'Aplica políticas de paquetes en todo tu equipo. Define paquetes requeridos, prohibidos y con versión fijada, y remedia desviaciones automáticamente.',
+
+  // ── Upgrade Prompt — Rollback / Brewfile ──
+  upgrade_rollback: 'Rollback Inteligente',
+  upgrade_rollbackDesc: 'Restaura tu estado de Homebrew desde cualquier snapshot pasado. Brew-TUI captura un snapshot antes de cada install/upgrade para que revertir una actualización fallida sea una pulsación.',
+  upgrade_brewfile: 'Brewfile Declarativo',
+  upgrade_brewfileDesc: 'Fija tu toolchain en un Brewfile versionado y reconcilia cualquier máquina contra él. Score de deriva, detección de faltantes/sobrantes y alineación con una pulsación.',
 };
 
 export default es;

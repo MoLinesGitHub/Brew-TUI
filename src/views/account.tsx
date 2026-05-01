@@ -14,16 +14,17 @@ import { redeemPromoCode } from '../lib/license/promo.js';
 import { SPACING } from '../utils/spacing.js';
 
 export function AccountView() {
-  const { status, license, deactivate, degradation } = useLicenseStore();
+  const { status, license, deactivate, revalidate, degradation } = useLicenseStore();
   const [confirmDeactivate, setConfirmDeactivate] = useState(false);
   const [deactivating, setDeactivating] = useState(false);
   const [deactivateError, setDeactivateError] = useState<string | null>(null);
   const [promoMode, setPromoMode] = useState(false);
   const [promoLoading, setPromoLoading] = useState(false);
   const [promoResult, setPromoResult] = useState<{ success: boolean; message: string } | null>(null);
+  const [revalidating, setRevalidating] = useState(false);
 
   useInput((input, key) => {
-    if (confirmDeactivate || deactivating || promoMode) {
+    if (confirmDeactivate || deactivating || promoMode || revalidating) {
       if (key.escape && promoMode) {
         setPromoMode(false);
         setPromoResult(null);
@@ -37,6 +38,10 @@ export function AccountView() {
     if (input === 'p') {
       setPromoMode(true);
       setPromoResult(null);
+    }
+    if ((input === 'v' || input === 'V') && (status === 'pro' || status === 'team' || status === 'expired')) {
+      setRevalidating(true);
+      void revalidate().finally(() => setRevalidating(false));
     }
   });
 
@@ -192,7 +197,11 @@ export function AccountView() {
 
       <Box marginTop={SPACING.xs}>
         <Text color={COLORS.textSecondary}>
-          {status === 'pro' ? `d ${t('hint_deactivate')}` : ''}
+          {(status === 'pro' || status === 'team') ? `d ${t('hint_deactivate')}  ` : ''}
+          {(status === 'pro' || status === 'team' || status === 'expired')
+            ? `v ${t('hint_revalidate')}  `
+            : ''}
+          {revalidating ? t('account_revalidating') : ''}
           {' '}{t('app_version', { version: process.env.APP_VERSION ?? '0.1.0' })}
         </Text>
       </Box>

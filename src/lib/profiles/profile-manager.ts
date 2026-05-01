@@ -116,7 +116,7 @@ export async function exportCurrentSetup(isPro: boolean, name: string, descripti
     formulae: leaves,
     casks,
     taps,
-    exportedBy: consent ? getWatermark(license) : '', // SEG-003: Only embed watermark with consent
+    exportedBy: getWatermark(license, consent), // BK-014: explicit consent required (default false)
   };
 
   await saveProfile(isPro, profile);

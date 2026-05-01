@@ -14,6 +14,8 @@ const FEATURE_KEYS: Record<string, { title: TranslationKey; desc: TranslationKey
   'security-audit': { title: 'upgrade_security', desc: 'upgrade_securityDesc' },
   sync: { title: 'upgrade_sync', desc: 'upgrade_syncDesc' },
   compliance: { title: 'upgrade_compliance', desc: 'upgrade_complianceDesc' },
+  rollback: { title: 'upgrade_rollback', desc: 'upgrade_rollbackDesc' },
+  brewfile: { title: 'upgrade_brewfile', desc: 'upgrade_brewfileDesc' },
 };
 
 interface UpgradePromptProps {

@@ -63,6 +63,7 @@ const en = {
   hint_reconcile: 'reconcile',
   hint_export: 'export',
   hint_apply: 'apply',
+  hint_revalidate: 'revalidate',
   hint_select: 'select',
   hint_sync: 'sync now',
   hint_conflict: 'resolve',
@@ -295,6 +296,7 @@ const en = {
   account_licenseExpired: 'Your license has expired. Renew to continue using Pro features.',
   account_deactivating: 'Deactivating...',
   account_loading: 'Loading license status...',
+  account_revalidating: 'Revalidating with server...',
   account_promoTitle: 'Redeem Promo Code',
   account_promoLabel: 'Code:',
   account_promoValidating: 'Validating promo code...',
@@ -532,6 +534,12 @@ const en = {
   // ── Upgrade Prompt — Compliance ──
   upgrade_compliance: 'Team Compliance',
   upgrade_complianceDesc: 'Enforce package policies across your team. Define required, forbidden, and version-pinned packages and automatically remediate deviations.',
+
+  // ── Upgrade Prompt — Rollback / Brewfile ──
+  upgrade_rollback: 'Smart Rollback',
+  upgrade_rollbackDesc: 'Restore your Homebrew state from any past snapshot. Brew-TUI captures a snapshot before every install and upgrade so you can roll back a bad update with one keystroke.',
+  upgrade_brewfile: 'Declarative Brewfile',
+  upgrade_brewfileDesc: 'Pin your toolchain in a versioned Brewfile and reconcile any machine to it. Drift score, missing/extra detection and one-keystroke alignment.',
 };
 
 export default en;

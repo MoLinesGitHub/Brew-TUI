@@ -21,6 +21,7 @@ interface LicenseState {
   initialize: () => Promise<void>;
   activate: (key: string) => Promise<boolean>;
   deactivate: () => Promise<void>;
+  revalidate: () => Promise<void>;
   isPro: () => boolean;
   isTeam: () => boolean;
 }
@@ -118,6 +119,16 @@ export const useLicenseStore = create<LicenseState>((set, get) => ({
       }
     }
     set({ status: 'free', license: null, degradation: 'none', error: null });
+  },
+
+  revalidate: async () => {
+    const { license } = get();
+    if (!license) return;
+    try {
+      await doRevalidation(license, set);
+    } catch (err) {
+      set({ error: err instanceof Error ? err.message : String(err) });
+    }
   },
 
   // Team is a superset of Pro — team users have full Pro access plus team features.

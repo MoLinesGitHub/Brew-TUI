@@ -1,5 +1,5 @@
 import { readFile, writeFile, rename } from 'node:fs/promises';
-import { randomBytes } from 'node:crypto';
+import { randomBytes, randomUUID } from 'node:crypto';
 import { join } from 'node:path';
 import { DATA_DIR, ensureDataDirs, getMachineId } from '../data-dir.js';
 import { fetchWithTimeout } from '../fetch-timeout.js';
@@ -9,6 +9,19 @@ const PROMO_PATH = join(DATA_DIR, 'promo.json');
 
 // Promo API endpoint (self-hosted or Polar webhook)
 const PROMO_API_URL = 'https://api.molinesdesigns.com/api/promo';
+
+// BK-015: validate the promo URL before fetch — same defensive guardrail
+// the polar-api.ts path has had since SEG-001. Reject any non-HTTPS or any
+// host that isn't on the molinesdesigns.com domain.
+function validatePromoApiUrl(url: string): void {
+  const parsed = new URL(url);
+  if (parsed.protocol !== 'https:') {
+    throw new Error('HTTPS required for promo API');
+  }
+  if (!parsed.hostname.endsWith('molinesdesigns.com')) {
+    throw new Error('Invalid promo API host');
+  }
+}
 
 export interface PromoCode {
   code: string;
@@ -76,6 +89,7 @@ export async function validatePromoCode(code: string): Promise<{
     return { valid: false, error: 'Invalid promo code format' };
   }
 
+  validatePromoApiUrl(`${PROMO_API_URL}/validate`);
   try {
     const res = await fetchWithTimeout(`${PROMO_API_URL}/validate`, {
       method: 'POST',
@@ -122,13 +136,20 @@ export async function redeemPromoCode(code: string): Promise<{
   const machineId = await getMachineId();
 
   // Call backend to validate + redeem in one step
+  validatePromoApiUrl(`${PROMO_API_URL}/redeem`);
   let serverExpiresAt: string;
   let serverType: 'trial' | 'discount' | 'full';
+  // EP-002: idempotency key — accidental double-clicks or retries on a flaky
+  // network must not consume the promo twice. The backend dedupes on this.
+  const idempotencyKey = randomUUID();
   try {
     const res = await fetchWithTimeout(`${PROMO_API_URL}/redeem`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ code: normalized, machineId }),
+      headers: {
+        'Content-Type': 'application/json',
+        'Idempotency-Key': idempotencyKey,
+      },
+      body: JSON.stringify({ code: normalized, machineId, idempotencyKey }),
     }, 10_000);
 
     if (!res.ok) {

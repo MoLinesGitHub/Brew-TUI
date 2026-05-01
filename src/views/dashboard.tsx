@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo } from 'react';
-import { Box, Text, useStdout } from 'ink';
+import { Box, Text, useInput, useStdout } from 'ink';
 import { useBrewStore } from '../stores/brew-store.js';
 import { useSecurityStore } from '../stores/security-store.js';
 import { useBrewfileStore } from '../stores/brewfile-store.js';
@@ -87,6 +87,14 @@ export function DashboardView() {
 
   useEffect(() => { fetchAll(); }, []);
 
+  // UX-008: let the user retry from the error screen instead of having
+  // to navigate away and back to trigger a refetch.
+  useInput((input) => {
+    if (errors.installed && (input === 'r' || input === 'R')) {
+      void fetchAll();
+    }
+  });
+
   const errorServiceList = useMemo(
     () => services.filter((s) => s.status === 'error'),
     [services]
@@ -118,7 +126,16 @@ export function DashboardView() {
     : null;
 
   if (loading.installed) return <Loading message={t('loading_fetchingBrew')} />;
-  if (errors.installed) return <ErrorMessage message={errors.installed} />;
+  if (errors.installed) {
+    return (
+      <Box flexDirection="column">
+        <ErrorMessage message={errors.installed} />
+        <Box marginTop={SPACING.xs}>
+          <Text color={COLORS.textSecondary}>r:{t('hint_refresh')}</Text>
+        </Box>
+      </Box>
+    );
+  }
 
   // SCR-018: Responsive layout
   const isNarrow = columns < 60;

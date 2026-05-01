@@ -4,10 +4,12 @@ import type { LicenseData } from './types.js';
  * Get a watermark string containing the license holder's email.
  * Used subtly in Pro feature output for traceability.
  *
- * SEG-003: The `consent` parameter controls whether the watermark is embedded.
- * If false or undefined, returns an empty string.
+ * BK-014: `consent` defaults to FALSE. Embedding the customer email in
+ * exported artefacts is privacy-sensitive (the export may be shared,
+ * pasted into a public PR, etc.). Callers must explicitly opt in by
+ * passing `true`.
  */
-export function getWatermark(license: LicenseData | null, consent = true): string {
+export function getWatermark(license: LicenseData | null, consent = false): string {
   if (!consent) return '';
   if (!license?.customerEmail) return '';
   // Create a subtle, non-obvious watermark

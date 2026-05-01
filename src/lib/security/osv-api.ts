@@ -122,7 +122,7 @@ async function queryOneByOne(
     try {
       const partial = await queryBatch(
         [pkg],
-        [{ package: { name: pkg.name, ecosystem: 'Homebrew' }, version: pkg.version }],
+        [{ package: { name: pkg.name, ecosystem: 'Bitnami' }, version: pkg.version }],
       );
       for (const [k, v] of partial) result.set(k, v);
     } catch (err) {
@@ -140,7 +140,7 @@ async function queryOneByOne(
         try {
           const retryResult = await queryBatch(
             [pkg],
-            [{ package: { name: pkg.name, ecosystem: 'Homebrew' }, version: pkg.version }],
+            [{ package: { name: pkg.name, ecosystem: 'Bitnami' }, version: pkg.version }],
           );
           for (const [k, v] of retryResult) result.set(k, v);
         } catch {
@@ -177,8 +177,11 @@ export async function queryVulnerabilities(
   // Split into batches to stay within OSV API limits
   for (let i = 0; i < validPackages.length; i += BATCH_SIZE) {
     const batch = validPackages.slice(i, i + BATCH_SIZE);
+    // OSV.dev no soporta "Homebrew" como ecosystem (HTTP 400).
+    // "Bitnami" cubre la mayoría de OSS comunes; paquetes fuera de su catálogo
+    // simplemente devuelven vulns vacíos. Mismo enfoque que SecurityMonitor.swift.
     const queries: OsvQuery[] = batch.map((p) => ({
-      package: { name: p.name, ecosystem: 'Homebrew' },
+      package: { name: p.name, ecosystem: 'Bitnami' },
       version: p.version,
     }));
 

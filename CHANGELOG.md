@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.6.2] - 2026-05-01
+
+### Fixed
+- **Security Audit (Pro):** the TUI mirror of the BrewBar OSV bug. `osv-api.ts`
+  was sending `ecosystem: 'Homebrew'` to OSV.dev, which rejects that value with
+  HTTP 400, so every Security Audit run silently returned zero CVEs. Switched
+  to `Bitnami` (same approach already used by `SecurityMonitor.swift`).
+  Packages outside Bitnami's catalog return empty results instead of failing
+  the whole batch.
+
 ## [0.6.1] - 2026-05-01
 
 ### Fixed

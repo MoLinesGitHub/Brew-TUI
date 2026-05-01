@@ -172,6 +172,12 @@ describe('isExpired', () => {
     const license = makeLicense({ expiresAt: '2027-01-01T00:00:00.000Z' });
     expect(isExpired(license)).toBe(true);
   });
+
+  it('fails closed on unparseable expiry date', async () => {
+    const { isExpired } = await import('./license-manager.js');
+    const license = makeLicense({ expiresAt: 'not-a-date' });
+    expect(isExpired(license)).toBe(true);
+  });
 });
 
 describe('needsRevalidation', () => {

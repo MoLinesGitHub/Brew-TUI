@@ -213,7 +213,12 @@ export async function clearLicense(): Promise<void> {
 
 export function isExpired(license: LicenseData): boolean {
   if (!license.expiresAt) return false;
-  return new Date(license.expiresAt).getTime() < Date.now();
+  const expiry = new Date(license.expiresAt).getTime();
+  // Fail closed on corrupted/unparseable dates: NaN comparisons are always
+  // false, so the previous version treated a garbage expiresAt as "never
+  // expires", which is exploitable.
+  if (isNaN(expiry)) return true;
+  return expiry < Date.now();
 }
 
 export function needsRevalidation(license: LicenseData): boolean {

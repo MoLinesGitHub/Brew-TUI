@@ -81,6 +81,26 @@ enum BrewProcess {
         }
         let timeoutBox = TimeoutBox()
 
+        // Thread-safe buffer that the readability handler appends to while the
+        // process is still running. Letting the kernel pipe buffer fill up
+        // (~64 KB on macOS) used to deadlock `brew search`/`brew outdated --json`
+        // on machines with thousands of formulae: the writer blocked, never
+        // reached its termination handler, and the synchronous
+        // `readDataToEndOfFile()` we used to call there waited forever.
+        final class DataBuffer: @unchecked Sendable {
+            private let lock = NSLock()
+            private var data = Data()
+            func append(_ chunk: Data) {
+                lock.lock(); defer { lock.unlock() }
+                data.append(chunk)
+            }
+            func snapshot() -> Data {
+                lock.lock(); defer { lock.unlock() }
+                return data
+            }
+        }
+        let buffer = DataBuffer()
+
         return try await withCheckedThrowingContinuation { continuation in
             let process = Process()
             let pipe = Pipe()
@@ -95,8 +115,26 @@ enum BrewProcess {
             if suppressAutoUpdate { extraEnv["HOMEBREW_NO_AUTO_UPDATE"] = "1" }
             process.environment = ProcessInfo.processInfo.environment.merging(extraEnv) { _, new in new }
 
+            // Drain stdout incrementally so the kernel buffer never fills.
+            pipe.fileHandleForReading.readabilityHandler = { handle in
+                let chunk = handle.availableData
+                if chunk.isEmpty {
+                    handle.readabilityHandler = nil // EOF
+                } else {
+                    buffer.append(chunk)
+                }
+            }
+
             process.terminationHandler = { proc in
-                let data = pipe.fileHandleForReading.readDataToEndOfFile()
+                // Detach the streaming reader, then drain anything still in the
+                // pipe. The process has closed its write end by now, so this
+                // final read is bounded and cannot deadlock.
+                pipe.fileHandleForReading.readabilityHandler = nil
+                if let remaining = try? pipe.fileHandleForReading.readToEnd(),
+                   !remaining.isEmpty {
+                    buffer.append(remaining)
+                }
+                let data = buffer.snapshot()
                 let result: Result<Data, Error> = proc.terminationStatus == 0
                     ? .success(data)
                     : .failure(BrewProcessError.processExited(proc.terminationStatus))

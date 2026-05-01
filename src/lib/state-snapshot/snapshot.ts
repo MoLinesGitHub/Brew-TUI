@@ -92,6 +92,11 @@ function timestampToFilename(iso: string): string {
   return iso.replace(/[:.]/g, '-');
 }
 
+/** Cap on retained snapshots. Older auto snapshots are pruned to keep
+ *  the rollback feature from filling ~/.brew-tui/snapshots/ indefinitely.
+ *  20 entries fits roughly 2-3 weeks of typical usage. */
+export const SNAPSHOT_RETENTION_LIMIT = 20;
+
 export async function saveSnapshot(s: BrewSnapshot, label?: string): Promise<void> {
   await ensureDataDirs();
 
@@ -104,6 +109,52 @@ export async function saveSnapshot(s: BrewSnapshot, label?: string): Promise<voi
 
   await writeFile(tmpPath, JSON.stringify(payload, null, 2), { encoding: 'utf-8', mode: 0o600 });
   await rename(tmpPath, filePath);
+
+  await pruneSnapshots();
+}
+
+/** Delete the oldest auto-labelled snapshots beyond SNAPSHOT_RETENTION_LIMIT.
+ *  Labelled snapshots (those the user explicitly named) are preserved — they
+ *  represent intentional checkpoints. */
+export async function pruneSnapshots(maxCount = SNAPSHOT_RETENTION_LIMIT): Promise<number> {
+  let entries: string[];
+  try {
+    entries = await readdir(SNAPSHOTS_DIR);
+  } catch {
+    return 0;
+  }
+
+  const candidates: Array<{ filename: string; capturedAt: string }> = [];
+  for (const filename of entries.filter((f) => f.endsWith('.json'))) {
+    // Auto snapshots are named ...-auto.json. User-labelled ones get a slug
+    // and stay regardless of count.
+    if (!filename.endsWith('-auto.json')) continue;
+    try {
+      const raw = await readFile(join(SNAPSHOTS_DIR, filename), 'utf-8');
+      const parsed: unknown = JSON.parse(raw);
+      if (isValidSnapshot(parsed)) {
+        candidates.push({ filename, capturedAt: parsed.capturedAt });
+      }
+    } catch { /* skip unreadable */ }
+  }
+
+  if (candidates.length <= maxCount) return 0;
+
+  candidates.sort((a, b) => b.capturedAt.localeCompare(a.capturedAt));
+  const toDelete = candidates.slice(maxCount);
+  let removed = 0;
+  for (const entry of toDelete) {
+    try {
+      await unlink(join(SNAPSHOTS_DIR, entry.filename));
+      removed++;
+    } catch (err) {
+      logger.warn('Failed to prune snapshot', { filename: entry.filename, error: String(err) });
+    }
+  }
+  if (removed > 0) {
+    logger.info('Pruned snapshots', { removed, retained: maxCount });
+  }
+  return removed;
 }
 
 export async function loadSnapshots(): Promise<BrewSnapshot[]> {

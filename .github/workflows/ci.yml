@@ -22,3 +22,46 @@ jobs:
       - run: npm ci
 
       - run: npm run validate
+
+  brewbar:
+    name: BrewBar · build · test
+    runs-on: macos-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Show Xcode version
+        run: xcodebuild -version
+
+      - name: Install Tuist
+        run: |
+          curl -Ls https://install.tuist.io | bash
+          tuist version
+
+      - name: Generate workspace
+        working-directory: menubar
+        run: tuist generate --no-open
+
+      - name: Build BrewBar
+        run: |
+          xcodebuild \
+            -workspace menubar/BrewBar.xcworkspace \
+            -scheme BrewBar \
+            -configuration Debug \
+            -destination 'platform=macOS' \
+            CODE_SIGN_IDENTITY="-" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            build
+
+      - name: Run BrewBar tests
+        run: |
+          xcodebuild \
+            -workspace menubar/BrewBar.xcworkspace \
+            -scheme BrewBar \
+            -configuration Debug \
+            -destination 'platform=macOS' \
+            CODE_SIGN_IDENTITY="-" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            test

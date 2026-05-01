@@ -208,8 +208,10 @@ final class SchedulerService {
         content.body = String(format: String(localized: "%lld packages can be updated."), Int64(count))
         content.sound = .default
 
+        // Identifier único por disparo: macOS reemplaza notifs con el mismo identifier
+        // en silencio (sin banner ni sonido), lo que ocultaría notifs consecutivas.
         let request = UNNotificationRequest(
-            identifier: "brewbar-outdated",
+            identifier: "brewbar-outdated-\(Date().timeIntervalSince1970)",
             content: content,
             trigger: nil
         )

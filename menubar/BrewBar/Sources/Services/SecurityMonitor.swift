@@ -111,8 +111,12 @@ actor SecurityMonitor {
     }
 
     private func queryOSVBatch(_ packages: [(name: String, version: String)]) async throws -> [CVEAlert] {
+        // OSV no soporta "Homebrew" como ecosystem (devuelve HTTP 400).
+        // "Bitnami" cubre la mayoría de OSS comunes y filtra por versión correctamente,
+        // sin la avalancha de falsos positivos de Alpine/Debian/Ubuntu que daría omitir el ecosystem.
+        // Paquetes fuera del catálogo Bitnami simplemente devuelven vulns vacíos.
         let queries: [[String: Any]] = packages.map { pkg in
-            ["package": ["name": pkg.name, "ecosystem": "Homebrew"], "version": pkg.version]
+            ["package": ["name": pkg.name, "ecosystem": "Bitnami"], "version": pkg.version]
         }
         let body: [String: Any] = ["queries": queries]
         let bodyData = try JSONSerialization.data(withJSONObject: body)

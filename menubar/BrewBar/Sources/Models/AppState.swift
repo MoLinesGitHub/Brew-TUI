@@ -1,5 +1,8 @@
 import Foundation
 import SwiftUI
+import os
+
+private let appStateLogger = Logger(subsystem: "com.molinesdesigns.brewbar", category: "AppState")
 
 @MainActor
 @Observable
@@ -56,6 +59,7 @@ final class AppState {
             outdatedPackages = result.formulae + result.casks
             lastChecked = Date()
         } catch {
+            appStateLogger.error("Outdated check failed: \(error.localizedDescription, privacy: .public) | \(String(describing: error), privacy: .public)")
             self.error = error.localizedDescription
         }
 
@@ -63,6 +67,7 @@ final class AppState {
             services = try await servicesResult
             servicesError = nil
         } catch {
+            appStateLogger.error("Services check failed: \(error.localizedDescription, privacy: .public)")
             servicesError = error.localizedDescription
         }
     }

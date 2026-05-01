@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import { Text } from 'ink';
+import { NO_COLOR } from './colors.js';
 
 function hexToRgb(hex: string): [number, number, number] {
   const n = parseInt(hex.slice(1), 16);
@@ -27,6 +28,13 @@ interface GradientTextProps {
 }
 
 export const GradientText = React.memo(function GradientText({ children, colors, bold }: GradientTextProps) {
+  // NO_COLOR: skip the per-character coloring and emit a single plain Text.
+  // The character-by-character rendering would still produce correct output
+  // visually, but each <Text/> element with empty color still ships ANSI
+  // resets that some screen readers narrate noisily.
+  if (NO_COLOR) {
+    return <Text bold={bold}>{children}</Text>;
+  }
   if (colors.length < 2) {
     return <Text color={colors[0]} bold={bold}>{children}</Text>;
   }

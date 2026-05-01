@@ -18,6 +18,20 @@ vi.mock('./crypto.js', () => ({
   decryptPayload: vi.fn(),
 }));
 
+vi.mock('../license/license-manager.js', () => ({
+  loadLicense: vi.fn(async () => ({
+    key: 'BTUI-TEST-LICENSE',
+    instanceId: 'inst-1',
+    status: 'active',
+    customerEmail: 'test@example.com',
+    customerName: 'Test',
+    plan: 'pro',
+    activatedAt: '2026-01-01T00:00:00.000Z',
+    expiresAt: null,
+    lastValidatedAt: '2026-05-01T00:00:00.000Z',
+  })),
+}));
+
 vi.mock('../data-dir.js', () => ({
   DATA_DIR: '/tmp/.brew-tui-test',
   getMachineId: vi.fn(async () => 'test-machine-uuid'),

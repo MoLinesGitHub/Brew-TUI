@@ -7,6 +7,7 @@ import {
 } from '../lib/sync/sync-engine.js';
 import { readSyncEnvelope } from '../lib/sync/backends/icloud-backend.js';
 import { decryptPayload } from '../lib/sync/crypto.js';
+import { loadLicense } from '../lib/license/license-manager.js';
 import { logger } from '../utils/logger.js';
 import type { BrewfileSchema } from '../lib/brewfile/types.js';
 
@@ -67,7 +68,9 @@ export const useSyncStore = create<SyncState>((set, get) => ({
       const envelope = await readSyncEnvelope();
       if (!envelope) throw new Error('No sync data found');
 
-      const payload = decryptPayload(envelope.encrypted, envelope.iv, envelope.tag);
+      const license = await loadLicense();
+      if (!license) throw new Error('License missing');
+      const payload = decryptPayload(envelope.encrypted, envelope.iv, envelope.tag, license.key);
       await applyConflictResolutions(payload, resolutions, config.machineId);
 
       const updatedConfig = await loadSyncConfig();

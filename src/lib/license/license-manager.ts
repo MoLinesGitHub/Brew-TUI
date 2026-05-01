@@ -1,5 +1,5 @@
 import { readFile, writeFile, rename, rm } from 'node:fs/promises';
-import { createCipheriv, createDecipheriv, randomBytes, scryptSync } from 'node:crypto';
+import { createCipheriv, createDecipheriv, randomBytes, scryptSync, hkdfSync } from 'node:crypto';
 import { LICENSE_PATH, ensureDataDirs, getMachineId } from '../data-dir.js';
 import { activateLicense as apiActivate, validateLicense as apiValidate, deactivateLicense as apiDeactivate } from './polar-api.js';
 import { t } from '../../i18n/index.js';
@@ -68,27 +68,44 @@ function recordAttempt(success: boolean): void {
   }
 }
 
-// SECURITY NOTE — Known architectural limitation (documented decision):
-// These constants are compiled into the npm bundle and can be extracted by any user
-// with `cat node_modules/.../license-manager.js`. The encryption protects against
-// casual filesystem access, not against a determined attacker with the bundle.
-// The primary defense is server-side revalidation (24h cycle via Polar.sh) and
-// machine binding (machineId in the encrypted envelope). Migrating to macOS Keychain
-// would eliminate this limitation but adds native dependency complexity.
+// SECURITY (SEG-002): the bundle-only constants below USED to be the entire
+// derivation input — anyone with the npm bundle could decrypt any user's
+// license.json. Now the per-user machineId is mixed into the HKDF info, so
+// the bundle alone is no longer sufficient: an attacker also needs the
+// target's ~/.brew-tui/machine-id. The two constants stay published; what's
+// secret is the user's local machineId, which never leaves the machine.
+//
+// HKDF-SHA256 was chosen over scrypt because Swift's CryptoKit (used by
+// BrewBar to read the same license.json) ships HKDF natively but not scrypt.
+// machineId is a UUIDv4 with 122 bits of entropy, so the cost-hardening of
+// scrypt is not what's protecting the key — the secrecy of the machineId is.
 const ENCRYPTION_SECRET = 'brew-tui-license-aes256gcm-v1';
-const SCRYPT_SALT = 'brew-tui-salt-v1';
+const HKDF_SALT = 'brew-tui-salt-v1';
 
-// Lazy derivation — scryptSync is CPU-intensive (default N=16384) and should
-// not block the event loop at module import time.
 let _derivedKey: Buffer | null = null;
+let _legacyKey: Buffer | null = null;
+let _decryptedWithLegacyKey = false;
 
-function deriveEncryptionKey(): Buffer {
-  if (!_derivedKey) _derivedKey = scryptSync(ENCRYPTION_SECRET, SCRYPT_SALT, 32);
+async function deriveEncryptionKey(): Promise<Buffer> {
+  if (_derivedKey) return _derivedKey;
+  const machineId = await getMachineId();
+  // HKDF: ikm = SECRET, salt = HKDF_SALT, info = machineId, len = 32
+  const derived = hkdfSync('sha256', ENCRYPTION_SECRET, HKDF_SALT, machineId, 32);
+  _derivedKey = Buffer.from(derived);
   return _derivedKey;
 }
 
-function encryptLicenseData(data: LicenseData): { encrypted: string; iv: string; tag: string } {
-  const key = deriveEncryptionKey();
+// Legacy key — scrypt(SECRET, SALT) with no machineId. Pre-existing
+// license.json files written by 0.6.2 and earlier are ciphered with this.
+// decryptLicenseData falls back to it; the next saveLicense re-ciphers
+// using the HKDF key. Drop once the fallback stops being hit in the wild.
+function deriveLegacyKey(): Buffer {
+  if (!_legacyKey) _legacyKey = scryptSync(ENCRYPTION_SECRET, HKDF_SALT, 32);
+  return _legacyKey;
+}
+
+async function encryptLicenseData(data: LicenseData): Promise<{ encrypted: string; iv: string; tag: string }> {
+  const key = await deriveEncryptionKey();
   const iv = randomBytes(12); // 96-bit IV for GCM
   const cipher = createCipheriv('aes-256-gcm', key, iv);
 
@@ -103,21 +120,28 @@ function encryptLicenseData(data: LicenseData): { encrypted: string; iv: string;
   };
 }
 
-function decryptLicenseData(encrypted: string, iv: string, tag: string): LicenseData {
-  const key = deriveEncryptionKey();
-  const decipher = createDecipheriv(
-    'aes-256-gcm',
-    key,
-    Buffer.from(iv, 'base64'),
-  );
-  decipher.setAuthTag(Buffer.from(tag, 'base64'));
+async function decryptLicenseData(encrypted: string, iv: string, tag: string): Promise<LicenseData> {
+  const ivBuf = Buffer.from(iv, 'base64');
+  const tagBuf = Buffer.from(tag, 'base64');
+  const ciphertext = Buffer.from(encrypted, 'base64');
 
-  const plaintext = Buffer.concat([
-    decipher.update(Buffer.from(encrypted, 'base64')),
-    decipher.final(),
-  ]);
-
-  return JSON.parse(plaintext.toString('utf-8')) as LicenseData;
+  // Try the current (machine-bound) key first; fall back to the legacy
+  // (bundle-only) key for upgrade compatibility.
+  const candidates: Array<[Buffer, boolean]> = [
+    [await deriveEncryptionKey(), false],
+    [deriveLegacyKey(), true],
+  ];
+  let lastErr: unknown;
+  for (const [key, isLegacy] of candidates) {
+    try {
+      const decipher = createDecipheriv('aes-256-gcm', key, ivBuf);
+      decipher.setAuthTag(tagBuf);
+      const plaintext = Buffer.concat([decipher.update(ciphertext), decipher.final()]);
+      _decryptedWithLegacyKey = isLegacy;
+      return JSON.parse(plaintext.toString('utf-8')) as LicenseData;
+    } catch (err) { lastErr = err; }
+  }
+  throw lastErr instanceof Error ? lastErr : new Error('Failed to decrypt license');
 }
 
 // BK-003: Type guard for license data format
@@ -152,7 +176,7 @@ export async function loadLicense(): Promise<LicenseData | null> {
 
     // New encrypted format
     if (isEncryptedLicenseFile(file)) {
-      const data = decryptLicenseData(file.encrypted!, file.iv!, file.tag!);
+      const data = await decryptLicenseData(file.encrypted!, file.iv!, file.tag!);
 
       // SEG-002: Check machine ID if stored in the envelope.
       // getMachineId() now always resolves a value — if the user's machine-id
@@ -165,6 +189,13 @@ export async function loadLicense(): Promise<LicenseData | null> {
         if (fileRecord.machineId !== currentMachineId) {
           throw new Error('License was activated on a different machine');
         }
+      }
+
+      // If we fell back to the legacy bundle-only key, re-cipher with the
+      // current machine-bound key so future reads use the strong path.
+      if (_decryptedWithLegacyKey) {
+        _decryptedWithLegacyKey = false;
+        try { await saveLicense(data); } catch { /* best effort */ }
       }
 
       return data;
@@ -186,7 +217,7 @@ export async function loadLicense(): Promise<LicenseData | null> {
 
 export async function saveLicense(data: LicenseData): Promise<void> {
   await ensureDataDirs();
-  const { encrypted, iv, tag } = encryptLicenseData(data);
+  const { encrypted, iv, tag } = await encryptLicenseData(data);
   // SEG-002: Include machineId in the envelope for portability detection
   const machineId = await getMachineId();
   const file: Record<string, unknown> = { version: 1, encrypted, iv, tag, machineId };

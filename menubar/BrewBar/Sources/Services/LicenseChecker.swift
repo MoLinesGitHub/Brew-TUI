@@ -56,14 +56,49 @@ struct LicenseChecker {
         NSHomeDirectory() + "/.brew-tui/license.json"
     }()
 
-    // Pre-computed scrypt key: scryptSync('brew-tui-license-aes256gcm-v1', 'brew-tui-salt-v1', 32)
-    // The encryption secret and salt are compile-time constants, so the derived key is also constant.
-    // This provides the same security level as embedding the secret string itself.
-    private static let encryptionKey: SymmetricKey = {
+    // SEG-002: license keys are now derived per-user via HKDF-SHA256.
+    // The TS bundle (license-manager.ts) ciphers with:
+    //   hkdfSync('sha256', SECRET, SALT, machineId, 32)
+    // Swift mirrors that here using CryptoKit's HKDF.
+    //
+    // Legacy fallback: license.json files written by 0.6.2 and earlier are
+    // ciphered with the constant scrypt key whose pre-computed hex is below.
+    // We try the HKDF key first, then fall back to legacy. Once 0.6.2 is fully
+    // rolled out and TS has re-ciphered every install on next saveLicense,
+    // the legacy path can be deleted.
+    private static let encryptionSecret = "brew-tui-license-aes256gcm-v1"
+    private static let hkdfSalt = "brew-tui-salt-v1"
+    private static let machineIdPath: String = NSHomeDirectory() + "/.brew-tui/machine-id"
+
+    private static var derivedEncryptionKey: SymmetricKey {
+        guard let machineId = readMachineId(), !machineId.isEmpty else {
+            // Without a machine-id we cannot reproduce the TUI's HKDF output.
+            // Fall back to the legacy key so we still degrade to the previous
+            // behaviour rather than refusing to decrypt at all.
+            return legacyEncryptionKey
+        }
+        let inputKey = SymmetricKey(data: Data(encryptionSecret.utf8))
+        return HKDF<SHA256>.deriveKey(
+            inputKeyMaterial: inputKey,
+            salt: Data(hkdfSalt.utf8),
+            info: Data(machineId.utf8),
+            outputByteCount: 32
+        )
+    }
+
+    private static let legacyEncryptionKey: SymmetricKey = {
+        // Pre-computed scrypt('brew-tui-license-aes256gcm-v1', 'brew-tui-salt-v1', 32)
         let hex = "5c3b2ae2a3066bca28773f36db347d8c8a0a396d4b9fab628331446acd6d4126"
-        let keyData = Data(hexString: hex)!
-        return SymmetricKey(data: keyData)
+        return SymmetricKey(data: Data(hexString: hex)!)
     }()
+
+    private static func readMachineId() -> String? {
+        guard let data = FileManager.default.contents(atPath: machineIdPath),
+              let raw = String(data: data, encoding: .utf8) else {
+            return nil
+        }
+        return raw.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
 
     /// Degradation thresholds (days since last validation). Must match
     /// `getDegradationLevel` in `src/lib/license/license-manager.ts`.
@@ -165,18 +200,28 @@ struct LicenseChecker {
             return nil
         }
 
+        let sealedBox: AES.GCM.SealedBox
         do {
-            let sealedBox = try AES.GCM.SealedBox(
+            sealedBox = try AES.GCM.SealedBox(
                 nonce: AES.GCM.Nonce(data: nonce),
                 ciphertext: ciphertext,
                 tag: tag
             )
-            let plaintext = try AES.GCM.open(sealedBox, using: encryptionKey)
-            return try JSONDecoder().decode(LicenseData.self, from: plaintext)
         } catch {
-            logger.error("Decryption error: \(error.localizedDescription, privacy: .public)")
+            logger.error("Sealed box error: \(error.localizedDescription, privacy: .public)")
             return nil
         }
+
+        // Try the HKDF key first, fall back to the legacy scrypt key for
+        // license.json files written by 0.6.2 and earlier.
+        for key in [derivedEncryptionKey, legacyEncryptionKey] {
+            if let plaintext = try? AES.GCM.open(sealedBox, using: key),
+               let decoded = try? JSONDecoder().decode(LicenseData.self, from: plaintext) {
+                return decoded
+            }
+        }
+        logger.error("License decryption failed with both current and legacy keys")
+        return nil
     }
 
     private static func parseDate(_ value: String) -> Date? {

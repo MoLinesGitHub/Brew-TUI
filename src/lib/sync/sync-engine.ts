@@ -9,6 +9,7 @@ import {
 } from './backends/icloud-backend.js';
 import { captureSnapshot } from '../state-snapshot/snapshot.js';
 import { DATA_DIR, getMachineId } from '../data-dir.js';
+import { loadLicense } from '../license/license-manager.js';
 import { logger } from '../../utils/logger.js';
 import type {
   SyncConfig,
@@ -98,9 +99,9 @@ function detectConflicts(
 
 // ── Merge ────────────────────────────────────────────────────────────────────
 
-async function writeEnvelope(payload: SyncPayload): Promise<string> {
+async function writeEnvelope(payload: SyncPayload, licenseKey: string): Promise<string> {
   const now = new Date().toISOString();
-  const { encrypted, iv, tag } = encryptPayload(payload);
+  const { encrypted, iv, tag } = encryptPayload(payload, licenseKey);
   const envelope: SyncEnvelope = {
     schemaVersion: 1,
     encrypted,
@@ -110,6 +111,16 @@ async function writeEnvelope(payload: SyncPayload): Promise<string> {
   };
   await writeSyncEnvelope(envelope);
   return now;
+}
+
+async function loadLicenseKeyOrThrow(): Promise<string> {
+  // Sync requires Pro, and Pro requires a license. Read it lazily so
+  // sync-store callers don't have to plumb the key through every call.
+  const license = await loadLicense();
+  if (!license || !license.key) {
+    throw new Error('Sync requires an active license');
+  }
+  return license.key;
 }
 
 function mergePayload(existing: SyncPayload, localState: MachineState): SyncPayload {
@@ -141,12 +152,14 @@ export async function sync(
     };
   }
 
+  const licenseKey = await loadLicenseKeyOrThrow();
+
   let existingPayload: SyncPayload | null = null;
 
   try {
     const envelope = await readSyncEnvelope();
     if (envelope) {
-      existingPayload = decryptPayload(envelope.encrypted, envelope.iv, envelope.tag);
+      existingPayload = decryptPayload(envelope.encrypted, envelope.iv, envelope.tag, licenseKey);
     }
   } catch (err) {
     logger.warn('sync: could not decrypt existing payload, starting fresh', { error: String(err) });
@@ -182,7 +195,7 @@ export async function sync(
 
   if (conflicts.length > 0) {
     // Persist local state, then surface conflicts so the user can resolve them.
-    await writeEnvelope(mergedPayload);
+    await writeEnvelope(mergedPayload, licenseKey);
     return {
       success: false,
       conflicts,
@@ -190,7 +203,7 @@ export async function sync(
     };
   }
 
-  const now = await writeEnvelope(mergedPayload);
+  const now = await writeEnvelope(mergedPayload, licenseKey);
 
   // Update local sync config
   const existingConfig = await loadSyncConfig();
@@ -259,6 +272,7 @@ export async function applyConflictResolutions(
     }
   }
 
-  await writeEnvelope(updatedPayload);
+  const licenseKey = await loadLicenseKeyOrThrow();
+  await writeEnvelope(updatedPayload, licenseKey);
   logger.info('sync: conflict resolutions applied', { count: resolutions.length });
 }

@@ -1,27 +1,42 @@
-import { createCipheriv, createDecipheriv, randomBytes, scryptSync } from 'node:crypto';
+import { createCipheriv, createDecipheriv, randomBytes, scryptSync, hkdfSync } from 'node:crypto';
 import type { SyncPayload } from './types.js';
 
-// Cross-machine sync encryption — shared secret (no machine binding by design,
-// the same user's machines must decrypt each other's payloads).
+// SEG-003: Cross-machine sync encryption.
+// The two constants below are public (compiled into the npm bundle). The
+// per-user secret factor is the Polar license key, which only the user's
+// own machines hold and which Polar issues — so any two of the user's
+// machines derive the same key, but bundle + iCloud snoop is no longer
+// enough to decrypt: the attacker also needs the license key.
+//
+// HKDF-SHA256 over scrypt: the license key is high-entropy by construction
+// (Polar issues UUID-style keys), so the cost-hardening of scrypt isn't
+// what's protecting the key — the secrecy of the license key is. HKDF is
+// also faster, so machines don't pay scrypt's CPU tax on every sync.
 const ENCRYPTION_SECRET = 'brew-tui-sync-aes256gcm-v1';
-const SCRYPT_SALT = 'brew-tui-sync-salt-v1';
+const HKDF_SALT = 'brew-tui-sync-salt-v1';
 
-// Lazy derivation — scryptSync is CPU-intensive and should not block on import.
-let _derivedKey: Buffer | null = null;
+const keyCache = new Map<string, Buffer>();
+let _legacyKey: Buffer | null = null;
 
-function deriveEncryptionKey(): Buffer {
-  if (!_derivedKey) {
-    _derivedKey = scryptSync(ENCRYPTION_SECRET, SCRYPT_SALT, 32, {
-      N: 16384,
-      r: 8,
-      p: 1,
-    });
-  }
-  return _derivedKey;
+function deriveEncryptionKey(licenseKey: string): Buffer {
+  const cached = keyCache.get(licenseKey);
+  if (cached) return cached;
+  const derived = Buffer.from(hkdfSync('sha256', ENCRYPTION_SECRET, HKDF_SALT, licenseKey, 32));
+  keyCache.set(licenseKey, derived);
+  return derived;
 }
 
-export function encryptPayload(data: SyncPayload): { encrypted: string; iv: string; tag: string } {
-  const key = deriveEncryptionKey();
+// Legacy key — scrypt(SECRET, SALT), no license-key factor. Used as a
+// decryption fallback for envelopes written by 0.6.2 and earlier.
+function deriveLegacyKey(): Buffer {
+  if (!_legacyKey) {
+    _legacyKey = scryptSync(ENCRYPTION_SECRET, HKDF_SALT, 32, { N: 16384, r: 8, p: 1 });
+  }
+  return _legacyKey;
+}
+
+export function encryptPayload(data: SyncPayload, licenseKey: string): { encrypted: string; iv: string; tag: string } {
+  const key = deriveEncryptionKey(licenseKey);
   const iv = randomBytes(12); // 96-bit IV for GCM
   const cipher = createCipheriv('aes-256-gcm', key, iv);
 
@@ -36,19 +51,22 @@ export function encryptPayload(data: SyncPayload): { encrypted: string; iv: stri
   };
 }
 
-export function decryptPayload(encrypted: string, iv: string, tag: string): SyncPayload {
-  const key = deriveEncryptionKey();
-  const decipher = createDecipheriv(
-    'aes-256-gcm',
-    key,
-    Buffer.from(iv, 'base64'),
-  );
-  decipher.setAuthTag(Buffer.from(tag, 'base64'));
+export function decryptPayload(encrypted: string, iv: string, tag: string, licenseKey: string): SyncPayload {
+  const ivBuf = Buffer.from(iv, 'base64');
+  const tagBuf = Buffer.from(tag, 'base64');
+  const ciphertext = Buffer.from(encrypted, 'base64');
 
-  const plaintext = Buffer.concat([
-    decipher.update(Buffer.from(encrypted, 'base64')),
-    decipher.final(),
-  ]);
-
-  return JSON.parse(plaintext.toString('utf-8')) as SyncPayload;
+  // Try the licenseKey-bound key first; fall back to the legacy bundle-only
+  // key for envelopes written by 0.6.2 and earlier. Re-encryption happens
+  // automatically on the next sync write because writeEnvelope always uses
+  // the current key.
+  for (const key of [deriveEncryptionKey(licenseKey), deriveLegacyKey()]) {
+    try {
+      const decipher = createDecipheriv('aes-256-gcm', key, ivBuf);
+      decipher.setAuthTag(tagBuf);
+      const plaintext = Buffer.concat([decipher.update(ciphertext), decipher.final()]);
+      return JSON.parse(plaintext.toString('utf-8')) as SyncPayload;
+    } catch { /* try next */ }
+  }
+  throw new Error('Failed to decrypt sync payload');
 }

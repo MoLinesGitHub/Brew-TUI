@@ -11,7 +11,7 @@ import { fetchWithTimeout } from './fetch-timeout.js';
 
 const execFileAsync = promisify(execFile);
 const BREWBAR_APP_PATH = '/Applications/BrewBar.app';
-const DOWNLOAD_URL = 'https://github.com/MoLinesGitHub/Brew-TUI/releases/latest/download/BrewBar.app.zip';
+const DOWNLOAD_URL = 'https://github.com/MoLinesDesigns/Brew-TUI/releases/latest/download/BrewBar.app.zip';
 const MAX_SIZE = 200 * 1024 * 1024; // 200 MB
 
 export async function isBrewBarInstalled(): Promise<boolean> {

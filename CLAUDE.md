@@ -171,6 +171,6 @@ Both Brew-TUI and BrewBar support English (en) and Spanish (es).
 
 All three channels must be updated on each release:
 - **npm:** `npm publish` (prepublishOnly runs typecheck + build automatically)
-- **GitHub Releases:** `gh release create vX.Y.Z` on MoLinesGitHub/Brew-TUI
-- **Homebrew Tap:** Update `Formula/brew-tui.rb` in MoLinesGitHub/homebrew-tap with new tarball URL and SHA256
+- **GitHub Releases:** `gh release create vX.Y.Z` on MoLinesDesigns/Brew-TUI
+- **Homebrew Tap:** Update `Formula/brew-tui.rb` in MoLinesDesigns/homebrew-tap with new tarball URL and SHA256
 - **npm token:** Stored at `/Users/molinesmac/Documents/Secrets/npm token.md` — update `~/.npmrc` if expired

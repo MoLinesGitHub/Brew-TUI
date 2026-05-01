@@ -15,12 +15,12 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/MoLinesGitHub/Brew-TUI.git"
+    "url": "git+https://github.com/MoLinesDesigns/Brew-TUI.git"
   },
   "bugs": {
-    "url": "https://github.com/MoLinesGitHub/Brew-TUI/issues"
+    "url": "https://github.com/MoLinesDesigns/Brew-TUI/issues"
   },
-  "homepage": "https://github.com/MoLinesGitHub/Brew-TUI#readme",
+  "homepage": "https://github.com/MoLinesDesigns/Brew-TUI#readme",
   "author": "MoLines Designs",
   "scripts": {
     "dev": "tsx src/index.tsx",

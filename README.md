@@ -5,7 +5,7 @@
 [![npm](https://img.shields.io/npm/v/brew-tui)](https://www.npmjs.com/package/brew-tui)
 [![Node](https://img.shields.io/badge/node-%3E%3D22-brightgreen)](https://nodejs.org/)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
-[![Homebrew](https://img.shields.io/badge/homebrew-tap-orange)](https://github.com/MoLinesGitHub/homebrew-tap)
+[![Homebrew](https://img.shields.io/badge/homebrew-tap-orange)](https://github.com/MoLinesDesigns/homebrew-tap)
 [![Tests](https://img.shields.io/badge/tests-211%20passing-brightgreen)]()
 
 A keyboard-driven terminal UI for Homebrew, with a native macOS menu bar companion that watches updates in the background. No daemons, no middleware — both tools call `brew` directly.
@@ -13,7 +13,7 @@ A keyboard-driven terminal UI for Homebrew, with a native macOS menu bar compani
 ![Brew-TUI demo](assets/demo.gif)
 
 ```bash
-brew tap MoLinesGitHub/tap
+brew tap MoLinesDesigns/tap
 brew install brew-tui      # then just type:  brew-tui
 ```
 
@@ -36,7 +36,7 @@ You don't memorize `brew outdated && brew upgrade && brew services list && brew 
 
 ```bash
 # Homebrew (recommended)
-brew tap MoLinesGitHub/tap
+brew tap MoLinesDesigns/tap
 brew install brew-tui
 
 # npm
@@ -152,7 +152,7 @@ brew-tui install-brewbar --force   # Reinstall / update
 brew-tui uninstall-brewbar         # Remove
 
 # Via Homebrew Cask
-brew install --cask MoLinesGitHub/tap/brewbar
+brew install --cask MoLinesDesigns/tap/brewbar
 ```
 
 ### Build from Source
@@ -231,7 +231,7 @@ menubar/           # BrewBar (Swift 6 / SwiftUI / Tuist)
 ## Contributing
 
 ```bash
-git clone https://github.com/MoLinesGitHub/Brew-TUI.git
+git clone https://github.com/MoLinesDesigns/Brew-TUI.git
 cd Brew-TUI
 npm install
 npm run dev          # Run with tsx (requires interactive TTY)

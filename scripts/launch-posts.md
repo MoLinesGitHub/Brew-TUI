@@ -8,7 +8,7 @@ Ready-to-paste content for each platform.
 
 **Title:** Show HN: Brew-TUI v0.5.1 – Visual Homebrew with rollback, sync and CVE alerts
 
-**URL:** https://github.com/MoLinesGitHub/Brew-TUI
+**URL:** https://github.com/MoLinesDesigns/Brew-TUI
 
 **Text (no URL submission — use this if you want a text post instead):**
 
@@ -66,7 +66,7 @@ seats.
 
   npm install -g brew-tui
   # or
-  brew tap MoLinesGitHub/tap && brew install brew-tui
+  brew tap MoLinesDesigns/tap && brew install brew-tui
 
 Honest known limitations:
 - macOS only for BrewBar; the TUI itself runs anywhere Homebrew runs but
@@ -74,9 +74,9 @@ Honest known limitations:
 - Sync requires iCloud Drive enabled (no provider abstraction yet).
 - The OSV polling cadence is fixed at 1h to be polite to the API.
 
-Repo: https://github.com/MoLinesGitHub/Brew-TUI
+Repo: https://github.com/MoLinesDesigns/Brew-TUI
 Landing: https://molinesdesigns.com/brewtui/
-Changelog: https://github.com/MoLinesGitHub/Brew-TUI/blob/main/CHANGELOG.md
+Changelog: https://github.com/MoLinesDesigns/Brew-TUI/blob/main/CHANGELOG.md
 
 Happy to take feedback on the conflict-resolution model, the YAML drift
 scoring, or the Pro/Team split.
@@ -139,7 +139,7 @@ English and Spanish supported.
 ```
 
 **Links:**
-- Website: https://github.com/MoLinesGitHub/Brew-TUI
+- Website: https://github.com/MoLinesDesigns/Brew-TUI
 - npm: https://www.npmjs.com/package/brew-tui
 
 **Submit at:** https://www.producthunt.com/posts/new (requires posting access)
@@ -167,12 +167,12 @@ What it does:
 Install:
   npm install -g brew-tui
   # or
-  brew tap MoLinesGitHub/tap && brew install brew-tui
+  brew tap MoLinesDesigns/tap && brew install brew-tui
 
 Built with TypeScript, React 18, Ink 5. Keyboard-driven: 1-0 jump
 to views, j/k scroll, / to search, Tab cycles views.
 
-GitHub: https://github.com/MoLinesGitHub/Brew-TUI
+GitHub: https://github.com/MoLinesDesigns/Brew-TUI
 
 Feedback welcome!
 ```
@@ -199,12 +199,12 @@ opening a terminal.
 Install Brew-TUI:
   npm install -g brew-tui
   # or
-  brew tap MoLinesGitHub/tap && brew install brew-tui
+  brew tap MoLinesDesigns/tap && brew install brew-tui
 
 BrewBar installs from inside Brew-TUI:
   brew-tui install-brewbar
 
-GitHub: https://github.com/MoLinesGitHub/Brew-TUI
+GitHub: https://github.com/MoLinesDesigns/Brew-TUI
 ```
 
 ---

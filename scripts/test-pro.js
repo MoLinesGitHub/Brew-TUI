@@ -9,24 +9,34 @@
  *   node scripts/test-pro.js --clear  # Remove test license (back to Free)
  */
 
-import { writeFileSync, mkdirSync, rmSync } from 'node:fs';
-import { createCipheriv, randomBytes, scryptSync } from 'node:crypto';
+import { writeFileSync, mkdirSync, rmSync, readFileSync, existsSync, renameSync } from 'node:fs';
+import { createCipheriv, randomBytes, randomUUID, hkdfSync } from 'node:crypto';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 
 const DATA_DIR = join(homedir(), '.brew-tui');
 const LICENSE_PATH = join(DATA_DIR, 'license.json');
+const MACHINE_ID_PATH = join(DATA_DIR, 'machine-id');
 
 // Same encryption constants as src/lib/license/license-manager.ts
 const ENCRYPTION_SECRET = 'brew-tui-license-aes256gcm-v1';
-const SCRYPT_SALT = 'brew-tui-salt-v1';
+const HKDF_SALT = 'brew-tui-salt-v1';
 
-function deriveKey() {
-  return scryptSync(ENCRYPTION_SECRET, SCRYPT_SALT, 32);
+function getMachineId() {
+  if (existsSync(MACHINE_ID_PATH)) {
+    return readFileSync(MACHINE_ID_PATH, 'utf8').trim();
+  }
+  const machineId = randomUUID();
+  writeFileSync(MACHINE_ID_PATH, machineId, { encoding: 'utf8', mode: 0o600 });
+  return machineId;
 }
 
-function encrypt(data) {
-  const key = deriveKey();
+function deriveKey(machineId) {
+  return Buffer.from(hkdfSync('sha256', ENCRYPTION_SECRET, HKDF_SALT, machineId, 32));
+}
+
+function encrypt(data, machineId) {
+  const key = deriveKey(machineId);
   const iv = randomBytes(12);
   const cipher = createCipheriv('aes-256-gcm', key, iv);
   const plaintext = JSON.stringify(data);
@@ -50,11 +60,11 @@ if (process.argv.includes('--clear')) {
 }
 
 const license = {
-  key: 'TEST-PRO-' + randomBytes(16).toString('hex'),
-  instanceId: 'test-instance-' + randomBytes(8).toString('hex'),
+  key: (process.env.BREWTUI_OWNER_LICENSE_KEY || 'OWNER-PRO-' + randomBytes(12).toString('hex')),
+  instanceId: 'owner-local-' + randomBytes(8).toString('hex'),
   status: 'active',
-  customerEmail: 'test@molinesdesigns.com',
-  customerName: 'Test User',
+  customerEmail: process.env.BREWTUI_OWNER_EMAIL || 'test@molinesdesigns.com',
+  customerName: process.env.BREWTUI_OWNER_NAME || 'Local Owner',
   plan: 'pro',
   activatedAt: new Date().toISOString(),
   expiresAt: null,
@@ -63,9 +73,12 @@ const license = {
 
 mkdirSync(DATA_DIR, { recursive: true });
 
-const { encrypted, iv, tag } = encrypt(license);
-const file = { version: 1, encrypted, iv, tag };
-writeFileSync(LICENSE_PATH, JSON.stringify(file, null, 2), { mode: 0o600 });
+const machineId = getMachineId();
+const { encrypted, iv, tag } = encrypt(license, machineId);
+const file = { version: 1, encrypted, iv, tag, machineId };
+const tmpPath = LICENSE_PATH + '.tmp';
+writeFileSync(tmpPath, JSON.stringify(file, null, 2), { encoding: 'utf8', mode: 0o600 });
+renameSync(tmpPath, LICENSE_PATH);
 
 console.log('\u2714 Test Pro license created');
 console.log('');

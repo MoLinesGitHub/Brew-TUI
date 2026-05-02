@@ -46,6 +46,11 @@ export function HistoryView() {
   const stream = useBrewStream();
   const debouncedQuery = useDebounce(searchQuery, 200);
   const { openModal, closeModal } = useModalStore();
+  // PERF-006: useStdout has to be called unconditionally on every render — the
+  // previous version invoked it after early returns, which violates rules of
+  // hooks the moment loading/error flips and changes the hook count.
+  const { stdout } = useStdout();
+  const MAX_VISIBLE_ROWS = Math.max(5, (stdout?.rows ?? 24) - 8);
 
   useEffect(() => { fetchHistory(); }, []);
 
@@ -102,8 +107,6 @@ export function HistoryView() {
   if (loading) return <Loading message={t('loading_history')} />;
   if (error) return <ErrorMessage message={error} />;
 
-  const { stdout } = useStdout();
-  const MAX_VISIBLE_ROWS = Math.max(5, (stdout?.rows ?? 24) - 8);
   const start = Math.max(0, cursor - Math.floor(MAX_VISIBLE_ROWS / 2));
   const visible = filtered.slice(start, start + MAX_VISIBLE_ROWS);
 

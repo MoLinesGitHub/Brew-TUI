@@ -7,8 +7,6 @@ struct OutdatedListView: View {
     @State private var upgradeTask: Task<Void, Never>?
     @Environment(\.legibilityWeight) private var legibilityWeight
     @Environment(\.colorSchemeContrast) private var colorSchemeContrast
-    private let installedVersionColor = Color.orange
-    private let currentVersionColor = Color.cyan
 
     var body: some View {
         VStack(spacing: 0) {
@@ -64,23 +62,26 @@ struct OutdatedListView: View {
                     .fontWeight(.medium)
                 HStack(spacing: 4) {
                     Text(pkg.installedVersion)
-                        .foregroundStyle(colorSchemeContrast == .increased ? Color(red: 0.8, green: 0.4, blue: 0) : installedVersionColor)
+                        .foregroundStyle(BrewBarTheme.installedVersion(highContrast: colorSchemeContrast == .increased))
                     Image(systemName: "arrow.right")
                         .font(.caption2)
                         .foregroundStyle(.secondary)
                         .accessibilityHidden(true)
                     Text(pkg.currentVersion)
-                        .foregroundStyle(colorSchemeContrast == .increased ? Color(red: 0, green: 0.5, blue: 0.7) : currentVersionColor)
+                        .foregroundStyle(BrewBarTheme.currentVersion(highContrast: colorSchemeContrast == .increased))
                 }
                 .font(.caption)
             }
+            // ACC-002: read each row as a single VoiceOver element so the
+            // package, both versions and the pin badge come through together.
+            .accessibilityElement(children: .combine)
 
             Spacer()
 
             if pkg.pinned {
                 Image(systemName: "pin.fill")
                     .font(.caption)
-                    .foregroundStyle(.orange)
+                    .foregroundStyle(BrewBarTheme.accent(highContrast: colorSchemeContrast == .increased))
                     .accessibilityLabel(String(localized: "Pinned"))
             }
 

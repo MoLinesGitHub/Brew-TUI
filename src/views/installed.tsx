@@ -64,10 +64,18 @@ export function InstalledView() {
   }, [formulae, casks, tab, debouncedFilter]);
 
   useInput((input, key) => {
-    if (confirmUninstall || stream.isRunning) return;
+    if (confirmUninstall) return;
+
+    // SCR-12-I1: while a brew uninstall is streaming we promised "esc:cancel"
+    // in the hint bar. Honour it by intercepting Esc here so it tears down the
+    // child process instead of bubbling up to global navigation.
+    if (stream.isRunning) {
+      if (key.escape) stream.cancel();
+      return;
+    }
 
     // Stream finished but still showing — Esc dismisses and refreshes
-    if (!stream.isRunning && stream.lines.length > 0) {
+    if (stream.lines.length > 0) {
       if (key.escape) {
         stream.clear();
         void fetchInstalled();

@@ -55,35 +55,7 @@ export function PackageInfoView() {
         // Try cask first, fall back to formula
         const caskInfo = await api.getCaskInfo(packageName);
         if (caskInfo && mountedRef.current) {
-          // Convert cask to a formula-like shape for display
-          const formulaLike: Formula = {
-            name: caskInfo.token,
-            full_name: caskInfo.full_token,
-            tap: '',
-            desc: caskInfo.desc,
-            license: '',
-            homepage: caskInfo.homepage,
-            versions: { stable: caskInfo.version, head: null, bottle: false },
-            dependencies: [],
-            build_dependencies: [],
-            installed: caskInfo.installed ? [{
-              version: caskInfo.installed,
-              used_options: [],
-              built_as_bottle: false,
-              poured_from_bottle: false,
-              time: caskInfo.installed_time ?? 0,
-              runtime_dependencies: [],
-              installed_as_dependency: false,
-              installed_on_request: true,
-            }] : [],
-            linked_keg: null,
-            pinned: false,
-            outdated: caskInfo.outdated,
-            deprecated: false,
-            keg_only: false,
-            caveats: null,
-          };
-          setFormula(formulaLike);
+          setFormula(api.formulaeFromCask(caskInfo));
           setLoading(false);
           return;
         }

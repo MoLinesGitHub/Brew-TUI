@@ -1,0 +1,40 @@
+# Auto-detect text files and normalise line endings.
+* text=auto eol=lf
+
+# Source code — explicitly text.
+*.ts        text
+*.tsx       text
+*.js        text
+*.swift     text
+*.md        text
+*.json      text
+*.yml       text
+*.yaml      text
+*.rb        text
+*.sh        text eol=lf
+
+# Binary assets — never diff or merge.
+*.png       binary
+*.jpg       binary
+*.jpeg      binary
+*.gif       binary
+*.icns      binary
+*.zip       binary
+*.tgz       binary
+*.p12       binary
+*.cer       binary
+*.mobileprovision binary
+*.car       binary
+
+# Exclude from `git archive` tarballs (npm publish, GitHub source archives).
+.github/            export-ignore
+.husky/             export-ignore
+.playwright-mcp/    export-ignore
+scripts/            export-ignore
+superaudit-report/  export-ignore
+screenshots/        export-ignore
+*.png               export-ignore
+PLAN.md             export-ignore
+.gitattributes      export-ignore
+.gitignore          export-ignore
+.npmignore          export-ignore

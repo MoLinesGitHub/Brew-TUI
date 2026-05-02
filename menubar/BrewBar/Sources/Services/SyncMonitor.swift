@@ -3,9 +3,17 @@ import os
 
 private let syncLogger = Logger(subsystem: "com.molinesdesigns.brewbar", category: "SyncMonitor")
 
+// ARQ-003: protocol seam for tests. Production gets SyncMonitor.shared, tests
+// register a stub that returns deterministic values without touching iCloud.
+protocol SyncMonitoring: Sendable {
+    func checkForSyncActivity() async -> Bool
+    func getKnownMachineCount() async -> Int
+    func acknowledgeSync() async
+}
+
 // Reads the iCloud sync.json to detect if other machines have pushed changes.
 // Does NOT decrypt — only reads the plaintext `updatedAt` field.
-actor SyncMonitor {
+actor SyncMonitor: SyncMonitoring {
     static let shared = SyncMonitor()
 
     private let syncPath: URL = {
@@ -19,50 +27,51 @@ actor SyncMonitor {
 
     private let lastKnownKey = "syncLastKnownUpdatedAt"
 
-    // Returns true if iCloud sync.json exists and has changed since last check
-    func checkForSyncActivity() async -> Bool {
+    // PERF-015: parse the envelope once per tick instead of three separate
+    // file reads. checkForSyncActivity, getKnownMachineCount and acknowledgeSync
+    // shared the same JSON; the helper below is the single read+parse path.
+    // BK-013: also serves as the seam for moving off synchronous Data(contentsOf:)
+    // — readEnvelope() can be swapped for an async URLSession call without
+    // touching call sites.
+    private struct Snapshot {
+        let updatedAt: String?
+        let machineCount: Int
+    }
+
+    private func readEnvelope() -> Snapshot? {
         do {
             let data = try Data(contentsOf: syncPath)
-            let json = try JSONSerialization.jsonObject(with: data) as? [String: Any]
-            guard let updatedAt = json?["updatedAt"] as? String else {
-                syncLogger.debug("sync.json has no updatedAt field")
-                return false
+            guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+                return nil
             }
-            let lastKnown = UserDefaults.standard.string(forKey: lastKnownKey)
-            let changed = updatedAt != lastKnown
-            syncLogger.debug("checkForSyncActivity: updatedAt=\(updatedAt, privacy: .public) lastKnown=\(lastKnown ?? "nil", privacy: .public) changed=\(changed)")
-            return changed
+            let updatedAt = json["updatedAt"] as? String
+            let machines = json["machines"] as? [String: Any]
+            return Snapshot(updatedAt: updatedAt, machineCount: machines?.count ?? 0)
         } catch {
-            syncLogger.debug("checkForSyncActivity error (expected if no sync): \(error.localizedDescription, privacy: .public)")
+            syncLogger.debug("readEnvelope error (expected if no sync): \(error.localizedDescription, privacy: .public)")
+            return nil
+        }
+    }
+
+    func checkForSyncActivity() async -> Bool {
+        guard let snapshot = readEnvelope(), let updatedAt = snapshot.updatedAt else {
             return false
         }
+        let lastKnown = UserDefaults.standard.string(forKey: lastKnownKey)
+        let changed = updatedAt != lastKnown
+        syncLogger.debug("checkForSyncActivity: updatedAt=\(updatedAt, privacy: .public) lastKnown=\(lastKnown ?? "nil", privacy: .public) changed=\(changed)")
+        return changed
     }
 
-    // Returns number of distinct machines in the sync envelope (0 if not available)
     func getKnownMachineCount() async -> Int {
-        do {
-            let data = try Data(contentsOf: syncPath)
-            let json = try JSONSerialization.jsonObject(with: data) as? [String: Any]
-            let machines = json?["machines"] as? [String: Any]
-            let count = machines?.count ?? 0
-            syncLogger.debug("getKnownMachineCount: \(count)")
-            return count
-        } catch {
-            syncLogger.debug("getKnownMachineCount error: \(error.localizedDescription, privacy: .public)")
-            return 0
-        }
+        guard let snapshot = readEnvelope() else { return 0 }
+        syncLogger.debug("getKnownMachineCount: \(snapshot.machineCount)")
+        return snapshot.machineCount
     }
 
-    // Marks current updatedAt as seen
     func acknowledgeSync() async {
-        do {
-            let data = try Data(contentsOf: syncPath)
-            let json = try JSONSerialization.jsonObject(with: data) as? [String: Any]
-            guard let updatedAt = json?["updatedAt"] as? String else { return }
-            UserDefaults.standard.set(updatedAt, forKey: lastKnownKey)
-            syncLogger.info("acknowledgeSync: stored updatedAt=\(updatedAt, privacy: .public)")
-        } catch {
-            syncLogger.debug("acknowledgeSync error: \(error.localizedDescription, privacy: .public)")
-        }
+        guard let updatedAt = readEnvelope()?.updatedAt else { return }
+        UserDefaults.standard.set(updatedAt, forKey: lastKnownKey)
+        syncLogger.info("acknowledgeSync: stored updatedAt=\(updatedAt, privacy: .public)")
     }
 }

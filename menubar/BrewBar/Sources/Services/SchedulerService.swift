@@ -42,13 +42,31 @@ final class SchedulerService {
     private weak var state: AppState?
     private let isPreview: Bool
     private let security: any SecurityChecking
+    // ARQ-009: notification dispatch lives in NotificationSender; the scheduler
+    // only decides *when* to send. Injected so tests stub it without going
+    // through UNUserNotificationCenter.
+    private let notifier: any Notifying
+    // ARQ-003: sync monitor injected through SyncMonitoring so the scheduler
+    // can be exercised without a real iCloud directory.
+    private let syncMonitor: any SyncMonitoring
+    // ARQ-010: hold a strong handle to fire-and-forget tasks so stop() can
+    // cancel them rather than leaving them to run after the scheduler is
+    // dismissed.
+    private var permissionSyncTask: Task<Void, Never>?
 
     private static let hasLaunchedKey = "hasLaunchedBefore"
 
-    init(isPreview: Bool? = nil, security: any SecurityChecking = SecurityMonitor.shared) {
+    init(
+        isPreview: Bool? = nil,
+        security: any SecurityChecking = SecurityMonitor.shared,
+        notifier: any Notifying = NotificationSender(),
+        syncMonitor: any SyncMonitoring = SyncMonitor.shared
+    ) {
         let resolvedIsPreview = isPreview ?? (ProcessInfo.processInfo.environment["XCODE_RUNNING_FOR_PREVIEWS"] == "1")
         self.isPreview = resolvedIsPreview
         self.security = security
+        self.notifier = notifier
+        self.syncMonitor = syncMonitor
 
         if resolvedIsPreview {
             interval = .oneHour
@@ -77,13 +95,18 @@ final class SchedulerService {
         self.state = state
         restartTimer()
         // Sync toggle with actual system permission on each launch
-        Task { await syncNotificationPermission() }
+        permissionSyncTask?.cancel()
+        permissionSyncTask = Task { [weak self] in
+            await self?.syncNotificationPermission()
+        }
     }
 
     func stop() {
         schedulerLogger.info("Stopping scheduler")
         timer?.invalidate()
         timer = nil
+        permissionSyncTask?.cancel()
+        permissionSyncTask = nil
     }
 
     /// Query the OS for the actual notification authorization status.
@@ -144,7 +167,7 @@ final class SchedulerService {
             // Re-check permission before sending
             await syncNotificationPermission()
             if notificationsEnabled {
-                sendNotification(count: newCount)
+                notifier.sendOutdatedNotification(count: newCount)
             }
         }
 
@@ -156,40 +179,21 @@ final class SchedulerService {
             if notificationsEnabled {
                 await syncNotificationPermission()
                 if notificationsEnabled {
-                    sendCVENotification(alerts: newCVEs)
+                    notifier.sendCVENotification(alerts: newCVEs)
                 }
             }
         }
 
         // Sync activity monitor
-        let hasSyncActivity = await SyncMonitor.shared.checkForSyncActivity()
-        let machineCount = await SyncMonitor.shared.getKnownMachineCount()
+        let hasSyncActivity = await syncMonitor.checkForSyncActivity()
+        let machineCount = await syncMonitor.getKnownMachineCount()
         state.updateSyncStatus(hasActivity: hasSyncActivity, machineCount: machineCount)
         if hasSyncActivity && notificationsEnabled {
             await syncNotificationPermission()
             if notificationsEnabled {
-                sendSyncNotification(machineCount: machineCount)
+                notifier.sendSyncNotification(machineCount: machineCount)
             }
         }
-    }
-
-    private func sendSyncNotification(machineCount: Int) {
-        schedulerLogger.info("Sending sync notification, machineCount: \(machineCount)")
-        let content = UNMutableNotificationContent()
-        content.title = String(localized: "Brew-TUI Sync")
-        content.body = machineCount > 1
-            ? String(format: String(localized: "Changes from %lld machine(s) available. Open Brew-TUI to sync."), Int64(machineCount - 1))
-            : String(localized: "Sync activity detected. Open Brew-TUI to review.")
-        content.sound = .default
-        // Identifier único por disparo: macOS reemplaza notifs con el mismo
-        // identifier en silencio (sin banner ni sonido), lo que ocultaría
-        // notifs consecutivas — mismo patrón que sendNotification.
-        let request = UNNotificationRequest(
-            identifier: "brewbar-sync-\(Date().timeIntervalSince1970)",
-            content: content,
-            trigger: nil
-        )
-        UNUserNotificationCenter.current().add(request)
     }
 
     private func requestNotificationPermission() {
@@ -208,62 +212,4 @@ final class SchedulerService {
         }
     }
 
-    private func sendNotification(count: Int) {
-        schedulerLogger.info("Sending notification for \(count) outdated packages")
-        let content = UNMutableNotificationContent()
-        content.title = String(localized: "Homebrew Updates")
-        content.body = String(format: String(localized: "%lld packages can be updated."), Int64(count))
-        content.sound = .default
-
-        // Identifier único por disparo: macOS reemplaza notifs con el mismo identifier
-        // en silencio (sin banner ni sonido), lo que ocultaría notifs consecutivas.
-        let request = UNNotificationRequest(
-            identifier: "brewbar-outdated-\(Date().timeIntervalSince1970)",
-            content: content,
-            trigger: nil
-        )
-        UNUserNotificationCenter.current().add(request)
-    }
-
-    private func sendCVENotification(alerts: [CVEAlert]) {
-        guard !alerts.isEmpty else { return }
-
-        let sorted = alerts.sorted { $0.severity.sortOrder < $1.severity.sortOrder }
-        let hasCriticalOrHigh = sorted.first.map { $0.severity == .critical || $0.severity == .high } ?? false
-        let count = alerts.count
-
-        schedulerLogger.info("Sending CVE notification for \(count) new vulnerabilities")
-
-        let content = UNMutableNotificationContent()
-        content.sound = .default
-
-        if hasCriticalOrHigh, let worst = sorted.first {
-            content.title = String(localized: "Security Alert — Brew-TUI")
-            content.body = String(
-                format: String(localized: "%lld vulnerable packages found, including %@"),
-                Int64(count),
-                worst.packageName
-            )
-            content.userInfo = ["cveId": worst.id]
-        } else {
-            content.title = String(localized: "Security Notice — Brew-TUI")
-            content.body = String(
-                format: String(localized: "%lld vulnerable packages found"),
-                Int64(count)
-            )
-            if let worst = sorted.first {
-                content.userInfo = ["cveId": worst.id]
-            }
-        }
-
-        // Identifier único por disparo (igual que sendNotification): si lo
-        // mantenemos fijo macOS reemplaza la notif en silencio y solo se ve
-        // la primera alerta CVE de la sesión.
-        let request = UNNotificationRequest(
-            identifier: "brewbar-cve-\(Date().timeIntervalSince1970)",
-            content: content,
-            trigger: nil
-        )
-        UNUserNotificationCenter.current().add(request)
-    }
 }

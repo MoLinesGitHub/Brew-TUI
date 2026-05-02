@@ -18,6 +18,15 @@ const STATUS_VARIANTS = {
   none: 'muted',
 } as const;
 
+// UI-007: brew services that need root surface as EACCES / "Operation not
+// permitted" / "sudo required" — translate that into actionable feedback.
+function humaniseServiceError(message: string): string {
+  if (/EACCES|operation not permitted|permission denied|sudo/i.test(message)) {
+    return t('services_errorPermission');
+  }
+  return message;
+}
+
 export function ServicesView() {
   const { services, loading, errors, fetchServices, serviceAction } = useBrewStore();
   const [cursor, setCursor] = useState(0);
@@ -55,13 +64,13 @@ export function ServicesView() {
       setActionInProgress(true);
       void serviceAction(svc.name, action)
         .catch((err) => {
-          setLastError(err instanceof Error ? err.message : String(err));
+          setLastError(humaniseServiceError(err instanceof Error ? err.message : String(err)));
         })
         .finally(() => {
           setActionInProgress(false);
           // SCR-014: Check store for errors after action
           const storeError = useBrewStore.getState().errors['service-action'];
-          if (storeError) setLastError(storeError);
+          if (storeError) setLastError(humaniseServiceError(storeError));
         });
     };
 

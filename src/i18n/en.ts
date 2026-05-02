@@ -4,6 +4,22 @@ const en = {
   pro_badge: 'PRO',
   app_version: 'Brew-TUI v{{version}}',
 
+  // ── UX-002: first-run welcome ──
+  welcome_title: 'Welcome to Brew-TUI',
+  welcome_intro: 'A visual terminal interface for Homebrew. Browse installed packages, see what is outdated, manage services and run upgrades — all from the keyboard.',
+  welcome_keysHeader: 'Essential keys',
+  welcome_keyJumpView: 'Jump to view 1–10',
+  welcome_keyCycleView: 'Cycle through views',
+  welcome_keyMove: 'Move up / down in lists',
+  welcome_keySearch: 'Filter the current list',
+  welcome_keySelect: 'Open the selected package',
+  welcome_keyBack: 'Go back / cancel',
+  welcome_keyLocale: 'Toggle language (English / Spanish)',
+  welcome_keyQuit: 'Quit Brew-TUI',
+  welcome_proHeader: 'Optional Pro features',
+  welcome_proIntro: 'Profiles, smart cleanup, history, security audit, sync and more — activate from the Account view with a license key.',
+  welcome_continueHint: 'Press Enter, Space or Esc to continue →',
+
   // ── View labels (header tab bar) ──
   view_dashboard: 'Dashboard',
   view_installed: 'Installed',
@@ -269,6 +285,7 @@ const en = {
   security_high: 'High',
   security_medium: 'Medium',
   security_noVulns: 'No known vulnerabilities found in your installed packages!',
+  security_coverage_warning: 'Note: OSV scans the Bitnami dataset, which does not cover every Homebrew formula. Absence of CVEs is not a guarantee of safety.',
   security_fixedIn: 'Fixed in: {{version}}',
   security_confirmUpgrade: 'Upgrade {{name}} to fix vulnerabilities?',
 
@@ -279,7 +296,6 @@ const en = {
   account_pro: '[Pro]',
   account_free: '[Free]',
   account_expired: '[Expired]',
-  account_validating: '[Validating...]',
   account_emailLabel: 'Email:',
   account_nameLabel: 'Name:',
   account_planLabel: 'Plan:',
@@ -425,6 +441,7 @@ const en = {
 
   // ── SCR-014: Services last error ──
   services_lastError: 'Last error: {{error}}',
+  services_errorPermission: 'Permission denied — this service requires sudo. Run the action from a terminal with elevated privileges.',
 
   // ── SCR-010: Generic network error ──
   error_network: 'Network error: unable to reach the server.',

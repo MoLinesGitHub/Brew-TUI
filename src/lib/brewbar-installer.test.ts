@@ -150,6 +150,38 @@ describe('brewbar-installer: integrity (NUEVO-003)', () => {
   });
 });
 
+describe('brewbar-installer: installBrewBar happy path (QA-009)', () => {
+  it('downloads, verifies SHA-256 and unzips to /Applications', async () => {
+    setPlatform('darwin');
+    mockAccess.mockRejectedValue(new Error('ENOENT')); // not installed
+    const fileBuffer = Buffer.from('zip-bytes');
+    const { createHash } = await import('node:crypto');
+    const realHash = createHash('sha256').update(fileBuffer).digest('hex');
+
+    mockFetch.mockImplementation((url: string) => {
+      if (url.endsWith('.sha256')) {
+        return Promise.resolve({ ok: true, text: async () => `${realHash}  BrewBar.app.zip` });
+      }
+      return Promise.resolve({
+        ok: true,
+        body: new ReadableStream({ start(c) { c.close(); } }),
+        headers: { get: () => '0' },
+      });
+    });
+    mockReadFile.mockResolvedValue(fileBuffer);
+    mockExecFile.mockResolvedValue('');
+
+    const { installBrewBar } = await import('./brewbar-installer.js');
+    await expect(installBrewBar(true, false)).resolves.toBeUndefined();
+
+    // ditto invoked exactly once with our temp zip → /Applications
+    expect(mockExecFile).toHaveBeenCalled();
+    const dittoCalls = mockExecFile.mock.calls.filter((c) => c[0] === 'ditto');
+    expect(dittoCalls.length).toBeGreaterThan(0);
+    expect(dittoCalls[0][1]).toEqual(expect.arrayContaining(['-xk', '/Applications/']));
+  });
+});
+
 describe('brewbar-installer: uninstallBrewBar', () => {
   it('rejects when BrewBar is not installed', async () => {
     mockAccess.mockRejectedValue(new Error('ENOENT'));

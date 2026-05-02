@@ -94,10 +94,11 @@ describe('navigation-store: tab cycle helpers', () => {
     expect(getPrevView(getNextView(middle))).toBe(middle);
   });
 
-  // Documented limitation (audit B5): 'search' is not part of VIEWS, so
-  // getNextView('search') returns VIEWS[0] (indexOf is -1 + 1 = 0). Lock the
-  // current behavior so a future change to include it has to update the test.
-  it('treats unlisted views (e.g. search) as before-VIEWS[0]', () => {
-    expect(getNextView('search')).toBe(VIEWS[0]);
+  // UI-004: 'search' is now in VIEWS so Tab/Shift+Tab cycles through it.
+  it('cycles through search like any other view', () => {
+    expect(VIEWS).toContain('search');
+    const next = getNextView('search');
+    expect(VIEWS).toContain(next);
+    expect(next).not.toBe('search');
   });
 });

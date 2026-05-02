@@ -60,6 +60,25 @@ struct OutdatedPackageTests {
         #expect(pkg.pinnedVersion == "3.11.8")
         #expect(pkg.currentVersion == "3.11.9")
     }
+
+    // QA-006: regression test for the 0.6.1 fix that made `pinned` optional
+    // in the cask payload. brew omits the key for casks; without the fallback
+    // decoding fails and the BrewBar outdated list goes blank.
+    @Test("JSON decoding without pinned key (cask shape)")
+    func jsonDecodingWithoutPinned() throws {
+        let json = """
+        {
+            "name": "firefox",
+            "installed_versions": ["120.0"],
+            "current_version": "121.0"
+        }
+        """.data(using: .utf8)!
+
+        let pkg = try JSONDecoder().decode(OutdatedPackage.self, from: json)
+        #expect(pkg.name == "firefox")
+        #expect(pkg.pinned == false)
+        #expect(pkg.pinnedVersion == nil)
+    }
 }
 
 // MARK: - OutdatedResponse Tests

@@ -8,8 +8,9 @@ export const PROFILES_DIR = join(DATA_DIR, 'profiles');
 export const LICENSE_PATH = join(DATA_DIR, 'license.json');
 export const HISTORY_PATH = join(DATA_DIR, 'history.json');
 export const SNAPSHOTS_DIR = join(DATA_DIR, 'snapshots');
-export const CVE_CACHE_PATH = join(DATA_DIR, 'cve-cache.json');
 export const MACHINE_ID_PATH = join(DATA_DIR, 'machine-id');
+export const ONBOARDING_FLAG_PATH = join(DATA_DIR, 'onboarding-completed');
+export const ANALYTICS_CONSENT_PATH = join(DATA_DIR, 'analytics-consent');
 
 export async function ensureDataDirs(): Promise<void> {
   await mkdir(DATA_DIR, { recursive: true, mode: 0o700 });

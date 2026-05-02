@@ -37,7 +37,9 @@ struct PopoverView: View {
             Divider()
             footerView
         }
-        .frame(minWidth: 340, maxWidth: 340, minHeight: 420)
+        // UI-015: drop the fixed 420 minHeight so users with large Dynamic Type
+        // sizes do not get content clipped at the bottom of the popover.
+        .frame(minWidth: 340, maxWidth: 340)
         .onDisappear { refreshTask?.cancel() }
         .sheet(isPresented: $showSettings) {
             SettingsView(scheduler: scheduler)
@@ -63,6 +65,9 @@ struct PopoverView: View {
             }
 
             Button {
+                // UI-008: cancel any in-flight refresh before launching a new
+                // one so two concurrent tasks cannot land in arbitrary order.
+                refreshTask?.cancel()
                 refreshTask = Task { await appState.refresh() }
             } label: {
                 Image(systemName: "arrow.clockwise")
@@ -89,13 +94,16 @@ struct PopoverView: View {
             Spacer()
             Image(systemName: "exclamationmark.triangle.fill")
                 .font(.largeTitle)
-                .foregroundStyle(.yellow)
+                .foregroundStyle(BrewBarTheme.warning(highContrast: colorSchemeContrast == .increased))
                 .accessibilityHidden(true)
             Text(message)
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
             Button("Retry") {
+                // UI-008: cancel any in-flight refresh before launching a new
+                // one so two concurrent tasks cannot land in arbitrary order.
+                refreshTask?.cancel()
                 refreshTask = Task { await appState.refresh() }
             }
             Spacer()
@@ -128,12 +136,12 @@ struct PopoverView: View {
         VStack(alignment: .leading, spacing: 4) {
             Label("Service Errors", systemImage: "exclamationmark.triangle")
                 .font(.caption)
-                .foregroundStyle(colorSchemeContrast == .increased ? Color(red: 0.8, green: 0.4, blue: 0) : .orange)
+                .foregroundStyle(BrewBarTheme.accent(highContrast: colorSchemeContrast == .increased))
                 .accessibilityAddTraits(.isHeader)
             if let servicesError = appState.servicesError {
                 Text(servicesError)
                     .font(.caption2)
-                    .foregroundStyle(.red)
+                    .foregroundStyle(BrewBarTheme.critical(highContrast: colorSchemeContrast == .increased))
             }
             ForEach(appState.errorServices) { svc in
                 HStack {
@@ -143,7 +151,7 @@ struct PopoverView: View {
                     if let code = svc.exitCode {
                         Text(String(format: String(localized: "exit %lld"), Int64(code)))
                             .font(.caption2)
-                            .foregroundStyle(.red)
+                            .foregroundStyle(BrewBarTheme.critical(highContrast: colorSchemeContrast == .increased))
                     }
                 }
             }
@@ -191,15 +199,29 @@ struct PopoverView: View {
         .padding(.vertical, 8)
     }
 
+    // UX-008: same Polar checkout the TUI surfaces from `POLAR_CHECKOUT_URLS`.
+    // Yearly Pro chosen as the default funnel — single SKU keeps copy short and
+    // the dropdown of plans lives on the Polar page anyway.
+    private static let renewURL = URL(string: "https://buy.polar.sh/polar_cl_yQsiUeDelyyEQznbWffD1j77JAyP24ra7iEVQ22PA4h")!
+
     private var basicModeView: some View {
         HStack(spacing: 6) {
             Image(systemName: "lock.fill")
-                .foregroundStyle(.orange)
+                .foregroundStyle(BrewBarTheme.accent(highContrast: colorSchemeContrast == .increased))
                 .accessibilityHidden(true)
             Text(String(localized: "Pro license expired"))
                 .font(.caption)
-                .foregroundStyle(.orange)
+                .foregroundStyle(BrewBarTheme.accent(highContrast: colorSchemeContrast == .increased))
             Spacer()
+            Button {
+                NSWorkspace.shared.open(Self.renewURL)
+            } label: {
+                Text(String(localized: "Renew Pro"))
+                    .font(.caption)
+            }
+            .buttonStyle(.borderedProminent)
+            .controlSize(.small)
+            .accessibilityLabel(String(localized: "Renew Pro license"))
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 6)

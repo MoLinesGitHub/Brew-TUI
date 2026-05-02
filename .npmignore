@@ -6,6 +6,16 @@ menubar/
 tsup.config.ts
 tsconfig.json
 eslint.config.js
+dist-standalone/
+homebrew/
+scripts/
+superaudit-report/
+screenshots/
+assets/
+*.png
+PLAN.md
+CHANGELOG.md
+SECURITY.md
 
 # Dev/System
 .DS_Store

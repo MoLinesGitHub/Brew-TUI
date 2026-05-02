@@ -6,6 +6,22 @@ const es: Translations = {
   pro_badge: 'PRO',
   app_version: 'Brew-TUI v{{version}}',
 
+  // ── UX-002: bienvenida en primera ejecución ──
+  welcome_title: 'Bienvenido a Brew-TUI',
+  welcome_intro: 'Una interfaz visual de terminal para Homebrew. Explora paquetes instalados, ve cuáles están desactualizados, gestiona servicios y ejecuta upgrades — todo con el teclado.',
+  welcome_keysHeader: 'Teclas esenciales',
+  welcome_keyJumpView: 'Ir directamente a la vista 1–10',
+  welcome_keyCycleView: 'Recorrer vistas',
+  welcome_keyMove: 'Subir / bajar en listas',
+  welcome_keySearch: 'Filtrar la lista actual',
+  welcome_keySelect: 'Abrir el paquete seleccionado',
+  welcome_keyBack: 'Volver / cancelar',
+  welcome_keyLocale: 'Cambiar idioma (inglés / español)',
+  welcome_keyQuit: 'Salir de Brew-TUI',
+  welcome_proHeader: 'Funcionalidades Pro opcionales',
+  welcome_proIntro: 'Perfiles, limpieza inteligente, historial, auditoría de seguridad, sync y más — actívalas desde la vista Cuenta con una clave de licencia.',
+  welcome_continueHint: 'Pulsa Enter, Espacio o Esc para continuar →',
+
   // ── View labels (header tab bar) ──
   view_dashboard: 'Inicio',
   view_installed: 'Instalados',
@@ -270,6 +286,7 @@ const es: Translations = {
   security_high: 'Altos',
   security_medium: 'Medios',
   security_noVulns: '\u00A1No se encontraron vulnerabilidades conocidas en tus paquetes instalados!',
+  security_coverage_warning: 'Nota: OSV escanea el dataset Bitnami, que no cubre todas las f\u00F3rmulas de Homebrew. La ausencia de CVEs no garantiza seguridad total.',
   security_fixedIn: 'Corregido en: {{version}}',
   security_confirmUpgrade: '\u00BFActualizar {{name}} para corregir vulnerabilidades?',
 
@@ -280,7 +297,6 @@ const es: Translations = {
   account_pro: '[Pro]',
   account_free: '[Gratis]',
   account_expired: '[Expirada]',
-  account_validating: '[Validando...]',
   account_emailLabel: 'Email:',
   account_nameLabel: 'Nombre:',
   account_planLabel: 'Plan:',
@@ -426,6 +442,7 @@ const es: Translations = {
 
   // ── SCR-014: Services last error ──
   services_lastError: '\u00DAltimo error: {{error}}',
+  services_errorPermission: 'Permiso denegado \u2014 este servicio requiere sudo. Ej\u00E9cutalo desde un terminal con privilegios elevados.',
 
   // ── SCR-010: Generic network error ──
   error_network: 'Error de red: no se puede conectar con el servidor.',

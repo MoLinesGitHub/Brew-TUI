@@ -48,6 +48,15 @@ export async function* streamBrew(args: string[]): AsyncGenerator<string> {
   let exitError: string | null = null;
   let lastOutputAt = Date.now();
 
+  // PERF-002: replace the 100 ms sleep loop with a Promise that resolves on
+  // every stdout/stderr chunk or exit. The previous implementation woke the
+  // event loop ten times per second and added up to 100 ms latency per line.
+  let waker: (() => void) | null = null;
+  const wake = () => {
+    if (waker) { const w = waker; waker = null; w(); }
+  };
+  const wait = () => new Promise<void>((resolve) => { waker = resolve; });
+
   const push = (chunk: Buffer) => {
     lastOutputAt = Date.now();
     buffer += chunk.toString();
@@ -56,6 +65,7 @@ export async function* streamBrew(args: string[]): AsyncGenerator<string> {
     for (const line of parts) {
       if (line.trim()) lines.push(line);
     }
+    wake();
   };
 
   proc.stdout.on('data', push);
@@ -67,11 +77,13 @@ export async function* streamBrew(args: string[]): AsyncGenerator<string> {
     if (code !== 0) {
       exitError = `brew ${args.join(' ')} exited with code ${code}`;
     }
+    wake();
   });
 
   proc.on('error', (err) => {
     done = true;
     exitError = err.message;
+    wake();
   });
 
   try {
@@ -79,12 +91,16 @@ export async function* streamBrew(args: string[]): AsyncGenerator<string> {
       if (lines.length > 0) {
         yield lines.shift()!;
       } else if (!done) {
-        // EP-012: Kill process if idle for too long
+        // EP-012: kill process if idle for too long. The idle check still runs
+        // periodically through a guard timer because the wake path only fires
+        // on output — a hung child without any output would never wake us.
+        const guard = setTimeout(wake, 1_000);
+        await wait();
+        clearTimeout(guard);
         if (Date.now() - lastOutputAt > STREAM_IDLE_TIMEOUT_MS) {
           proc.kill();
           throw new Error(`brew ${args.join(' ')} timed out: no output for ${STREAM_IDLE_TIMEOUT_MS / 1000}s`);
         }
-        await new Promise((r) => setTimeout(r, 100));
       }
     }
   } finally {

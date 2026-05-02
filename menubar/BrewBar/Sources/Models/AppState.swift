@@ -1,5 +1,5 @@
 import Foundation
-import SwiftUI
+import Observation
 import os
 
 private let appStateLogger = Logger(subsystem: "com.molinesdesigns.brewbar", category: "AppState")
@@ -47,10 +47,11 @@ final class AppState {
             onRefreshComplete?()
         }
 
-        // Refresh formula index so outdated check reflects current versions
-        await checker.updateIndex()
-
-        // Run both checks in parallel using async let
+        // PERF-011: launch the index refresh in parallel with outdated and
+        // services. The outdated list is the slow part of the user-visible
+        // refresh — we tolerate showing the previous tap data for the first
+        // tick rather than blocking the whole refresh on `brew update`.
+        async let _indexUpdate: Void = checker.updateIndex()
         async let outdatedResult = checker.checkOutdated()
         async let servicesResult = checker.checkServices()
 
@@ -70,6 +71,10 @@ final class AppState {
             appStateLogger.error("Services check failed: \(error.localizedDescription, privacy: .public)")
             servicesError = error.localizedDescription
         }
+
+        // Wait for the index refresh so its log messages and any later refresh()
+        // call see a fresh tap state. We do not surface its result.
+        await _indexUpdate
     }
 
     func updateCVEAlerts(_ alerts: [CVEAlert]) {

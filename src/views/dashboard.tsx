@@ -80,7 +80,17 @@ function ProStatusPanel() {
 }
 
 export function DashboardView() {
-  const { formulae, casks, outdated, services, config, loading, errors, lastFetchedAt, fetchAll } = useBrewStore();
+  // PERF-004: granular selectors so a `loading` map mutation for an unrelated
+  // key does not re-render the entire dashboard.
+  const formulae = useBrewStore((s) => s.formulae);
+  const casks = useBrewStore((s) => s.casks);
+  const outdated = useBrewStore((s) => s.outdated);
+  const services = useBrewStore((s) => s.services);
+  const config = useBrewStore((s) => s.config);
+  const loading = useBrewStore((s) => s.loading);
+  const errors = useBrewStore((s) => s.errors);
+  const lastFetchedAt = useBrewStore((s) => s.lastFetchedAt);
+  const fetchAll = useBrewStore((s) => s.fetchAll);
   const isPro = useLicenseStore((s) => s.isPro);
   const { stdout } = useStdout();
   const columns = stdout?.columns ?? 80;

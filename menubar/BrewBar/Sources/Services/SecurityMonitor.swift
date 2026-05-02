@@ -3,17 +3,27 @@ import os
 
 private let securityLogger = Logger(subsystem: "com.molinesdesigns.brewbar", category: "SecurityMonitor")
 
+// QA-005: minimal seam used by SecurityMonitor to talk to OSV. Tests inject a
+// stub conforming to this protocol; production keeps URLSession.shared.
+protocol SecurityHTTPSession: Sendable {
+    func data(for request: URLRequest) async throws -> (Data, URLResponse)
+}
+
+extension URLSession: SecurityHTTPSession {}
+
 actor SecurityMonitor {
     static let shared = SecurityMonitor()
 
     private let cachePath: String
+    private let session: SecurityHTTPSession
 
     private static let cacheMaxAge: TimeInterval = 3600 // 1 hora
     private static let batchSize = 100
     private static let osvBatchURL = "https://api.osv.dev/v1/querybatch"
 
-    private init() {
-        cachePath = NSHomeDirectory() + "/.brew-tui/cve-cache.json"
+    init(session: SecurityHTTPSession = URLSession.shared, cachePath: String? = nil) {
+        self.session = session
+        self.cachePath = cachePath ?? (NSHomeDirectory() + "/.brew-tui/cve-cache.json")
     }
 
     // MARK: - Public API
@@ -131,7 +141,7 @@ actor SecurityMonitor {
         request.httpBody = bodyData
         request.timeoutInterval = 15
 
-        let (data, response) = try await URLSession.shared.data(for: request)
+        let (data, response) = try await session.data(for: request)
 
         guard let httpResponse = response as? HTTPURLResponse else {
             throw SecurityMonitorError.invalidResponse

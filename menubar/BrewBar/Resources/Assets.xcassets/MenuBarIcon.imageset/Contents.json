@@ -1,12 +1,12 @@
 {
   "images" : [
     {
-      "filename" : "menubar_dark@1x.png",
+      "filename" : "menubar_light@1x.png",
       "idiom" : "mac",
       "scale" : "1x"
     },
     {
-      "filename" : "menubar_dark@2x.png",
+      "filename" : "menubar_light@2x.png",
       "idiom" : "mac",
       "scale" : "2x"
     },
@@ -17,7 +17,7 @@
           "value" : "dark"
         }
       ],
-      "filename" : "menubar_light@1x.png",
+      "filename" : "menubar_dark@1x.png",
       "idiom" : "mac",
       "scale" : "1x"
     },
@@ -28,7 +28,7 @@
           "value" : "dark"
         }
       ],
-      "filename" : "menubar_light@2x.png",
+      "filename" : "menubar_dark@2x.png",
       "idiom" : "mac",
       "scale" : "2x"
     }

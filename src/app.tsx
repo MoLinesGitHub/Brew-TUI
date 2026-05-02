@@ -1,9 +1,11 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useApp } from 'ink';
 import { AppLayout } from './components/layout/app-layout.js';
 import { useNavigationStore } from './stores/navigation-store.js';
 import { useLicenseStore } from './stores/license-store.js';
 import { useGlobalKeyboard } from './hooks/use-keyboard.js';
+import { hasCompletedOnboarding } from './lib/onboarding.js';
+import { WelcomeView } from './views/welcome.js';
 import { isProView, isTeamView } from './lib/license/feature-gate.js';
 import { UpgradePrompt } from './components/common/upgrade-prompt.js';
 import { DashboardView } from './views/dashboard.js';
@@ -70,7 +72,30 @@ export function App() {
   const { exit } = useApp();
   const currentView = useNavigationStore((s) => s.currentView);
 
+  // UX-002: gate the whole app behind a one-shot welcome screen on first run.
+  // Loading state is `null` until the disk check finishes — we render nothing
+  // for that frame so a returning user never sees the welcome flash. In Vitest
+  // (NODE_ENV=test) we skip the disk hop so render-tests keep their semantics.
+  const isTestEnv = typeof process !== 'undefined' && process.env?.['NODE_ENV'] === 'test';
+  const [showWelcome, setShowWelcome] = useState<boolean | null>(isTestEnv ? false : null);
+  useEffect(() => {
+    if (isTestEnv) return;
+    void hasCompletedOnboarding().then((done) => setShowWelcome(!done));
+  }, []);
+
   useGlobalKeyboard({ onQuit: exit });
+
+  if (showWelcome === null) {
+    return <AppLayout><></></AppLayout>;
+  }
+
+  if (showWelcome) {
+    return (
+      <AppLayout>
+        <WelcomeView onContinue={() => setShowWelcome(false)} />
+      </AppLayout>
+    );
+  }
 
   return (
     <AppLayout>

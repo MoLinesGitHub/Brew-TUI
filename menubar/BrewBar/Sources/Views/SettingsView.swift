@@ -46,14 +46,16 @@ struct SettingsView: View {
                     }
                 ))
                 .disabled(scheduler.notificationsDenied)
+                .accessibilityLabel(String(localized: "Notifications"))
 
                 if scheduler.notificationsDenied {
                     Text("Notifications are disabled in System Settings. Enable them in System Settings > Notifications > BrewBar.")
                         .font(.caption)
-                        .foregroundStyle(colorSchemeContrast == .increased ? Color(red: 0.8, green: 0.4, blue: 0) : .orange)
+                        .foregroundStyle(BrewBarTheme.accent(highContrast: colorSchemeContrast == .increased))
                 }
 
                 Toggle("Launch at login", isOn: $launchAtLogin)
+                    .accessibilityLabel(String(localized: "Launch at login"))
                     .onChange(of: launchAtLogin) { _, newValue in
                         guard !Self.isRunningForPreviews else { return }
 

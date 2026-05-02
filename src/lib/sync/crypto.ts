@@ -1,5 +1,5 @@
 import { createCipheriv, createDecipheriv, randomBytes, scryptSync, hkdfSync } from 'node:crypto';
-import type { SyncPayload } from './types.js';
+import { isSyncPayload, type SyncPayload } from './types.js';
 
 // SEG-003: Cross-machine sync encryption.
 // The two constants below are public (compiled into the npm bundle). The
@@ -65,7 +65,9 @@ export function decryptPayload(encrypted: string, iv: string, tag: string, licen
       const decipher = createDecipheriv('aes-256-gcm', key, ivBuf);
       decipher.setAuthTag(tagBuf);
       const plaintext = Buffer.concat([decipher.update(ciphertext), decipher.final()]);
-      return JSON.parse(plaintext.toString('utf-8')) as SyncPayload;
+      const parsed: unknown = JSON.parse(plaintext.toString('utf-8'));
+      if (!isSyncPayload(parsed)) throw new Error('Invalid sync payload shape');
+      return parsed;
     } catch { /* try next */ }
   }
   throw new Error('Failed to decrypt sync payload');

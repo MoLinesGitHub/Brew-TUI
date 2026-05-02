@@ -3,15 +3,11 @@ import { createCipheriv, createDecipheriv, randomBytes, scryptSync, hkdfSync } f
 import { LICENSE_PATH, ensureDataDirs, getMachineId } from '../data-dir.js';
 import { activateLicense as apiActivate, validateLicense as apiValidate, deactivateLicense as apiDeactivate } from './polar-api.js';
 import { t } from '../../i18n/index.js';
-import type { LicenseData, LicenseFile } from './types.js';
+import { isLicenseData, type LicenseData, type LicenseFile } from './types.js';
 
-// SEG-009: Built-in perennial accounts removed from the bundle.
-// Previously a hardcoded map of customer emails bypassed Polar validation entirely;
-// any user could craft a license.json with one of those emails (the AES key is
-// derivable from the bundle) and gain perennial Pro/Team. Operator accounts now
-// authenticate via real Polar license keys like everyone else. This function is
-// retained as a stable export but always returns null; remove it once no caller
-// references it.
+// SEG-009 guard: previously a hardcoded map bypassed Polar entirely. The
+// function is kept as an always-null export so a regression test can pin
+// the behaviour and the import site in license-store stays stable.
 export function getBuiltinAccountType(_email: string): 'pro' | 'team' | 'free' | null {
   return null;
 }
@@ -30,7 +26,11 @@ interface ActivationTracker {
   lockedUntil: number;
 }
 
-// Note: rate limit state is in-memory only; resets on process restart
+// UX-004: rate-limit state is intentionally in-memory only. It is a first
+// filter to slow down brute force inside one TUI session — the authoritative
+// activation throttle lives in the Polar backend, which sees attempts across
+// process restarts. Persisting this client-side would invite users to delete
+// the file and reset themselves; the trade-off is documented here on purpose.
 const tracker: ActivationTracker = {
   attempts: 0,
   lastAttempt: 0,
@@ -137,8 +137,12 @@ async function decryptLicenseData(encrypted: string, iv: string, tag: string): P
       const decipher = createDecipheriv('aes-256-gcm', key, ivBuf);
       decipher.setAuthTag(tagBuf);
       const plaintext = Buffer.concat([decipher.update(ciphertext), decipher.final()]);
+      const parsed: unknown = JSON.parse(plaintext.toString('utf-8'));
+      if (!isLicenseData(parsed)) {
+        throw new Error('Decrypted license payload failed shape validation');
+      }
       _decryptedWithLegacyKey = isLegacy;
-      return JSON.parse(plaintext.toString('utf-8')) as LicenseData;
+      return parsed;
     } catch (err) { lastErr = err; }
   }
   throw lastErr instanceof Error ? lastErr : new Error('Failed to decrypt license');
@@ -376,16 +380,14 @@ export async function revalidate(license: LicenseData): Promise<RevalidationResu
 }
 
 export async function deactivate(license: LicenseData): Promise<{ remoteSuccess: boolean }> {
+  // EP-001: apiDeactivate already wraps fetchWithRetry (3 attempts). The
+  // outer loop multiplied that into 9 POSTs — Polar would count each as a
+  // separate request and a flaky network would amplify load 3×.
   let remoteSuccess = false;
-  for (let attempt = 0; attempt < 3; attempt++) {
-    try {
-      await apiDeactivate(license.key, license.instanceId);
-      remoteSuccess = true;
-      break;
-    } catch {
-      if (attempt < 2) await new Promise(r => setTimeout(r, 1000));
-    }
-  }
+  try {
+    await apiDeactivate(license.key, license.instanceId);
+    remoteSuccess = true;
+  } catch { /* local clear still happens below */ }
   await clearLicense();
   return { remoteSuccess };
 }

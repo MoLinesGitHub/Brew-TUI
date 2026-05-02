@@ -9,7 +9,7 @@ interface StatCardProps {
   color?: string;
 }
 
-export function StatCard({ label, value, color = 'white' }: StatCardProps) {
+export function StatCard({ label, value, color = COLORS.white }: StatCardProps) {
   const { stdout } = useStdout();
   const cols = stdout?.columns ?? 80;
   // Adapt min width to terminal: tight on narrow, comfortable on wide

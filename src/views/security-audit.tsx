@@ -104,6 +104,14 @@ export function SecurityAuditView() {
         <Text color={COLORS.muted}>{t('security_cachedResults', { time: cacheAge })}</Text>
       )}
 
+      {/* UI-014: be honest about coverage \u2014 OSV's Bitnami dataset does not
+          map every Homebrew formula, so "0 CVEs" is not the same as "safe". */}
+      {summary && (
+        <Box marginTop={SPACING.xs}>
+          <Text color={COLORS.textSecondary} italic>{t('security_coverage_warning')}</Text>
+        </Box>
+      )}
+
       {results.length === 0 && summary && (
         <Box marginTop={SPACING.xs}>
           <ResultBanner status="success" message={`\u2714 ${t('security_noVulns')}`} />

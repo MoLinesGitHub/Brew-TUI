@@ -6,7 +6,7 @@ const pkg = JSON.parse(readFileSync('./package.json', 'utf-8'));
 export default defineConfig({
   entry: ['src/index.tsx'],
   format: ['esm'],
-  target: 'node18',
+  target: 'node22',
   outDir: 'build',
   clean: true,
   sourcemap: 'hidden',

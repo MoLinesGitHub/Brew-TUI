@@ -91,7 +91,7 @@ export function Header() {
   const logoBlock = (
     <Box flexDirection="column" flexShrink={0}>
       {LOGO_BREW.map((brew, i) => (
-        <Box key={i}>
+        <Box key={`logo-${i}`}>
           <GradientText colors={GRADIENTS.gold}>{brew}</GradientText>
           <GradientText colors={GRADIENTS.darkGold}>{LOGO_TUI[i]}</GradientText>
         </Box>

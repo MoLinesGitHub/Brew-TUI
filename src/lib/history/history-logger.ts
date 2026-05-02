@@ -1,4 +1,4 @@
-import { readFile, writeFile, rename, open, unlink } from 'node:fs/promises';
+import { readFile, writeFile, rename, open, unlink, stat } from 'node:fs/promises';
 import { randomUUID } from 'node:crypto';
 import { HISTORY_PATH, ensureDataDirs } from '../data-dir.js';
 import type { HistoryEntry, HistoryFile, HistoryAction } from './types.js';
@@ -9,11 +9,29 @@ function assertPro(isPro: boolean): void {
   if (!isPro) throw new Error('Pro license required');
 }
 
-// ── BK-004: Simple file locking ──
+// ── BK-004 + BK-007: file locking with stale-lock recovery ──
+// A crash between open('wx') and unlink leaves an orphan lockfile that would
+// block every future write. Reclaim a lock whose mtime is older than this TTL.
 const lockPath = HISTORY_PATH + '.lock';
+const LOCK_TTL_MS = 30_000;
+
+async function tryAcquireLock(): Promise<Awaited<ReturnType<typeof open>> | null> {
+  const fd = await open(lockPath, 'wx').catch(() => null);
+  if (fd) return fd;
+
+  // Lock exists — is it stale?
+  try {
+    const info = await stat(lockPath);
+    if (Date.now() - info.mtime.getTime() > LOCK_TTL_MS) {
+      await unlink(lockPath).catch(() => {});
+      return await open(lockPath, 'wx').catch(() => null);
+    }
+  } catch { /* race with another writer; fall through */ }
+  return null;
+}
 
 async function withLock<T>(fn: () => Promise<T>): Promise<T> {
-  const lockFd = await open(lockPath, 'wx').catch(() => null);
+  const lockFd = await tryAcquireLock();
   if (!lockFd) throw new Error('History file is locked by another process');
   try {
     return await fn();

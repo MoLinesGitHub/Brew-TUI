@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { Text } from 'ink';
-import { NO_COLOR } from './colors.js';
+import { COLORS, NO_COLOR } from './colors.js';
 
 function hexToRgb(hex: string): [number, number, number] {
   const n = parseInt(hex.slice(1), 16);
@@ -63,14 +63,16 @@ export const GradientText = React.memo(function GradientText({ children, colors,
   );
 });
 
-// Pre-defined gradient palettes
+// DS-003: derive every gradient stop from the COLORS palette so a token edit
+// fans out to all gradients. Keeping the export as a plain object preserves
+// import sites that read GRADIENTS.gold etc.
 export const GRADIENTS = {
-  gold: ['#FFD700', '#FFA500', '#B8860B'],
-  sunset: ['#FF6B2B', '#FFD700', '#FF6B2B'],
-  ocean: ['#06B6D4', '#3B82F6', '#A855F7'],
-  emerald: ['#22C55E', '#2DD4BF', '#06B6D4'],
-  fire: ['#EF4444', '#F59E0B', '#FFD700'],
-  version: ['#EF4444', '#9CA3AF', '#2DD4BF'],
-  pro: ['#FF6B2B', '#FFD700', '#FF6B2B'],
-  darkGold: ['#B8860B', '#8B6914', '#6B4F10'],
+  gold:    [COLORS.gold,    COLORS.goldOrange, COLORS.goldDeep],
+  sunset:  [COLORS.brand,   COLORS.gold,       COLORS.brand],
+  ocean:   [COLORS.info,    COLORS.blue,       COLORS.purple],
+  emerald: [COLORS.success, COLORS.teal,       COLORS.info],
+  fire:    [COLORS.error,   COLORS.warning,    COLORS.gold],
+  version: [COLORS.error,   COLORS.muted,      COLORS.teal],
+  pro:     [COLORS.brand,   COLORS.gold,       COLORS.brand],
+  darkGold:[COLORS.goldDeep, COLORS.goldDark,  COLORS.goldDeepest],
 };

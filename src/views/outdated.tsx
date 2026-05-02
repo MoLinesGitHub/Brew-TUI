@@ -98,6 +98,10 @@ export function OutdatedView() {
       setImpact(null);
       return;
     }
+    // SCR-12-O1: each cursor move should invalidate the previous in-flight
+    // analysis so a slower one cannot land after a faster newer one and
+    // overwrite the panel with stale data.
+    let cancelled = false;
     setImpactLoading(true);
     void getUpgradeImpact(
       pkg.name,
@@ -105,9 +109,10 @@ export function OutdatedView() {
       pkg.current_version,
       pkg.type,
     )
-      .then(setImpact)
-      .catch(() => setImpact(null))
-      .finally(() => setImpactLoading(false));
+      .then((result) => { if (!cancelled) setImpact(result); })
+      .catch(() => { if (!cancelled) setImpact(null); })
+      .finally(() => { if (!cancelled) setImpactLoading(false); });
+    return () => { cancelled = true; };
   }, [debouncedCursor, stream.isRunning]);
 
   useInput((input, key) => {

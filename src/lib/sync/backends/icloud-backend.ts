@@ -33,6 +33,30 @@ function isValidEnvelope(v: unknown): v is SyncEnvelope {
 }
 
 export async function readSyncEnvelope(): Promise<SyncEnvelope | null> {
+  // BK-012: iCloud may leave an undownloaded placeholder at the path. Reading
+  // returns 0 bytes (or ENOENT for the file but a sibling .icloud entry).
+  // Treat empty / missing-but-pending as "not yet ready" without surfacing
+  // a misleading "no remote state" to the caller.
+  try {
+    const info = await stat(ICLOUD_SYNC_PATH);
+    if (info.size === 0) {
+      logger.warn('sync: iCloud envelope exists but is empty (placeholder?)');
+      return null;
+    }
+  } catch (err: unknown) {
+    if (err instanceof Error && (err as NodeJS.ErrnoException).code === 'ENOENT') {
+      // First-sync case OR pending download — check for the placeholder sibling.
+      try {
+        const placeholder = ICLOUD_SYNC_PATH.replace(/sync\.json$/, '.sync.json.icloud');
+        await stat(placeholder);
+        logger.warn('sync: iCloud placeholder present, file not yet downloaded');
+      } catch { /* genuinely absent */ }
+      return null;
+    }
+    logger.warn('sync: could not stat iCloud envelope', { error: String(err) });
+    return null;
+  }
+
   try {
     const raw = await readFile(ICLOUD_SYNC_PATH, 'utf-8');
     const parsed: unknown = JSON.parse(raw);
@@ -42,13 +66,6 @@ export async function readSyncEnvelope(): Promise<SyncEnvelope | null> {
     }
     return parsed;
   } catch (err: unknown) {
-    // File does not exist yet — expected on first sync
-    if (
-      err instanceof Error &&
-      (err as NodeJS.ErrnoException).code === 'ENOENT'
-    ) {
-      return null;
-    }
     logger.warn('sync: could not read iCloud envelope', { error: String(err) });
     return null;
   }

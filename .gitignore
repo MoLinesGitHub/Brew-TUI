@@ -19,7 +19,6 @@ menubar/DerivedData/
 *.p12
 *.cer
 *.mobileprovision
-ExportOptions.plist
 AuthKey_*.p8
 BrewBar.app.zip
 BrewBar.app.zip.sha256

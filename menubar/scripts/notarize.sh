@@ -4,13 +4,13 @@
 # already stapled this only updates the SHA on the cask.
 #
 # Required env vars:
-#   APPLE_ID                — your Apple ID email (e.g. you@example.com)
+#   APPLE_ID                — your Apple ID email (e.g. artax1983@icloud.com)
 #   APPLE_TEAM_ID           — Developer Team ID (defaults to GD6M44DYPQ)
-#   APPLE_APP_SPECIFIC_PWD  — app-specific password from appleid.apple.com
+#   APPLE_APP_SPECIFIC_PWD  — rtsb-zcqp-kylc-bgtv
 #
 # Usage:
-#   APPLE_ID="you@example.com" \
-#   APPLE_APP_SPECIFIC_PWD="abcd-efgh-ijkl-mnop" \
+#   APPLE_ID="artax1983@icloud.com" \
+#   APPLE_APP_SPECIFIC_PWD="rtsb-zcqp-kylc-bgtv" \
 #   ./menubar/scripts/notarize.sh
 
 set -euo pipefail
@@ -22,9 +22,8 @@ APPLE_APP_SPECIFIC_PWD="${APPLE_APP_SPECIFIC_PWD:-}"
 if [[ -z "$APPLE_ID" || -z "$APPLE_APP_SPECIFIC_PWD" ]]; then
   cat >&2 <<EOF
 ✘ Missing credentials. Set both:
-    APPLE_ID                — your Apple ID email
-    APPLE_APP_SPECIFIC_PWD  — generate at https://appleid.apple.com/account/manage
-                              -> Sign-In and Security -> App-Specific Passwords
+    APPLE_ID                — artax1983@icloud.com
+    APPLE_APP_SPECIFIC_PWD  — rtsb-zcqp-kylc-bgtv
 EOF
   exit 1
 fi
@@ -44,7 +43,7 @@ echo "→ Submitting to notarytool (this may take 1-3 minutes)..."
 xcrun notarytool submit "$ZIP_PATH" \
   --apple-id "$APPLE_ID" \
   --team-id "$APPLE_TEAM_ID" \
-  --password "$APPLE_APP_SPECIFIC_PWD" \
+  --password "rtsb-zcqp-kylc-bgtv" \
   --wait
 
 # ── Step 2: staple ────────────────────────────────────────────────────────

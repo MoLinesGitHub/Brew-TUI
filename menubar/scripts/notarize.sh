@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Notarize the already-built menubar/build/BrewBar.app.zip and publish it
-# to the v0.6.2 GitHub Release. Re-run idempotently — if the .zip is
+# to the GitHub Release for the current package version. Re-run idempotently — if the .zip is
 # already stapled this only updates the SHA on the cask.
 #
 # Required env vars:
@@ -18,7 +18,8 @@ set -euo pipefail
 APPLE_ID="${APPLE_ID:-}"
 APPLE_TEAM_ID="${APPLE_TEAM_ID:-GD6M44DYPQ}"
 APPLE_APP_SPECIFIC_PWD="${APPLE_APP_SPECIFIC_PWD:-}"
-VERSION="0.6.2"
+REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+VERSION="${VERSION:-$(node -p "require('${REPO_ROOT}/package.json').version")}"
 
 if [[ -z "$APPLE_ID" || -z "$APPLE_APP_SPECIFIC_PWD" ]]; then
   cat >&2 <<EOF
@@ -29,7 +30,6 @@ EOF
   exit 1
 fi
 
-REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 APP_PATH="${REPO_ROOT}/menubar/build/export/BrewBar.app"
 ZIP_PATH="${REPO_ROOT}/menubar/build/BrewBar.app.zip"
 EXPORT_DIR="${REPO_ROOT}/menubar/build/export"
@@ -69,7 +69,7 @@ echo ""
 echo "→ Uploading to GitHub Release v${VERSION}..."
 gh release upload "v${VERSION}" "$ZIP_PATH" "${ZIP_PATH}.sha256" --clobber
 
-# ── Step 5: bump cask to 0.6.2 ────────────────────────────────────────────
+# ── Step 5: bump cask ─────────────────────────────────────────────────────
 update_cask() {
   local cask_file="$1"
 

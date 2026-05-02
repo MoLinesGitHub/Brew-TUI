@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.7.0] - 2026-05-02
+
+### Fixed
+- **BrewBar release channel:** notarization and cask publishing now target the
+  active package version instead of a hardcoded release tag.
+- **AsyncState lint gate:** preserved the public `AsyncState` helper API while
+  avoiding the TypeScript value/type redeclaration that blocked pre-push lint.
+
+### Changed
+- **BrewBar:** version bumped to 0.7.0 for the notarized macOS companion app.
+- **Homebrew:** formula and cask release metadata prepared for Brew-TUI and
+  BrewBar 0.7.0.
+- **Release metadata:** npm, JSR, package-lock and Tuist marketing versions now
+  move together for the 0.7.0 release.
+
 ## [0.6.2] - 2026-05-01
 
 ### Fixed

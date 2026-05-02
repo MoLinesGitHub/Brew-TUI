@@ -4,13 +4,13 @@
 # already stapled this only updates the SHA on the cask.
 #
 # Required env vars:
-#   APPLE_ID                — your Apple ID email (e.g. artax1983@icloud.com)
+#   APPLE_ID                — your Apple ID email
 #   APPLE_TEAM_ID           — Developer Team ID (defaults to GD6M44DYPQ)
-#   APPLE_APP_SPECIFIC_PWD  — rtsb-zcqp-kylc-bgtv
+#   APPLE_APP_SPECIFIC_PWD  — app-specific password from appleid.apple.com
 #
 # Usage:
-#   APPLE_ID="artax1983@icloud.com" \
-#   APPLE_APP_SPECIFIC_PWD="rtsb-zcqp-kylc-bgtv" \
+#   APPLE_ID="you@example.com" \
+#   APPLE_APP_SPECIFIC_PWD="app-specific-password" \
 #   ./menubar/scripts/notarize.sh
 
 set -euo pipefail
@@ -18,12 +18,13 @@ set -euo pipefail
 APPLE_ID="${APPLE_ID:-}"
 APPLE_TEAM_ID="${APPLE_TEAM_ID:-GD6M44DYPQ}"
 APPLE_APP_SPECIFIC_PWD="${APPLE_APP_SPECIFIC_PWD:-}"
+VERSION="0.6.2"
 
 if [[ -z "$APPLE_ID" || -z "$APPLE_APP_SPECIFIC_PWD" ]]; then
   cat >&2 <<EOF
 ✘ Missing credentials. Set both:
-    APPLE_ID                — artax1983@icloud.com
-    APPLE_APP_SPECIFIC_PWD  — rtsb-zcqp-kylc-bgtv
+    APPLE_ID
+    APPLE_APP_SPECIFIC_PWD
 EOF
   exit 1
 fi
@@ -43,7 +44,7 @@ echo "→ Submitting to notarytool (this may take 1-3 minutes)..."
 xcrun notarytool submit "$ZIP_PATH" \
   --apple-id "$APPLE_ID" \
   --team-id "$APPLE_TEAM_ID" \
-  --password "rtsb-zcqp-kylc-bgtv" \
+  --password "$APPLE_APP_SPECIFIC_PWD" \
   --wait
 
 # ── Step 2: staple ────────────────────────────────────────────────────────
@@ -65,26 +66,36 @@ echo "  $ZIP_PATH"
 echo "  SHA256: $SHA"
 echo ""
 
-echo "→ Uploading to GitHub Release v0.6.2..."
-gh release upload v0.6.2 "$ZIP_PATH" "${ZIP_PATH}.sha256" --clobber
+echo "→ Uploading to GitHub Release v${VERSION}..."
+gh release upload "v${VERSION}" "$ZIP_PATH" "${ZIP_PATH}.sha256" --clobber
 
 # ── Step 5: bump cask to 0.6.2 ────────────────────────────────────────────
+update_cask() {
+  local cask_file="$1"
+
+  perl -i -pe "s/^  version \"[^\"]+\"/  version \"${VERSION}\"/" "$cask_file"
+  perl -i -pe "s/^  sha256 \"[^\"]+\"/  sha256 \"${SHA}\"/" "$cask_file"
+}
+
+LOCAL_CASK_FILE="${REPO_ROOT}/homebrew/Casks/brewbar.rb"
+if [[ -f "$LOCAL_CASK_FILE" ]]; then
+  update_cask "$LOCAL_CASK_FILE"
+fi
+
 TAP_DIR="$(mktemp -d)/homebrew-tap"
 git clone https://github.com/MoLinesDesigns/homebrew-tap "$TAP_DIR"
 CASK_FILE="${TAP_DIR}/Casks/brewbar.rb"
 
-# Replace version + sha256 in-place
-perl -i -pe 's/^  version "[^"]+"/  version "0.6.2"/' "$CASK_FILE"
-perl -i -pe "s/^  sha256 \"[^\"]+\"/  sha256 \"${SHA}\"/" "$CASK_FILE"
+update_cask "$CASK_FILE"
 
 cd "$TAP_DIR"
 git add Casks/brewbar.rb
-git commit -m "chore: bump brewbar 0.6.1 → 0.6.2 (notarized)
+git commit -m "chore: bump brewbar to ${VERSION} (notarized)
 
-Stapled .app published to MoLinesDesigns/Brew-TUI release v0.6.2.
+Stapled .app published to MoLinesDesigns/Brew-TUI release v${VERSION}.
 SHA256: ${SHA}"
 git push origin HEAD
 
 echo ""
 echo "✓ Done. Cask bumped on MoLinesDesigns/homebrew-tap. Users running"
-echo "  'brew upgrade --cask brewbar' will pick up the notarized 0.6.2."
+echo "  'brew upgrade --cask brewbar' will pick up the notarized ${VERSION}."

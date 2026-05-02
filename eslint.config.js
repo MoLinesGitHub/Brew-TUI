@@ -34,6 +34,8 @@ export default [
       // Override specific rules after spreading recommended defaults
       'no-unused-vars': 'off',
       '@typescript-eslint/no-unused-vars': ['warn', { varsIgnorePattern: '^_', argsIgnorePattern: '^_' }],
+      'no-redeclare': 'off',
+      '@typescript-eslint/no-redeclare': 'error',
       'no-undef': 'off', // TypeScript handles this
     },
   },

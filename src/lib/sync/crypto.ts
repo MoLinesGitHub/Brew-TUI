@@ -28,6 +28,8 @@ function deriveEncryptionKey(licenseKey: string): Buffer {
 
 // Legacy key — scrypt(SECRET, SALT), no license-key factor. Used as a
 // decryption fallback for envelopes written by 0.6.2 and earlier.
+// TODO(SEG-003, 0.6.3): remove `_legacyKey` after telemetry confirms zero
+// fallback decrypts in the wild.
 function deriveLegacyKey(): Buffer {
   if (!_legacyKey) {
     _legacyKey = scryptSync(ENCRYPTION_SECRET, HKDF_SALT, 32, { N: 16384, r: 8, p: 1 });

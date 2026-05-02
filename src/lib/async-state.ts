@@ -14,7 +14,7 @@ export type AsyncState<T> =
   | { status: 'success'; data: T; loadedAt: number }
   | { status: 'error'; message: string };
 
-export const AsyncState = {
+const asyncState = {
   idle<T>(): AsyncState<T> { return { status: 'idle' }; },
   loading<T>(): AsyncState<T> { return { status: 'loading' }; },
   success<T>(data: T): AsyncState<T> { return { status: 'success', data, loadedAt: Date.now() }; },
@@ -37,3 +37,5 @@ export const AsyncState = {
     return { status: 'idle' };
   },
 };
+
+export { asyncState as AsyncState };

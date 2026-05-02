@@ -63,9 +63,9 @@ struct LicenseChecker {
     //
     // Legacy fallback: license.json files written by 0.6.2 and earlier are
     // ciphered with the constant scrypt key whose pre-computed hex is below.
-    // We try the HKDF key first, then fall back to legacy. Once 0.6.2 is fully
-    // rolled out and TS has re-ciphered every install on next saveLicense,
-    // the legacy path can be deleted.
+    // We try the HKDF key first, then fall back to legacy. TODO(SEG-003,
+    // 0.6.3): delete the `let hex` legacy key path after telemetry confirms
+    // zero fallback decrypts in the wild.
     private static let encryptionSecret = "brew-tui-license-aes256gcm-v1"
     private static let hkdfSalt = "brew-tui-salt-v1"
     private static let machineIdPath: String = NSHomeDirectory() + "/.brew-tui/machine-id"

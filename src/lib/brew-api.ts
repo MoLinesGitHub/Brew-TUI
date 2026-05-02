@@ -48,7 +48,10 @@ export async function getInstalled(): Promise<{ formulae: Formula[]; casks: Cask
 }
 
 export async function getOutdated(): Promise<{ formulae: OutdatedPackage[]; casks: OutdatedPackage[] }> {
-  const raw = await execBrew(['outdated', '--json=v2', '--greedy']);
+  // Match `brew outdated` exactly: skip `--greedy`. Auto-updating casks
+  // (Firefox, Docker, Warp, …) carry stale Homebrew metadata and would
+  // otherwise show as outdated even when the app already updated itself.
+  const raw = await execBrew(['outdated', '--json=v2']);
   return parseOutdatedJson(raw);
 }
 

@@ -1,4 +1,26 @@
 import ProjectDescription
+import Foundation
+
+// Single source of truth: the marketing version comes from ../package.json so
+// Brew-TUI (TS) and BrewBar (Swift) cannot drift. Override at build time with
+// `MARKETING_VERSION=x.y.z tuist generate` if you ever need to detach them.
+private func readMarketingVersion() -> String {
+    let url = URL(fileURLWithPath: #filePath)
+        .deletingLastPathComponent() // menubar/
+        .deletingLastPathComponent() // repo root
+        .appendingPathComponent("package.json")
+    guard let data = try? Data(contentsOf: url),
+          let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+          let version = json["version"] as? String,
+          !version.isEmpty
+    else {
+        // Fail loud at generate-time rather than silently shipping a wrong version.
+        fatalError("Project.swift: could not read \"version\" from package.json at \(url.path)")
+    }
+    return version
+}
+
+private let marketingVersion = readMarketingVersion()
 
 let project = Project(
     name: "BrewBar",
@@ -10,7 +32,7 @@ let project = Project(
         base: [
             "SWIFT_VERSION": "6.0",
             "MACOSX_DEPLOYMENT_TARGET": "14.0",
-            "MARKETING_VERSION": "$(MARKETING_VERSION:default=0.7.0)",
+            "MARKETING_VERSION": .string("$(MARKETING_VERSION:default=\(marketingVersion))"),
             "CURRENT_PROJECT_VERSION": "1",
             "DEAD_CODE_STRIPPING": "YES",
             "ENABLE_USER_SCRIPT_SANDBOXING": "YES",

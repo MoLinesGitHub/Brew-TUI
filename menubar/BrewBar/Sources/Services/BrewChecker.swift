@@ -24,7 +24,10 @@ struct BrewChecker: Sendable {
 
     func checkOutdated() async throws -> OutdatedResponse {
         brewCheckerLogger.info("Checking for outdated packages")
-        let data = try await BrewProcess.run(["outdated", "--json=v2", "--greedy"])
+        // Match `brew outdated` exactly: skip `--greedy`. Auto-updating casks
+        // (Firefox, Docker, Warp, …) carry stale Homebrew metadata and would
+        // otherwise show as outdated even when the app already updated itself.
+        let data = try await BrewProcess.run(["outdated", "--json=v2"])
         let result = try JSONDecoder().decode(OutdatedResponse.self, from: data)
         brewCheckerLogger.info("Found \(result.formulae.count + result.casks.count) outdated packages")
         return result

@@ -13,6 +13,13 @@ import { installCrashReporter, reportError } from './lib/crash-reporter.js';
 const [,, command, arg] = process.argv;
 
 async function runCli() {
+  // --version / -v: print and exit before any TUI/Ink/data-dir setup so that
+  // BrewBar (and any tooling) can read the version cheaply via execFile.
+  if (command === '--version' || command === '-v' || command === 'version') {
+    process.stdout.write((process.env.APP_VERSION ?? '0.0.0') + '\n');
+    return;
+  }
+
   await ensureDataDirs();
   await installCrashReporter();
 
@@ -230,12 +237,24 @@ async function ensureBrewBarRunning() {
   if (!useLicenseStore.getState().isPro()) return;
 
   const { isBrewBarInstalled, installBrewBar, launchBrewBar } = await import('./lib/brewbar-installer.js');
+  const { checkBrewBarVersion } = await import('./lib/version-check.js');
 
   try {
     if (!await isBrewBarInstalled()) {
       console.log(t('cli_brewbarInstalling'));
       await installBrewBar(true, false);
       console.log(t('cli_brewbarInstalled'));
+    } else {
+      // Cross-platform contract: BrewBar must match Brew-TUI's version so
+      // license decryption and any future IPC stay compatible. If the user's
+      // BrewBar is older than this CLI (e.g. they upgraded brew-tui via
+      // Homebrew/npm but never re-ran install-brewbar), reinstall in place.
+      const status = await checkBrewBarVersion();
+      if (status.kind === 'outdated') {
+        console.log(t('cli_brewbarUpdating', { installed: status.installed, expected: status.expected }));
+        await installBrewBar(true, true);
+        console.log(t('cli_brewbarInstalled'));
+      }
     }
     await launchBrewBar();
   } catch (err) {

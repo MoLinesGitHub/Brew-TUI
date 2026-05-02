@@ -30,6 +30,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 return
             }
 
+            // Cross-platform version contract: warn (non-blocking) when the
+            // installed BrewBar drifts from the brew-tui CLI. License decryption
+            // may still work today, but skew has bitten us before (HKDF schema
+            // bump). Continue to license check either way.
+            let versionStatus = await VersionChecker.check()
+            if case let .mismatch(brewTui, brewBar) = versionStatus {
+                showVersionMismatch(brewTui: brewTui, brewBar: brewBar)
+            }
+
             // Check Pro license
             let licenseStatus = LicenseChecker.checkLicense()
             switch licenseStatus {
@@ -167,6 +176,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         alert.addButton(withTitle: String(localized: "Quit"))
         alert.runModal()
         NSApp.terminate(nil)
+    }
+
+    private func showVersionMismatch(brewTui: String, brewBar: String) {
+        let alert = NSAlert()
+        alert.messageText = String(localized: "BrewBar version mismatch")
+        let template = String(localized: "BrewBar %@ is out of sync with Brew-TUI %@. They must match for license decryption and updates.\n\nRun this in the terminal:\n\n  brew-tui install-brewbar --force")
+        alert.informativeText = String(format: template, brewBar, brewTui)
+        alert.alertStyle = .warning
+        alert.addButton(withTitle: String(localized: "Copy Update Command"))
+        alert.addButton(withTitle: String(localized: "Continue Anyway"))
+
+        let response = alert.runModal()
+        if response == .alertFirstButtonReturn {
+            NSPasteboard.general.clearContents()
+            NSPasteboard.general.setString("brew-tui install-brewbar --force", forType: .string)
+        }
     }
 
     private func showLicenseExpired() {

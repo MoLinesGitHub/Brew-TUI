@@ -388,6 +388,8 @@ const es: Translations = {
   cli_brewbarMacOnly: '\u2718 BrewBar solo est\u00E1 disponible en macOS.',
   cli_brewbarDownloadFailed: '\u2718 Error al descargar BrewBar: {{error}}',
   cli_brewbarAutoFailed: '\u26A0 No se pudo lanzar BrewBar automáticamente: {{error}}',
+  cli_brewbarUpdating: 'Actualizando BrewBar de {{installed}} a {{expected}} para igualar Brew-TUI...',
+  cli_brewbarVersionMismatch: '\u26A0 BrewBar {{installed}} no coincide con Brew-TUI {{expected}}. Ejecuta: brew-tui install-brewbar --force',
   cli_deactivateRemoteFailed: '\u26A0 Advertencia: No se pudo contactar al servidor para desactivar remotamente. La licencia se elimin\u00F3 localmente pero puede seguir contando como activa.',
 
   // ── License degradation (Layer 15) ──

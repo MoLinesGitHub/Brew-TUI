@@ -387,6 +387,8 @@ const en = {
   cli_brewbarMacOnly: '\u2718 BrewBar is only available on macOS.',
   cli_brewbarDownloadFailed: '\u2718 Failed to download BrewBar: {{error}}',
   cli_brewbarAutoFailed: '\u26A0 BrewBar auto-launch failed: {{error}}',
+  cli_brewbarUpdating: 'Updating BrewBar from {{installed}} to {{expected}} to match Brew-TUI...',
+  cli_brewbarVersionMismatch: '\u26A0 BrewBar {{installed}} is out of sync with Brew-TUI {{expected}}. Run: brew-tui install-brewbar --force',
   cli_deactivateRemoteFailed: '\u26A0 Warning: Could not reach the server to deactivate remotely. The license was removed locally but may still count as active.',
 
   // ── License degradation (Layer 15) ──

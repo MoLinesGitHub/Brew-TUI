@@ -4,9 +4,13 @@ import Foundation
 // Single source of truth: the marketing version comes from ../package.json so
 // Brew-TUI (TS) and BrewBar (Swift) cannot drift. Override at build time with
 // `MARKETING_VERSION=x.y.z tuist generate` if you ever need to detach them.
+//
+// Tuist evaluates this manifest from a temp directory, so `#filePath` is not
+// reliable — instead resolve relative to the current working directory, which
+// Tuist sets to the manifest's containing folder (menubar/).
 private func readMarketingVersion() -> String {
-    let url = URL(fileURLWithPath: #filePath)
-        .deletingLastPathComponent() // menubar/
+    let cwd = FileManager.default.currentDirectoryPath
+    let url = URL(fileURLWithPath: cwd)
         .deletingLastPathComponent() // repo root
         .appendingPathComponent("package.json")
     guard let data = try? Data(contentsOf: url),
